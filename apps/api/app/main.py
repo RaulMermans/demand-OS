@@ -1,0 +1,32 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.config import get_settings
+from app.api import health, ingestion, forecasts, risks, recommendations, metrics, overview
+
+settings = get_settings()
+
+app = FastAPI(
+    title=settings.app_name,
+    version=settings.app_version,
+    description=(
+        "DemandOS — demand forecasting and inventory risk platform. "
+        "This is a scaffold build; real ML pipeline activates in Sprint 2."
+    ),
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(health.router, tags=["health"])
+app.include_router(ingestion.router, prefix="/api", tags=["ingestion"])
+app.include_router(forecasts.router, prefix="/api", tags=["forecasts"])
+app.include_router(risks.router, prefix="/api", tags=["risks"])
+app.include_router(recommendations.router, prefix="/api", tags=["recommendations"])
+app.include_router(metrics.router, prefix="/api", tags=["metrics"])
+app.include_router(overview.router, prefix="/api", tags=["overview"])

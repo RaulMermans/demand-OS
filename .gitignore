@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.env
+*.db
+*.sqlite3
+
+# Node
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# Env files (never commit real credentials)
+.env
+.env.local
+.env.*.local
+apps/api/.env
+apps/web/.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Models
+models/*.pkl
+models/*.joblib
+models/*.json
+models/*.bin
+models/*.lgb
+models/*.xgb
+
+# Data — raw and processed data files (keep gitkeep, ignore real data)
+data/raw/*
+data/processed/*
+data/sample_uploads/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/sample_uploads/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
