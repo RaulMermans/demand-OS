@@ -28,9 +28,27 @@ class OverviewResponse(BaseModel):
     summary: dict[str, Any]
 
 
+class IngestionRunSummary(BaseModel):
+    run_id: str
+    connector: str
+    status: str
+    started_at: str
+    completed_at: Optional[str] = None
+    records_ingested: int
+    counts: dict[str, Any]
+
+
 class DataHealthResponse(BaseModel):
     status: str
     data_mode: str
+    products_count: int = 0
+    stores_count: int = 0
+    orders_count: int = 0
+    inventory_snapshots_count: int = 0
+    promotions_count: int = 0
+    suppliers_count: int = 0
+    purchase_orders_count: int = 0
+    latest_ingestion_run: Optional[dict[str, Any]] = None
     checks: list[dict[str, Any]]
     message: str
 

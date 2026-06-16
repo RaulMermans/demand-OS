@@ -160,7 +160,7 @@ class IngestionRun(Base):
     status = Column(String)           # running / success / failed
     records_ingested = Column(Integer, default=0)
     error_message = Column(Text)
-    metadata = Column(JSON, default=dict)
+    run_metadata = Column(JSON, default=dict)     # renamed: 'metadata' is reserved in SA
 
 
 class PipelineEvent(Base):
@@ -174,7 +174,7 @@ class PipelineEvent(Base):
     entity_type = Column(String)
     entity_id = Column(String)
     occurred_at = Column(DateTime, default=datetime.utcnow)
-    metadata = Column(JSON, default=dict)
+    event_metadata = Column(JSON, default=dict)   # renamed: 'metadata' is reserved in SA
 
 
 # ---------------------------------------------------------------------------

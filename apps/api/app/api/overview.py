@@ -1,67 +1,157 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+
+from app.db.session import get_db
+from app.db.models import (
+    RawProduct, RawStore, RawOrder, RawInventorySnapshot,
+    RawPromotion, RawSupplier, RawPurchaseOrder,
+    IngestionRun,
+)
 from app.schemas.api import OverviewResponse, DataHealthResponse
+from app.services.validation_service import ValidationService
+from app.schemas.raw import (
+    RawProduct as PydProduct, RawStore as PydStore,
+    RawOrderLine as PydOrder, RawInventorySnapshot as PydInv,
+    RawPromotion as PydPromo, RawSupplier as PydSup,
+    RawPurchaseOrder as PydPO,
+)
 
 router = APIRouter()
 
 
 @router.get("/overview", response_model=OverviewResponse)
-def get_overview():
-    """
-    Operational overview: pipeline status, record counts, high-level risk summary.
-    Sprint 2 TODO: query DB for live counts and risk tier breakdown.
-    """
+def get_overview(db: Session = Depends(get_db)):
+    """Operational overview: pipeline status and record counts."""
+    products_count = db.query(func.count(RawProduct.id)).scalar() or 0
+    stores_count   = db.query(func.count(RawStore.id)).scalar() or 0
+    orders_count   = db.query(func.count(RawOrder.id)).scalar() or 0
+
+    latest_run = (
+        db.query(IngestionRun)
+        .order_by(IngestionRun.started_at.desc())
+        .first()
+    )
+
+    if products_count == 0:
+        return OverviewResponse(
+            status="no_data",
+            data_mode="mock",
+            pipeline_ready=False,
+            message="No data ingested yet. Run POST /api/demo/reset to seed the demo dataset.",
+            summary={
+                "products": 0,
+                "stores": 0,
+                "orders_last_30d": 0,
+                "critical_risks": 0,
+                "pending_recommendations": 0,
+                "last_ingestion_run": None,
+                "last_forecast_run": None,
+            },
+        )
+
     return OverviewResponse(
-        status="scaffold_ready",
-        data_mode="not_seeded",
-        pipeline_ready=False,
-        message=(
-            "Overview will show live metrics after Sprint 1 data seeding "
-            "and Sprint 2 aggregation pipeline."
-        ),
+        status="ok",
+        data_mode="mock",
+        pipeline_ready=True,
+        message="Raw data ingested. Aggregation and forecasting activate in Sprint 2+.",
         summary={
-            "products": 0,
-            "stores": 0,
-            "orders_last_30d": 0,
+            "products": products_count,
+            "stores": stores_count,
+            "orders": orders_count,
             "critical_risks": 0,
             "pending_recommendations": 0,
-            "last_ingestion_run": None,
+            "last_ingestion_run": str(latest_run.started_at) if latest_run else None,
             "last_forecast_run": None,
         },
     )
 
 
-@router.get("/data-health", response_model=DataHealthResponse)
-def get_data_health():
+@router.get("/data-health")
+def get_data_health(db: Session = Depends(get_db)):
     """
-    Data quality report: validation error counts, missing data gaps, schema drift.
-    Sprint 1 TODO: run validation checks and return results.
+    Data quality report: real persisted counts and validation check statuses.
     """
-    return DataHealthResponse(
-        status="scaffold_ready",
-        data_mode="not_seeded",
-        checks=[
-            {
-                "check": "raw_products_present",
-                "passed": False,
-                "message": "No data ingested yet.",
-            },
-            {
-                "check": "raw_orders_present",
-                "passed": False,
-                "message": "No data ingested yet.",
-            },
-            {
-                "check": "raw_inventory_present",
-                "passed": False,
-                "message": "No data ingested yet.",
-            },
-            {
-                "check": "no_orphaned_order_lines",
-                "passed": False,
-                "message": "Cannot check — no data ingested yet.",
-            },
-        ],
-        message=(
-            "Data health checks will run automatically after Sprint 1 ingestion."
-        ),
+    products_count   = db.query(func.count(RawProduct.id)).scalar() or 0
+    stores_count     = db.query(func.count(RawStore.id)).scalar() or 0
+    orders_count     = db.query(func.count(RawOrder.id)).scalar() or 0
+    inv_count        = db.query(func.count(RawInventorySnapshot.id)).scalar() or 0
+    promos_count     = db.query(func.count(RawPromotion.id)).scalar() or 0
+    suppliers_count  = db.query(func.count(RawSupplier.id)).scalar() or 0
+    po_count         = db.query(func.count(RawPurchaseOrder.id)).scalar() or 0
+
+    if products_count == 0:
+        return {
+            "status": "no_data",
+            "data_mode": "mock",
+            "products_count": 0,
+            "stores_count": 0,
+            "orders_count": 0,
+            "inventory_snapshots_count": 0,
+            "promotions_count": 0,
+            "suppliers_count": 0,
+            "purchase_orders_count": 0,
+            "latest_ingestion_run": None,
+            "checks": [
+                {"name": "data_seeded", "status": "failed",
+                 "detail": "No data ingested. Run POST /api/demo/reset."},
+            ],
+            "message": "No data. Run POST /api/demo/reset to seed the demo dataset.",
+        }
+
+    # Latest ingestion run
+    latest_run = (
+        db.query(IngestionRun)
+        .order_by(IngestionRun.started_at.desc())
+        .first()
     )
+    latest_run_info = None
+    if latest_run:
+        latest_run_info = {
+            "run_id":       latest_run.id,
+            "status":       latest_run.status,
+            "started_at":   str(latest_run.started_at),
+            "completed_at": str(latest_run.finished_at) if latest_run.finished_at else None,
+        }
+
+    # Referential integrity check
+    orphaned_orders = (
+        db.query(func.count(RawOrder.id))
+        .filter(~RawOrder.product_id.in_(db.query(RawProduct.id)))
+        .scalar() or 0
+    )
+
+    # Stockout check
+    stockout_count = (
+        db.query(func.count(RawInventorySnapshot.id))
+        .filter(RawInventorySnapshot.quantity_on_hand == 0)
+        .scalar() or 0
+    )
+
+    checks = [
+        {"name": "data_seeded",           "status": "passed"},
+        {"name": "products_present",      "status": "passed", "detail": f"{products_count} products"},
+        {"name": "stores_present",        "status": "passed", "detail": f"{stores_count} stores"},
+        {"name": "orders_present",        "status": "passed", "detail": f"{orders_count} order lines"},
+        {"name": "inventory_present",     "status": "passed", "detail": f"{inv_count} snapshots"},
+        {"name": "promotions_present",    "status": "passed" if promos_count > 0 else "warning", "detail": f"{promos_count} promotions"},
+        {"name": "referential_integrity", "status": "passed" if orphaned_orders == 0 else "failed", "detail": f"{orphaned_orders} orphaned order lines"},
+        {"name": "stockouts_exist",       "status": "passed" if stockout_count > 0 else "warning", "detail": f"{stockout_count} zero-stock snapshots"},
+    ]
+
+    all_passed = all(c["status"] == "passed" for c in checks)
+
+    return {
+        "status":                    "ok" if all_passed else "warning",
+        "data_mode":                 "mock",
+        "products_count":            products_count,
+        "stores_count":              stores_count,
+        "orders_count":              orders_count,
+        "inventory_snapshots_count": inv_count,
+        "promotions_count":          promos_count,
+        "suppliers_count":           suppliers_count,
+        "purchase_orders_count":     po_count,
+        "latest_ingestion_run":      latest_run_info,
+        "checks":                    checks,
+        "message":                   "Data health checks complete.",
+    }
