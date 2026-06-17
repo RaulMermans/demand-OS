@@ -182,34 +182,218 @@ class PipelineEvent(Base):
 # Tables exist in schema; pipeline does not populate them yet.
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Cleaned layer  (Sprint 2)  — filtered / deduplicated copies of raw tables
+# ---------------------------------------------------------------------------
+
+class OrdersClean(Base):
+    """Fulfilled and pending orders only (cancelled/returned excluded)."""
+    __tablename__ = "orders_clean"
+
+    id = Column(String, primary_key=True)
+    raw_order_id = Column(String, ForeignKey("raw_orders.id"), nullable=False, index=True)
+    product_id = Column(String, nullable=False, index=True)
+    store_id = Column(String, nullable=False, index=True)
+    order_date = Column(Date, nullable=False, index=True)
+    quantity = Column(Float, nullable=False)
+    unit_price = Column(Float, nullable=False)
+    discount_amount = Column(Float, default=0.0)
+    currency = Column(String, default="EUR")
+    promotion_id = Column(String, nullable=True)
+    aggregation_run_id = Column(String, nullable=True)
+    cleaned_at = Column(DateTime, default=datetime.utcnow)
+
+
+class InventoryClean(Base):
+    """Latest snapshot per (product, store, date); duplicates removed."""
+    __tablename__ = "inventory_clean"
+
+    id = Column(String, primary_key=True)
+    raw_snapshot_id = Column(String, ForeignKey("raw_inventory_snapshots.id"), nullable=False, index=True)
+    product_id = Column(String, nullable=False, index=True)
+    store_id = Column(String, nullable=False, index=True)
+    snapshot_date = Column(Date, nullable=False, index=True)
+    on_hand = Column(Float, nullable=False)
+    on_order = Column(Float, default=0.0)
+    aggregation_run_id = Column(String, nullable=True)
+    cleaned_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PromotionsClean(Base):
+    """Promotions with valid date ranges."""
+    __tablename__ = "promotions_clean"
+
+    id = Column(String, primary_key=True)
+    raw_promotion_id = Column(String, ForeignKey("raw_promotions.id"), nullable=False, index=True)
+    name = Column(String)
+    promotion_type = Column(String)
+    discount_pct = Column(Float, default=0.0)
+    start_date = Column(Date)
+    end_date = Column(Date)
+    applicable_skus = Column(JSON, default=list)
+    applicable_stores = Column(JSON, default=list)
+    aggregation_run_id = Column(String, nullable=True)
+    cleaned_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ProductsClean(Base):
+    """Active products with normalized attributes."""
+    __tablename__ = "products_clean"
+
+    id = Column(String, primary_key=True)
+    raw_product_id = Column(String, ForeignKey("raw_products.id"), nullable=False, index=True)
+    sku = Column(String, nullable=False)
+    name = Column(String)
+    category = Column(String)
+    brand = Column(String)
+    supplier_id = Column(String, nullable=True)
+    unit_cost = Column(Float)
+    unit_price = Column(Float)
+    lead_time_days = Column(Integer)
+    aggregation_run_id = Column(String, nullable=True)
+    cleaned_at = Column(DateTime, default=datetime.utcnow)
+
+
+class StoresClean(Base):
+    """Active stores with normalized channel."""
+    __tablename__ = "stores_clean"
+
+    id = Column(String, primary_key=True)
+    raw_store_id = Column(String, ForeignKey("raw_stores.id"), nullable=False, index=True)
+    name = Column(String)
+    region = Column(String)
+    country = Column(String)
+    channel = Column(String)
+    aggregation_run_id = Column(String, nullable=True)
+    cleaned_at = Column(DateTime, default=datetime.utcnow)
+
+
+class SuppliersClean(Base):
+    """Suppliers with valid reliability scores."""
+    __tablename__ = "suppliers_clean"
+
+    id = Column(String, primary_key=True)
+    raw_supplier_id = Column(String, ForeignKey("raw_suppliers.id"), nullable=False, index=True)
+    name = Column(String)
+    country = Column(String)
+    lead_time_days_min = Column(Integer)
+    lead_time_days_max = Column(Integer)
+    reliability_score = Column(Float)
+    aggregation_run_id = Column(String, nullable=True)
+    cleaned_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PurchaseOrdersClean(Base):
+    """Purchase orders with valid delivery dates."""
+    __tablename__ = "purchase_orders_clean"
+
+    id = Column(String, primary_key=True)
+    raw_po_id = Column(String, ForeignKey("raw_purchase_orders.id"), nullable=False, index=True)
+    supplier_id = Column(String, nullable=True)
+    product_id = Column(String, nullable=False, index=True)
+    store_id = Column(String, nullable=False, index=True)
+    ordered_date = Column(Date, nullable=False, index=True)
+    expected_delivery_date = Column(Date, nullable=True)
+    quantity_ordered = Column(Float, nullable=False)
+    unit_cost = Column(Float)
+    status = Column(String)
+    aggregation_run_id = Column(String, nullable=True)
+    cleaned_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
+# Canonical daily layer  (Sprint 2)
+# ---------------------------------------------------------------------------
+
 class SalesDaily(Base):
-    """Aggregated daily sales per product per store. Computed by aggregation_service."""
+    """Aggregated daily fulfilled sales per product per store. Computed by AggregationService."""
     __tablename__ = "sales_daily"
 
     id = Column(String, primary_key=True)
     product_id = Column(String, nullable=False, index=True)
     store_id = Column(String, nullable=False, index=True)
-    sale_date = Column(Date, nullable=False, index=True)
-    total_units = Column(Float)
-    total_revenue = Column(Float)
+    date = Column(Date, nullable=False, index=True)
+    units_sold = Column(Float, default=0.0)
+    net_revenue = Column(Float, default=0.0)
+    discount_amount = Column(Float, default=0.0)
     avg_unit_price = Column(Float)
-    order_count = Column(Integer)
+    order_count = Column(Integer, default=0)
     promotion_active = Column(Boolean, default=False)
+    source_run_id = Column(String, nullable=True)
     computed_at = Column(DateTime, default=datetime.utcnow)
 
 
 class InventoryDaily(Base):
-    """Daily inventory level per product per store. Computed by aggregation_service."""
+    """Daily inventory position per product per store. Computed by AggregationService."""
     __tablename__ = "inventory_daily"
 
     id = Column(String, primary_key=True)
     product_id = Column(String, nullable=False, index=True)
     store_id = Column(String, nullable=False, index=True)
-    snapshot_date = Column(Date, nullable=False, index=True)
-    quantity_on_hand = Column(Float)
-    quantity_on_order = Column(Float)
-    days_of_supply = Column(Float)     # computed: on_hand / avg_daily_demand
+    date = Column(Date, nullable=False, index=True)
+    on_hand_units = Column(Float, default=0.0)
+    on_order_units = Column(Float, default=0.0)
+    inbound_units = Column(Float, default=0.0)
+    stockout_flag = Column(Boolean, default=False)
+    days_of_supply = Column(Float, nullable=True)
+    source_run_id = Column(String, nullable=True)
     computed_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PromotionDaily(Base):
+    """Active promotion flag per product per store per day. Computed by AggregationService."""
+    __tablename__ = "promotion_daily"
+
+    id = Column(String, primary_key=True)
+    product_id = Column(String, nullable=False, index=True)
+    store_id = Column(String, nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
+    is_active = Column(Boolean, default=False)
+    promotion_id = Column(String, nullable=True)
+    discount_pct = Column(Float, default=0.0)
+    promotion_name = Column(String, nullable=True)
+    source_run_id = Column(String, nullable=True)
+    computed_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ProductStoreDaily(Base):
+    """Canonical denormalized daily fact: one row per (product, store, date). Computed by AggregationService."""
+    __tablename__ = "product_store_daily"
+
+    id = Column(String, primary_key=True)
+    date = Column(Date, nullable=False, index=True)
+    product_id = Column(String, nullable=False, index=True)
+    store_id = Column(String, nullable=False, index=True)
+    sku = Column(String)
+    product_name = Column(String)
+    category = Column(String)
+    channel = Column(String)
+    units_sold = Column(Float, default=0.0)
+    net_revenue = Column(Float, default=0.0)
+    discount_amount = Column(Float, default=0.0)
+    on_hand_units = Column(Float, nullable=True)
+    on_order_units = Column(Float, nullable=True)
+    inbound_units = Column(Float, default=0.0)
+    stockout_flag = Column(Boolean, default=False)
+    days_of_supply = Column(Float, nullable=True)
+    promotion_active = Column(Boolean, default=False)
+    discount_pct = Column(Float, default=0.0)
+    source_run_id = Column(String, nullable=True)
+    computed_at = Column(DateTime, default=datetime.utcnow)
+
+
+class AggregationRun(Base):
+    """Tracks each execution of AggregationService.run_full_aggregation()."""
+    __tablename__ = "aggregation_runs"
+
+    id = Column(String, primary_key=True)
+    started_at = Column(DateTime, nullable=False)
+    finished_at = Column(DateTime)
+    start_date = Column(Date)
+    end_date = Column(Date)
+    status = Column(String)            # running / success / failed
+    error_message = Column(Text)
+    records_produced = Column(JSON, default=dict)
 
 
 class FeatureMatrix(Base):

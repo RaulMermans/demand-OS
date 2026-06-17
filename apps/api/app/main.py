@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.api import health, ingestion, forecasts, risks, recommendations, metrics, overview
-from app.api import demo
+from app.api import demo, aggregation
 from app.db.session import init_db
 
 settings = get_settings()
@@ -13,7 +13,7 @@ app = FastAPI(
     version=settings.app_version,
     description=(
         "DemandOS — demand forecasting and inventory risk platform. "
-        "Sprint 1: raw synthetic data generation and ingestion active."
+        "Sprint 2: raw ingestion + canonical daily aggregation active."
     ),
 )
 
@@ -39,3 +39,4 @@ app.include_router(risks.router,            prefix="/api", tags=["risks"])
 app.include_router(recommendations.router,  prefix="/api", tags=["recommendations"])
 app.include_router(metrics.router,          prefix="/api", tags=["metrics"])
 app.include_router(overview.router,         prefix="/api", tags=["overview"])
+app.include_router(aggregation.router,      prefix="/api", tags=["aggregation"])

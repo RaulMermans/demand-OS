@@ -6,7 +6,7 @@ from app.db.session import get_db
 from app.db.models import (
     RawProduct, RawStore, RawOrder, RawInventorySnapshot,
     RawPromotion, RawSupplier, RawPurchaseOrder,
-    IngestionRun,
+    IngestionRun, AggregationRun, SalesDaily, InventoryDaily, ProductStoreDaily,
 )
 from app.schemas.api import OverviewResponse, DataHealthResponse
 from app.services.validation_service import ValidationService
@@ -114,6 +114,25 @@ def get_data_health(db: Session = Depends(get_db)):
             "completed_at": str(latest_run.finished_at) if latest_run.finished_at else None,
         }
 
+    # Latest aggregation run
+    latest_agg = (
+        db.query(AggregationRun)
+        .order_by(AggregationRun.started_at.desc())
+        .first()
+    )
+    latest_agg_info = None
+    if latest_agg:
+        latest_agg_info = {
+            "run_id": latest_agg.id,
+            "status": latest_agg.status,
+            "started_at": str(latest_agg.started_at),
+        }
+
+    # Canonical counts
+    sales_daily_count = db.query(func.count(SalesDaily.id)).scalar() or 0
+    inv_daily_count   = db.query(func.count(InventoryDaily.id)).scalar() or 0
+    psd_count         = db.query(func.count(ProductStoreDaily.id)).scalar() or 0
+
     # Referential integrity check
     orphaned_orders = (
         db.query(func.count(RawOrder.id))
@@ -134,9 +153,14 @@ def get_data_health(db: Session = Depends(get_db)):
         {"name": "stores_present",        "status": "passed", "detail": f"{stores_count} stores"},
         {"name": "orders_present",        "status": "passed", "detail": f"{orders_count} order lines"},
         {"name": "inventory_present",     "status": "passed", "detail": f"{inv_count} snapshots"},
-        {"name": "promotions_present",    "status": "passed" if promos_count > 0 else "warning", "detail": f"{promos_count} promotions"},
-        {"name": "referential_integrity", "status": "passed" if orphaned_orders == 0 else "failed", "detail": f"{orphaned_orders} orphaned order lines"},
-        {"name": "stockouts_exist",       "status": "passed" if stockout_count > 0 else "warning", "detail": f"{stockout_count} zero-stock snapshots"},
+        {"name": "promotions_present",    "status": "passed" if promos_count > 0 else "warning",
+         "detail": f"{promos_count} promotions"},
+        {"name": "referential_integrity", "status": "passed" if orphaned_orders == 0 else "failed",
+         "detail": f"{orphaned_orders} orphaned order lines"},
+        {"name": "stockouts_exist",       "status": "passed" if stockout_count > 0 else "warning",
+         "detail": f"{stockout_count} zero-stock snapshots"},
+        {"name": "aggregation_run",       "status": "passed" if latest_agg and latest_agg.status == "success" else "warning",
+         "detail": f"sales_daily={sales_daily_count}, inventory_daily={inv_daily_count}"},
     ]
 
     all_passed = all(c["status"] == "passed" for c in checks)
@@ -152,6 +176,12 @@ def get_data_health(db: Session = Depends(get_db)):
         "suppliers_count":           suppliers_count,
         "purchase_orders_count":     po_count,
         "latest_ingestion_run":      latest_run_info,
-        "checks":                    checks,
-        "message":                   "Data health checks complete.",
+        "latest_aggregation_run":    latest_agg_info,
+        "canonical_counts": {
+            "sales_daily":        sales_daily_count,
+            "inventory_daily":    inv_daily_count,
+            "product_store_daily": psd_count,
+        },
+        "checks":  checks,
+        "message": "Data health checks complete.",
     }

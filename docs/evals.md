@@ -16,12 +16,16 @@
 - Orphaned order lines (product_id not in raw_products) are flagged
 - ValidationService emits PipelineEvents for each error class
 
-## 3. Aggregation Tests (Sprint 2)
-- sales_daily totals match sum of order lines for same (product, store, date)
+## 3. Aggregation Tests (Sprint 2) ✅
+- sales_daily totals match sum of fulfilled order lines for same (product, store, date)
 - Cancelled/returned orders are excluded from sales_daily
-- inventory_daily days_of_supply = on_hand / rolling_mean_7d demand
-- Promotion flags are correctly joined
-- No days are skipped in date range
+- inventory_daily days_of_supply = on_hand / (rolling_7d_units / 7); NULL when no demand
+- stockout_flag = True when on_hand_units == 0
+- Promotion flags correctly joined (start_date ≤ date ≤ end_date, sku/store constraints)
+- product_store_daily has exactly (n_products × n_stores × n_days) rows
+- No forbidden ML fields in canonical tables
+- AggregationRun record created per run with status=success and record counts
+- Running aggregation twice produces identical row counts (idempotency)
 
 ## 4. Feature Engineering Tests (Sprint 3)
 - lag_7d for date D = total_units on D-7

@@ -53,6 +53,16 @@ class DataHealthResponse(BaseModel):
     message: str
 
 
+class AggregationRunSummary(BaseModel):
+    run_id: str
+    status: str
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    started_at: str
+    finished_at: Optional[str] = None
+    counts: dict[str, Any] = {}
+
+
 class ScaffoldNotReady(BaseModel):
     status: str = "scaffold_ready"
     data_mode: str = "not_seeded"

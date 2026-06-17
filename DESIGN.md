@@ -13,8 +13,9 @@ Raw → Clean → Aggregate → Feature → Model → Decision
 | Layer | Tables | Service | Sprint |
 |-------|--------|---------|--------|
 | Raw | raw_products, raw_stores, raw_orders, raw_inventory_snapshots, raw_promotions, raw_suppliers, raw_purchase_orders | IngestionService + ValidationService | 1 |
-| Ops | ingestion_runs, pipeline_events | IngestionService | 1 |
-| Aggregate | sales_daily, inventory_daily | AggregationService | 2 |
+| Ops | ingestion_runs, aggregation_runs, pipeline_events | IngestionService, AggregationService | 1–2 |
+| Clean | orders_clean, inventory_clean, promotions_clean, products_clean, stores_clean, suppliers_clean, purchase_orders_clean | AggregationService | 2 |
+| Aggregate | sales_daily, inventory_daily, promotion_daily, product_store_daily | AggregationService | 2 |
 | Feature | feature_matrix | FeatureService | 3 |
 | Model | model_versions, forecast_runs, forecasts | ForecastingService | 4 |
 | Decision | stockout_risks, reorder_recommendations, model_metrics | StockoutService, RecommendationService, EvaluationService | 5–6 |
@@ -106,7 +107,7 @@ Each service has exactly one responsibility:
 |---------|-------|--------|
 | IngestionService | connector | raw_* tables, ingestion_runs |
 | ValidationService | raw_* tables | pipeline_events |
-| AggregationService | raw_orders, raw_inventory_snapshots, raw_promotions | sales_daily, inventory_daily |
+| AggregationService | raw_* tables | *_clean tables, sales_daily, inventory_daily, promotion_daily, product_store_daily, aggregation_runs |
 | FeatureService | sales_daily, inventory_daily, raw_promotions, raw_suppliers | feature_matrix |
 | ForecastingService | feature_matrix | model_versions, forecast_runs, forecasts |
 | StockoutService | forecasts, inventory_daily, raw_products, raw_suppliers | stockout_risks |

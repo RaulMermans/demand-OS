@@ -39,6 +39,30 @@ This enables:
 - Multi-connector data merging
 - Debugging data quality issues by source
 
+## Canonical Daily Tables (Sprint 2)
+
+Produced by `AggregationService.run_full_aggregation(start_date, end_date)`.
+These tables are the input to Sprint 3 FeatureService — never to connectors.
+
+| Table | Key | Key fields |
+|-------|-----|-----------|
+| `sales_daily` | (product_id, store_id, date) | units_sold, net_revenue, discount_amount, order_count, promotion_active |
+| `inventory_daily` | (product_id, store_id, date) | on_hand_units, on_order_units, inbound_units, stockout_flag, days_of_supply |
+| `promotion_daily` | (product_id, store_id, date) | is_active, promotion_id, discount_pct |
+| `product_store_daily` | (product_id, store_id, date) | full denormalized join of above + sku, category, channel |
+
+**Cleaning rules:**
+- `sales_daily`: only `fulfilled` orders count; `cancelled` and `returned` are excluded
+- `inventory_daily`: multiple snapshots for (product, store, date) → latest `ingested_at` wins
+- `days_of_supply = on_hand / (sum_units_last_7d / 7)` — NULL when no recent demand
+- Promotion active when `start_date ≤ date ≤ end_date`, SKU and store constraints satisfied; highest `discount_pct` wins on overlap
+
+**Idempotency:** The service deletes [start_date, end_date] rows before reinserting.
+
+**Forbidden fields in canonical tables** (enforced by `test_aggregation.py`):
+`lag_7d`, `lag_14d`, `lag_28d`, `rolling_mean_28d`, `forecast`, `forecast_7d`,
+`risk_score`, `stockout_risk`, `recommended_units`, `reorder_quantity`, `target`, `future_demand`
+
 ## Accepted Data Formats
 
 | Source | Format | Sprint |

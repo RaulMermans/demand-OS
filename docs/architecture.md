@@ -20,7 +20,8 @@ It ingests raw operational commerce records and computes all derived insights in
                         ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                   AGGREGATION LAYER                              │
-│  AggregationService → sales_daily, inventory_daily (DB)         │
+│  AggregationService → *_clean + sales_daily + inventory_daily   │
+│                     + promotion_daily + product_store_daily (DB) │
 └───────────────────────┬─────────────────────────────────────────┘
                         │
                         ▼
@@ -62,8 +63,9 @@ It ingests raw operational commerce records and computes all derived insights in
 | Layer | Tables | Computed By | Sprint |
 |-------|--------|-------------|--------|
 | Raw | raw_products, raw_stores, raw_orders, raw_inventory_snapshots, raw_promotions, raw_suppliers, raw_purchase_orders | connectors | 1 |
-| Ops | ingestion_runs, pipeline_events | IngestionService | 1 |
-| Aggregate | sales_daily, inventory_daily | AggregationService | 2 |
+| Ops | ingestion_runs, aggregation_runs, pipeline_events | IngestionService, AggregationService | 1–2 |
+| Clean | orders_clean, inventory_clean, promotions_clean, products_clean, stores_clean, suppliers_clean, purchase_orders_clean | AggregationService | 2 |
+| Aggregate | sales_daily, inventory_daily, promotion_daily, product_store_daily | AggregationService | 2 |
 | Feature | feature_matrix | FeatureService | 3 |
 | Model | model_versions, forecast_runs, forecasts | ForecastingService | 4 |
 | Decision | stockout_risks, reorder_recommendations, model_metrics | StockoutService, RecommendationService, EvaluationService | 5–6 |

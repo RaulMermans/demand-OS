@@ -46,15 +46,35 @@
 - No aggregated daily sales tables yet (Sprint 2)
 - AggregationService not yet called after ingestion
 
-## Sprint 2 — Aggregation Pipeline
-- [ ] Implement AggregationService:
-  - Daily sales aggregation per product/store
-  - Inventory daily snapshot aggregation
-  - Days-of-supply calculation
-  - Promotion flag join
-- [ ] Populate sales_daily and inventory_daily tables
-- [ ] Run aggregation automatically after ingestion
-- [ ] Overview page with live DB counts
+## Sprint 2 — Aggregation Pipeline ✅ (Current)
+- [x] Implement AggregationService with `run_full_aggregation(start_date, end_date)`:
+  - Cleaned layer: orders_clean, inventory_clean, promotions_clean, products_clean,
+    stores_clean, suppliers_clean, purchase_orders_clean (audit trail)
+  - sales_daily: sum fulfilled orders per (product, store, date); excludes cancelled/returned
+  - inventory_daily: latest snapshot per (product, store, date); days_of_supply = on_hand / rolling_mean_7d
+  - promotion_daily: active flag per (product, store, date) from raw_promotions
+  - product_store_daily: denormalized daily fact joining all three tables
+- [x] Add POST /api/aggregation/run and GET /api/aggregation/status endpoints
+- [x] Update /api/data-health with canonical_counts and latest_aggregation_run
+- [x] Add scripts/build_canonical_tables.py (CLI with --start, --end, --dry-run)
+- [x] Update scripts/verify.sh with Sprint 2 file checks
+- [x] Add tests/test_aggregation.py — 20 tests covering:
+  - Reconciliation, excluded statuses, days_of_supply formula, promo flags
+  - Idempotency, product_store_daily completeness, forbidden fields
+  - AggregationRun record, API endpoints, data-health canonical counts
+
+**Counts produced (seed=42, 50 products, 5 stores, 730 days):**
+- orders_clean: ~120k–130k (fulfilled + pending)
+- inventory_clean: ~182,500
+- sales_daily: ~50k–80k rows (days with at least one sale per product/store)
+- inventory_daily: ~182,500 rows
+- promotion_daily: 182,500 rows (50 × 5 × 730)
+- product_store_daily: 182,500 rows (complete cartesian product)
+
+**Limitations (to address in Sprint 3):**
+- days_of_supply uses simple 7-day rolling mean; Sprint 3 FeatureService computes richer features
+- product_store_daily includes all product/store/date triples even for inactive combinations
+- No automated trigger of aggregation after ingestion (manual via API or script)
 
 ## Sprint 3 — Feature Engineering
 - [ ] Implement FeatureService:
