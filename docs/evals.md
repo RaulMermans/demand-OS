@@ -27,12 +27,30 @@
 - AggregationRun record created per run with status=success and record counts
 - Running aggregation twice produces identical row counts (idempotency)
 
-## 4. Feature Engineering Tests (Sprint 3)
-- lag_7d for date D = total_units on D-7
-- rolling_mean_7d for date D = mean of D-6 through D
-- Calendar features are correct (day_of_week, is_weekend, etc.)
-- Features are computed only from data prior to the feature date (no leakage)
-- Feature matrix has no NaN for warmup window rows (handled with fill strategy)
+## 4. Feature Engineering Tests (Sprint 3) ✅
+- FeatureService builds feature_matrix from product_store_daily ✅
+- One row per eligible (product, store, date) — no duplicates ✅
+- lag_units_7d for date D = units_sold at D-7 in PSD ✅
+- lag_units_1d for date D = units_sold at D-1 in PSD ✅
+- rolling_units_mean_7d uses shift(1) — window ends at D-1, not D ✅
+- rolling_units_mean_7d for D differs from target_units_sold in ≥ 90% of rows ✅
+- rolling_units_std features exist and are non-negative ✅
+- Calendar features correct (day_of_week=0 on Monday, is_weekend on Sat/Sun) ✅
+- Promotion features populated (promo_active rows exist, discount_pct > 0 when active) ✅
+- Price/margin features: retail_price > 0, gross_margin_pct in [0,1] ✅
+- Price change features exist (0 for static-price connector; real values for dynamic pricing) ✅
+- Inventory features: available_units ≥ 0, stockout_flag field present ✅
+- Lifecycle: days_since_launch ≥ 0 for all rows (pre-launch excluded) ✅
+- product_age_bucket values restricted to 4 valid buckets ✅
+- Pre-launch rows (days_since_launch < 0) absent from feature_matrix ✅
+- target_units_sold equals canonical sales_daily.units_sold for same key ✅
+- No forbidden fields in feature_matrix schema (no forecast/risk/reorder columns) ✅
+- Running build twice produces identical row count (idempotency) ✅
+- POST /api/features/build returns completed status with rows_created ✅
+- GET /api/features/status returns not_run / ready / failed correctly ✅
+- GET /api/features/sample returns bounded rows with expected fields ✅
+- /api/data-health includes feature_counts and latest_feature_run after build ✅
+- FeatureRun record created with status, rows_created, date_min, date_max ✅
 
 ## 5. Forecasting Tests (Sprint 4)
 - Model trains without error on feature matrix

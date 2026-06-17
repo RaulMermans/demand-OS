@@ -7,6 +7,7 @@ from app.db.models import (
     RawProduct, RawStore, RawOrder, RawInventorySnapshot,
     RawPromotion, RawSupplier, RawPurchaseOrder,
     IngestionRun, AggregationRun, SalesDaily, InventoryDaily, ProductStoreDaily,
+    FeatureMatrix, FeatureRun,
 )
 from app.schemas.api import OverviewResponse, DataHealthResponse
 from app.services.validation_service import ValidationService
@@ -50,15 +51,23 @@ def get_overview(db: Session = Depends(get_db)):
             },
         )
 
+    from app.db.models import FeatureMatrix, FeatureRun
+    from sqlalchemy import func as sqlfunc
+    fm_count = db.query(sqlfunc.count(FeatureMatrix.id)).scalar() or 0
+    latest_feat = db.query(FeatureRun).order_by(FeatureRun.started_at.desc()).first()
+
     return OverviewResponse(
         status="ok",
         data_mode="mock",
         pipeline_ready=True,
-        message="Raw data ingested. Aggregation and forecasting activate in Sprint 2+.",
+        message="Raw data ingested. Run aggregation + feature build to activate forecasting.",
         summary={
             "products": products_count,
             "stores": stores_count,
             "orders": orders_count,
+            "feature_rows_count": fm_count,
+            "feature_readiness": "ready" if fm_count > 0 else "not_ready",
+            "latest_feature_run_status": latest_feat.status if latest_feat else None,
             "critical_risks": 0,
             "pending_recommendations": 0,
             "last_ingestion_run": str(latest_run.started_at) if latest_run else None,
@@ -120,6 +129,21 @@ def get_data_health(db: Session = Depends(get_db)):
         .order_by(AggregationRun.started_at.desc())
         .first()
     )
+
+    # Feature counts
+    fm_count = db.query(func.count(FeatureMatrix.id)).scalar() or 0
+    latest_feat = (
+        db.query(FeatureRun)
+        .order_by(FeatureRun.started_at.desc())
+        .first()
+    )
+    latest_feat_info = None
+    if latest_feat:
+        latest_feat_info = {
+            "run_id": latest_feat.id,
+            "status": latest_feat.status,
+            "rows_created": latest_feat.rows_created or 0,
+        }
     latest_agg_info = None
     if latest_agg:
         latest_agg_info = {
@@ -161,6 +185,8 @@ def get_data_health(db: Session = Depends(get_db)):
          "detail": f"{stockout_count} zero-stock snapshots"},
         {"name": "aggregation_run",       "status": "passed" if latest_agg and latest_agg.status == "success" else "warning",
          "detail": f"sales_daily={sales_daily_count}, inventory_daily={inv_daily_count}"},
+        {"name": "feature_build",         "status": "passed" if latest_feat and latest_feat.status == "completed" else "warning",
+         "detail": f"feature_matrix={fm_count} rows"},
     ]
 
     all_passed = all(c["status"] == "passed" for c in checks)
@@ -182,6 +208,8 @@ def get_data_health(db: Session = Depends(get_db)):
             "inventory_daily":    inv_daily_count,
             "product_store_daily": psd_count,
         },
+        "feature_counts": {"feature_matrix": fm_count},
+        "latest_feature_run": latest_feat_info,
         "checks":  checks,
         "message": "Data health checks complete.",
     }

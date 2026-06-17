@@ -52,10 +52,10 @@ See [docs/architecture.md](docs/architecture.md) for full diagram.
 | Sprint | Goal | Status |
 |--------|------|--------|
 | 0 | Scaffold | ✅ Done |
-| 1 | Mock data generator (50 SKUs × 5 stores × 2yr) | 🔜 Next |
-| 2 | Aggregation pipeline | 🔜 |
-| 3 | Feature engineering | 🔜 |
-| 4 | LightGBM forecasting (28-day) | 🔜 |
+| 1 | Mock data generator (50 SKUs × 5 stores × 2yr) | ✅ Done |
+| 2 | Aggregation pipeline (canonical daily tables) | ✅ Done |
+| 3 | Feature engineering (leakage-safe feature_matrix) | ✅ Done |
+| 4 | LightGBM forecasting (28-day) | 🔜 Next |
 | 5 | Stockout risk + reorder EOQ | 🔜 |
 | 6 | Model evaluation (WRMSSE, SMAPE) | 🔜 |
 | 7+ | Real connectors (Shopify, CSV, WooCommerce) | 🔜 |

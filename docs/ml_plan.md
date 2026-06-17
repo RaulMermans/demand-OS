@@ -26,26 +26,49 @@ Primary metric: WRMSSE (Weighted Root Mean Squared Scaled Error), aligned with M
 - N-BEATS or DLinear via unit8co/darts
 - Compare against LightGBM baseline; adopt only if meaningful improvement
 
-## Features (computed by FeatureService)
+## Features — Sprint 3 (implemented in FeatureService)
 
-| Feature | Type | Description |
-|---------|------|-------------|
-| lag_7d | Lag | Units sold 7 days ago |
-| lag_14d | Lag | Units sold 14 days ago |
-| lag_28d | Lag | Units sold 28 days ago |
-| rolling_mean_7d | Rolling | 7-day rolling average units |
-| rolling_mean_14d | Rolling | 14-day rolling average units |
-| rolling_mean_28d | Rolling | 28-day rolling average units |
-| rolling_std_7d | Rolling | 7-day rolling std dev |
-| day_of_week | Calendar | 0=Mon … 6=Sun |
-| week_of_year | Calendar | 1–52 |
-| month | Calendar | 1–12 |
-| is_weekend | Calendar | Boolean |
-| promotion_active | Promo | Boolean |
-| discount_pct | Promo | Float 0–1 |
-| days_since_last_promo | Promo | Integer |
-| days_of_supply | Inventory | on_hand / avg_daily_demand |
-| lead_time_days | Supplier | Nominal lead time |
+All features are computed internally by `FeatureService.build_feature_matrix()`.
+**Leakage-safe:** lag and rolling features use dates strictly before D (shift=1 before rolling).
+**Pre-launch excluded:** rows where `days_since_launch < 0` are removed from the feature matrix.
+
+| Feature | Column name | Type | Description |
+|---------|------------|------|-------------|
+| **Target** | `target_units_sold` | Float | Historical units sold on D (supervised label) |
+| **Lag** | `lag_units_1d` | Float | Units sold 1 day ago |
+| | `lag_units_7d` | Float | Units sold 7 days ago |
+| | `lag_units_14d` | Float | Units sold 14 days ago |
+| | `lag_units_28d` | Float | Units sold 28 days ago |
+| **Rolling mean** | `rolling_units_mean_7d` | Float | Mean units over [D-7..D-1] |
+| | `rolling_units_mean_14d` | Float | Mean units over [D-14..D-1] |
+| | `rolling_units_mean_28d` | Float | Mean units over [D-28..D-1] |
+| | `rolling_revenue_mean_7d` | Float | Mean revenue over [D-7..D-1] |
+| | `rolling_revenue_mean_28d` | Float | Mean revenue over [D-28..D-1] |
+| **Rolling std** | `rolling_units_std_7d` | Float | Std dev units over [D-7..D-1] |
+| | `rolling_units_std_28d` | Float | Std dev units over [D-28..D-1] |
+| **Calendar** | `day_of_week` | Int | 0=Mon … 6=Sun |
+| | `week_of_year` | Int | 1–53 |
+| | `month` | Int | 1–12 |
+| | `quarter` | Int | 1–4 |
+| | `is_weekend` | Bool | True for Sat/Sun |
+| **Promotion** | `promo_active` | Bool | Active promotion on D |
+| | `discount_pct` | Float | Highest discount in effect (0 if none) |
+| **Price/margin** | `retail_price` | Float | Product unit price |
+| | `unit_cost` | Float | Product unit cost |
+| | `gross_margin_pct` | Float | (price - cost) / price |
+| | `price_change_pct_7d` | Float | Price change vs 7 days ago |
+| | `price_change_pct_28d` | Float | Price change vs 28 days ago |
+| **Inventory** | `available_units` | Float | On-hand inventory on D |
+| | `stockout_flag` | Bool | True if on_hand = 0 |
+| | `days_of_supply` | Float | on_hand / recent_demand_rate |
+| **Lifecycle** | `days_since_launch` | Int | Days since product launch (≥ 0) |
+| | `product_age_bucket` | Str | new_0_30 / ramp_31_90 / mature_91_365 / established_365_plus |
+
+**Implementation notes:**
+- `rolling(W, min_periods=1).mean()` applied AFTER `shift(1)` — window covers [D-W .. D-1]
+- Static prices in MockConnector → `price_change_pct_*` = 0 always; real connectors with dynamic pricing get actual values
+- `days_since_last_promo` deferred to Sprint 4 (requires looking back from each date)
+- `lead_time_days` deferred to Sprint 5 (required for reorder point calculation)
 
 ## Cross-Validation Strategy
 

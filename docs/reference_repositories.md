@@ -13,10 +13,15 @@ walk-forward cross-validation, prediction intervals.
 **Key patterns adopted:**
 - Global ML model: train one LightGBM across all (product, store) series simultaneously
   rather than one model per SKU. Avoids sparse-data problems for low-volume SKUs.
-- Lag and rolling-window feature engineering pattern (lag_7d, lag_14d, lag_28d,
-  rolling_mean_7d, rolling_mean_14d, rolling_mean_28d, rolling_std_7d)
-- Walk-forward cross-validation with expanding window
-- Quantile regression for prediction intervals (q=0.1, q=0.9)
+- Lag and rolling-window feature engineering pattern — Sprint 3 FeatureService implements:
+  `lag_units_1d/7d/14d/28d`, `rolling_units_mean_7d/14d/28d`, `rolling_units_std_7d/28d`
+  using `x.shift(1).rolling(W, min_periods=1).mean()` (leakage-safe, window ends at D-1)
+- Walk-forward cross-validation with expanding window (Sprint 4)
+- Quantile regression for prediction intervals (q=0.1, q=0.9) (Sprint 4)
+
+**Sprint 3 influence:** The pandas groupby+transform lag/rolling pattern and the
+M5-style feature families (lag, rolling, calendar, promo, inventory, lifecycle)
+are directly inspired by mlforecast's FeatureEngineer pattern.
 
 **Usage note:** DemandOS implements its own FeatureService and ForecastingService.
 The mlforecast library may be used as a dependency in Sprint 4+ if it reduces

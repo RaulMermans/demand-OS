@@ -63,6 +63,44 @@ These tables are the input to Sprint 3 FeatureService — never to connectors.
 `lag_7d`, `lag_14d`, `lag_28d`, `rolling_mean_28d`, `forecast`, `forecast_7d`,
 `risk_score`, `stockout_risk`, `recommended_units`, `reorder_quantity`, `target`, `future_demand`
 
+## Feature Matrix (Sprint 3)
+
+Produced by `FeatureService.build_feature_matrix()`. Input: `product_store_daily`. Output: `feature_matrix`.
+
+**Key (product_id, store_id, date)** — one row per eligible day (pre-launch rows excluded).
+
+| Feature group | Columns |
+|--------------|---------|
+| Target | `target_units_sold` (historical label; NOT a forecast) |
+| Lag | `lag_units_1d`, `lag_units_7d`, `lag_units_14d`, `lag_units_28d` |
+| Rolling mean | `rolling_units_mean_7d/14d/28d`, `rolling_revenue_mean_7d/28d` |
+| Rolling std | `rolling_units_std_7d`, `rolling_units_std_28d` |
+| Calendar | `day_of_week` (0=Mon), `week_of_year`, `month`, `quarter`, `is_weekend` |
+| Promotion | `promo_active`, `discount_pct` |
+| Price/margin | `retail_price`, `unit_cost`, `gross_margin_pct`, `price_change_pct_7d/28d` |
+| Inventory | `available_units`, `stockout_flag`, `days_of_supply` |
+| Lifecycle | `days_since_launch`, `product_age_bucket` |
+| Metadata | `category`, `store_channel`, `supplier_id`, `source_aggregation_run_id`, `feature_run_id` |
+
+**Leakage-safety rules:**
+- All lag and rolling features use dates **strictly before D** (shift=1 applied before rolling)
+- Rolling window of width W at date D covers [D-W .. D-1], computed via `x.shift(1).rolling(W, min_periods=1).mean()`
+- Pre-launch rows (`days_since_launch < 0`) are **excluded** from feature_matrix entirely
+- `target_units_sold` is the historical units for D — the supervised learning label
+
+**Forbidden columns** (enforced by `test_features.py::test_no_forbidden_fields_in_feature_matrix_schema`):
+`forecast`, `forecast_7d`, `forecast_28d`, `forecast_90d`, `p10`, `p50`, `p90`,
+`risk_score`, `stockout_risk`, `recommended_units`, `reorder_quantity`, `future_demand`, `future_units_sold`
+
+**Idempotency:** Full rebuild — DELETE ALL rows, then reinsert. Unlike aggregation (date-range delete), features
+always rebuild completely because lag/rolling depend on full history.
+
+**Product age buckets:**
+- `new_0_30`: days_since_launch ≤ 30
+- `ramp_31_90`: 31–90
+- `mature_91_365`: 91–365
+- `established_365_plus`: > 365
+
 ## Accepted Data Formats
 
 | Source | Format | Sprint |

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.api import health, ingestion, forecasts, risks, recommendations, metrics, overview
-from app.api import demo, aggregation
+from app.api import demo, aggregation, features
 from app.db.session import init_db
 
 settings = get_settings()
@@ -40,3 +40,4 @@ app.include_router(recommendations.router,  prefix="/api", tags=["recommendation
 app.include_router(metrics.router,          prefix="/api", tags=["metrics"])
 app.include_router(overview.router,         prefix="/api", tags=["overview"])
 app.include_router(aggregation.router,      prefix="/api", tags=["aggregation"])
+app.include_router(features.router,         prefix="/api", tags=["features"])

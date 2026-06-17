@@ -396,16 +396,100 @@ class AggregationRun(Base):
     records_produced = Column(JSON, default=dict)
 
 
+class FeatureRun(Base):
+    """Tracks each execution of FeatureService.build_feature_matrix()."""
+    __tablename__ = "feature_runs"
+
+    id = Column(String, primary_key=True)
+    source_aggregation_run_id = Column(String, nullable=True)
+    status = Column(String)            # running / completed / failed
+    started_at = Column(DateTime, nullable=False)
+    completed_at = Column(DateTime)
+    rows_created = Column(Integer, default=0)
+    date_min = Column(Date)
+    date_max = Column(Date)
+    max_lag_days = Column(Integer, default=28)
+    checks_json = Column(JSON, default=list)
+    error_message = Column(Text)
+
+
 class FeatureMatrix(Base):
-    """ML feature row per product/store/date. Computed by feature_service."""
+    """
+    ML-ready feature row per (product, store, date). Computed by FeatureService.
+
+    All predictive features are leakage-safe:
+    - Lag/rolling features use dates strictly before D.
+    - Calendar features use date D.
+    - Promotion/inventory features use state known on D.
+    - target_units_sold is the historical label for supervised training.
+
+    Pre-launch rows are excluded (product_age_bucket != 'pre_launch').
+    """
     __tablename__ = "feature_matrix"
 
     id = Column(String, primary_key=True)
+    date = Column(Date, nullable=False, index=True)
     product_id = Column(String, nullable=False, index=True)
     store_id = Column(String, nullable=False, index=True)
-    feature_date = Column(Date, nullable=False, index=True)
-    features = Column(JSON)            # dict of feature_name → value
-    computed_at = Column(DateTime, default=datetime.utcnow)
+
+    # Supervised learning target (historical; never future)
+    target_units_sold = Column(Float)
+
+    # Lag features — units_sold at D-N (strictly before D)
+    lag_units_1d = Column(Float)
+    lag_units_7d = Column(Float)
+    lag_units_14d = Column(Float)
+    lag_units_28d = Column(Float)
+
+    # Rolling mean features — mean over [D-window … D-1] (shift=1)
+    rolling_units_mean_7d = Column(Float)
+    rolling_units_mean_14d = Column(Float)
+    rolling_units_mean_28d = Column(Float)
+
+    # Rolling std features — std over [D-window … D-1] (shift=1)
+    rolling_units_std_7d = Column(Float)
+    rolling_units_std_28d = Column(Float)
+
+    # Rolling revenue features
+    rolling_revenue_mean_7d = Column(Float)
+    rolling_revenue_mean_28d = Column(Float)
+
+    # Calendar features (derived from date D)
+    day_of_week = Column(Integer)      # 0=Mon … 6=Sun
+    week_of_year = Column(Integer)
+    month = Column(Integer)
+    quarter = Column(Integer)
+    is_weekend = Column(Boolean)
+
+    # Promotion features (from promotion_daily for date D)
+    promo_active = Column(Boolean)
+    discount_pct = Column(Float)
+
+    # Price / margin features (from product metadata)
+    retail_price = Column(Float)
+    unit_cost = Column(Float)
+    gross_margin_pct = Column(Float)
+    price_change_pct_7d = Column(Float)
+    price_change_pct_28d = Column(Float)
+
+    # Inventory features (from inventory_daily for date D)
+    available_units = Column(Float)
+    stockout_flag = Column(Boolean)
+    days_of_supply = Column(Float)
+
+    # Categorical / structural features
+    category = Column(String)
+    store_channel = Column(String)
+    supplier_id = Column(String)
+
+    # Lifecycle features
+    days_since_launch = Column(Integer)
+    product_age_bucket = Column(String)  # new_0_30 / ramp_31_90 / mature_91_365 / established_365_plus
+
+    # Tracking
+    source_aggregation_run_id = Column(String)
+    feature_run_id = Column(String, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class ModelVersion(Base):

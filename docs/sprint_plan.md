@@ -76,15 +76,48 @@
 - product_store_daily includes all product/store/date triples even for inactive combinations
 - No automated trigger of aggregation after ingestion (manual via API or script)
 
-## Sprint 3 — Feature Engineering
-- [ ] Implement FeatureService:
-  - Lag features (7d, 14d, 28d)
-  - Rolling window stats (mean, std)
-  - Calendar features
-  - Promotion features
-  - Inventory features
-- [ ] Populate feature_matrix table
-- [ ] Add feature inspector to data health page
+## Sprint 3 — Feature Engineering ✅
+- [x] Implement `FeatureService.build_feature_matrix()` — full pandas-based pipeline:
+  - Lag features: lag_units_1d, 7d, 14d, 28d (shift before use; all leakage-safe)
+  - Rolling features: rolling_units_mean_7d/14d/28d, rolling_units_std_7d/28d, rolling_revenue_mean_7d/28d
+    (shift(1) before rolling ensures window ends at D-1)
+  - Calendar features: day_of_week (0=Mon), week_of_year, month, quarter, is_weekend
+  - Promotion features: promo_active, discount_pct (from canonical promotion_daily)
+  - Price/margin features: retail_price, unit_cost, gross_margin_pct, price_change_pct_7d/28d
+  - Inventory features: available_units, stockout_flag, days_of_supply (from inventory_daily)
+  - Lifecycle features: days_since_launch, product_age_bucket (new_0_30/ramp_31_90/mature_91_365/established_365_plus)
+  - target_units_sold: historical label from product_store_daily (NOT a forecast)
+- [x] Add FeatureRun tracking table and FeatureMatrix table with 36 individual columns
+- [x] Pre-launch rows (days_since_launch < 0) excluded from feature_matrix
+- [x] Forbidden fields enforced: no forecast, risk_score, reorder_quantity, etc.
+- [x] Full rebuild idempotency: DELETE ALL before reinsert
+- [x] Add `POST /api/features/build`, `GET /api/features/status`, `GET /api/features/sample`
+- [x] Update `/api/data-health` with `feature_counts` and `latest_feature_run`
+- [x] Update `/api/overview` with `feature_rows_count` and `feature_readiness`
+- [x] Add `scripts/build_features.py` CLI (--max-lag-days, --dry-run)
+- [x] Update `scripts/verify.sh` with Sprint 3 file checks
+- [x] Add `tests/test_features.py` — 27 tests covering:
+  - Feature build from PSD, no duplicates, lag correctness (1d, 7d)
+  - Rolling mean leakage-safety (PSD-based comparison + statistical leakage rate)
+  - Rolling std existence, calendar correctness (Monday=0, weekend flag)
+  - Promotion features, price/margin features, inventory features, lifecycle features
+  - Pre-launch exclusion, target_units_sold accuracy, forbidden fields schema check
+  - Idempotency, API endpoints (build, status, sample), data-health counts, FeatureRun record
+
+**Counts produced (seed=42, 4 products, 2 stores, 70 days):**
+- feature_matrix rows: ~560 eligible rows (full cartesian minus pre-launch)
+- FeatureRun: 1 record per build call
+
+**Leakage-safety approach (documented here):**
+- All lag and rolling features use dates STRICTLY before D (shift=1 before rolling)
+- Pre-launch rows are EXCLUDED (not marked) so no rows with days_since_launch < 0 appear in training data
+- target_units_sold is the supervised learning label (historical, not future)
+- Static prices in MockConnector → price_change_pct = 0; field exists for real connectors
+
+**Limitations (to address in Sprint 4):**
+- No ML model training yet; feature_matrix is ready but unused by forecasting
+- price_change_pct always 0 for MockConnector (static prices)
+- No automated trigger of feature build after aggregation (manual via API or script)
 
 ## Sprint 4 — Forecasting
 - [ ] Train LightGBM global model on feature matrix

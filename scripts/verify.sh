@@ -74,12 +74,16 @@ BACKEND_FILES=(
   "apps/api/app/services/stockout_service.py"
   "apps/api/app/services/recommendation_service.py"
   "apps/api/app/api/aggregation.py"
+  "apps/api/app/services/feature_service.py"
+  "apps/api/app/api/features.py"
   "apps/api/tests/test_health.py"
   "apps/api/tests/test_connector_contract.py"
   "apps/api/tests/test_raw_data_rule.py"
   "apps/api/tests/test_aggregation.py"
+  "apps/api/tests/test_features.py"
   "apps/api/pyproject.toml"
   "scripts/build_canonical_tables.py"
+  "scripts/build_features.py"
 )
 for f in "${BACKEND_FILES[@]}"; do
   if [ -f "$f" ]; then
