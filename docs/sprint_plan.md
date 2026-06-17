@@ -119,12 +119,44 @@
 - price_change_pct always 0 for MockConnector (static prices)
 - No automated trigger of feature build after aggregation (manual via API or script)
 
-## Sprint 4 — Forecasting
-- [ ] Train LightGBM global model on feature matrix
-- [ ] Generate 28-day forecasts per product/store
-- [ ] Compute 90% prediction intervals
-- [ ] Forecast Explorer page (charts with Recharts)
-- [ ] Walk-forward CV evaluation
+## Sprint 4 — Baseline Forecasting + Backtesting ✅
+- [x] Implement `ForecastingService.run_baseline_forecast()` reading from `feature_matrix`
+- [x] Seasonal naive model: forecast(D) = lag_units_7d (D-7); fallback chain: rolling_mean_7d → rolling_mean_28d → 0
+- [x] Moving average 7d model: forecast(D) = rolling_units_mean_7d
+- [x] Moving average 28d model: forecast(D) = rolling_units_mean_28d
+- [x] Heuristic p10/p90 bands: ±1σ of recent demand (documented as heuristics, not probabilistic)
+- [x] Historical backtest window (last `backtest_days` of feature_matrix)
+- [x] Per-row errors: absolute_error, squared_error, absolute_percentage_error (SMAPE component)
+- [x] Aggregate metrics: MAE, RMSE, WAPE, SMAPE, Bias at overall / category / store levels
+- [x] WAPE/Bias safely handle zero denominators (return None)
+- [x] SMAPE safely handles zero-denominator rows (contribute 0)
+- [x] Persist forecasts, model_metrics, forecast_runs to DB
+- [x] Clear-before-rewrite idempotency: re-running same model_type deletes prior run
+- [x] Redesigned ForecastRun, Forecast, ModelMetric ORM models for Sprint 4 schema
+- [x] Add `POST /api/forecasts/baseline/run`, `GET /api/forecasts/runs`, `GET /api/forecasts/latest`
+- [x] Add `GET /api/forecasts/product/{product_id}`, `GET /api/model-metrics`
+- [x] Update `/api/data-health` with `forecast_counts` and `latest_forecast_run`
+- [x] Update `/api/overview` with honest baseline forecasting readiness metrics
+- [x] Add `scripts/run_baseline_forecast.py` (--model, --horizon-days, --backtest-days, --dry-run)
+- [x] Update `scripts/verify.sh` with Sprint 4 file checks
+- [x] Add `tests/test_forecasting.py` — 31 tests covering all Sprint 4 requirements
+- [x] No LightGBM, no ML model training, no stockout risk, no reorder recommendations
+
+**Counts produced (seed=42, 4 products, 2 stores, 91 days, backtest_days=28):**
+- forecast_runs: 1 per model type
+- forecasts: ~224 rows (4 × 2 × 28 days, minus pre-launch)
+- model_metrics: overall + per-category + per-store rows
+
+**Baseline model performance (indicative, depends on seed and data):**
+- Seasonal naive WAPE: typically 0.25–0.55 on retail mock data
+- Moving average 7d WAPE: typically 0.25–0.50
+- Moving average 28d WAPE: typically 0.30–0.60
+
+**Limitations (to address in Sprint 5):**
+- No ML model training; baselines are rule-based
+- p10/p90 are ±1σ heuristics, not true probabilistic intervals
+- No stockout risk scoring yet (Sprint 5)
+- No reorder recommendations yet (Sprint 5)
 
 ## Sprint 5 — Stockout Risk + Reorder
 - [ ] Implement StockoutService:

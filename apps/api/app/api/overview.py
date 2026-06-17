@@ -7,7 +7,7 @@ from app.db.models import (
     RawProduct, RawStore, RawOrder, RawInventorySnapshot,
     RawPromotion, RawSupplier, RawPurchaseOrder,
     IngestionRun, AggregationRun, SalesDaily, InventoryDaily, ProductStoreDaily,
-    FeatureMatrix, FeatureRun,
+    FeatureMatrix, FeatureRun, ForecastRun, Forecast, ModelMetric,
 )
 from app.schemas.api import OverviewResponse, DataHealthResponse
 from app.services.validation_service import ValidationService
@@ -51,10 +51,31 @@ def get_overview(db: Session = Depends(get_db)):
             },
         )
 
-    from app.db.models import FeatureMatrix, FeatureRun
     from sqlalchemy import func as sqlfunc
     fm_count = db.query(sqlfunc.count(FeatureMatrix.id)).scalar() or 0
     latest_feat = db.query(FeatureRun).order_by(FeatureRun.started_at.desc()).first()
+
+    forecast_rows_count = db.query(sqlfunc.count(Forecast.id)).scalar() or 0
+    model_metrics_count = db.query(sqlfunc.count(ModelMetric.id)).scalar() or 0
+    latest_frun = (
+        db.query(ForecastRun)
+        .filter(ForecastRun.status == "completed")
+        .order_by(ForecastRun.started_at.desc())
+        .first()
+    )
+
+    latest_wape = None
+    if latest_frun:
+        mm = (
+            db.query(ModelMetric)
+            .filter(
+                ModelMetric.run_id == latest_frun.id,
+                ModelMetric.level == "overall",
+            )
+            .first()
+        )
+        if mm:
+            latest_wape = mm.wape
 
     return OverviewResponse(
         status="ok",
@@ -68,10 +89,14 @@ def get_overview(db: Session = Depends(get_db)):
             "feature_rows_count": fm_count,
             "feature_readiness": "ready" if fm_count > 0 else "not_ready",
             "latest_feature_run_status": latest_feat.status if latest_feat else None,
+            "latest_forecast_run_status": latest_frun.status if latest_frun else None,
+            "latest_baseline_model": latest_frun.model_type if latest_frun else None,
+            "latest_baseline_wape": latest_wape,
+            "forecast_rows_count": forecast_rows_count,
+            "model_metrics_count": model_metrics_count,
             "critical_risks": 0,
             "pending_recommendations": 0,
             "last_ingestion_run": str(latest_run.started_at) if latest_run else None,
-            "last_forecast_run": None,
         },
     )
 
@@ -152,6 +177,25 @@ def get_data_health(db: Session = Depends(get_db)):
             "started_at": str(latest_agg.started_at),
         }
 
+    # Forecast counts
+    forecast_runs_count = db.query(func.count(ForecastRun.id)).scalar() or 0
+    forecasts_count     = db.query(func.count(Forecast.id)).scalar() or 0
+    mm_count            = db.query(func.count(ModelMetric.id)).scalar() or 0
+    latest_frun = (
+        db.query(ForecastRun)
+        .filter(ForecastRun.status == "completed")
+        .order_by(ForecastRun.started_at.desc())
+        .first()
+    )
+    latest_frun_info = None
+    if latest_frun:
+        latest_frun_info = {
+            "run_id": latest_frun.id,
+            "model_type": latest_frun.model_type,
+            "status": latest_frun.status,
+            "rows_created": latest_frun.rows_created or 0,
+        }
+
     # Canonical counts
     sales_daily_count = db.query(func.count(SalesDaily.id)).scalar() or 0
     inv_daily_count   = db.query(func.count(InventoryDaily.id)).scalar() or 0
@@ -187,6 +231,8 @@ def get_data_health(db: Session = Depends(get_db)):
          "detail": f"sales_daily={sales_daily_count}, inventory_daily={inv_daily_count}"},
         {"name": "feature_build",         "status": "passed" if latest_feat and latest_feat.status == "completed" else "warning",
          "detail": f"feature_matrix={fm_count} rows"},
+        {"name": "forecast_run",          "status": "passed" if latest_frun else "warning",
+         "detail": f"forecast_runs={forecast_runs_count}, forecasts={forecasts_count}"},
     ]
 
     all_passed = all(c["status"] == "passed" for c in checks)
@@ -210,6 +256,12 @@ def get_data_health(db: Session = Depends(get_db)):
         },
         "feature_counts": {"feature_matrix": fm_count},
         "latest_feature_run": latest_feat_info,
+        "forecast_counts": {
+            "forecast_runs": forecast_runs_count,
+            "forecasts":     forecasts_count,
+            "model_metrics": mm_count,
+        },
+        "latest_forecast_run": latest_frun_info,
         "checks":  checks,
         "message": "Data health checks complete.",
     }

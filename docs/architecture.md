@@ -67,8 +67,9 @@ It ingests raw operational commerce records and computes all derived insights in
 | Clean | orders_clean, inventory_clean, promotions_clean, products_clean, stores_clean, suppliers_clean, purchase_orders_clean | AggregationService | 2 |
 | Aggregate | sales_daily, inventory_daily, promotion_daily, product_store_daily | AggregationService | 2 |
 | Feature | feature_matrix | FeatureService | 3 |
-| Model | model_versions, forecast_runs, forecasts | ForecastingService | 4 |
-| Decision | stockout_risks, reorder_recommendations, model_metrics | StockoutService, RecommendationService, EvaluationService | 5–6 |
+| Model | forecast_runs, forecasts, model_metrics | ForecastingService | 4 |
+| ML Model | model_versions | ForecastingService (future) | 5 |
+| Decision | stockout_risks, reorder_recommendations | StockoutService, RecommendationService | 5–6 |
 
 ## Key Design Decisions
 

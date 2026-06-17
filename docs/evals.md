@@ -52,13 +52,49 @@
 - /api/data-health includes feature_counts and latest_feature_run after build ✅
 - FeatureRun record created with status, rows_created, date_min, date_max ✅
 
-## 5. Forecasting Tests (Sprint 4)
-- Model trains without error on feature matrix
-- Forecast output covers all (product, store) pairs
-- Forecast horizon is exactly 28 days
-- Lower bound ≤ predicted_units ≤ upper bound
-- SMAPE on CV fold is logged to model_metrics
-- Naive baseline beats trivially-wrong model (sanity check)
+## 5. Forecasting Tests (Sprint 4) ✅
+
+### Baseline models
+- seasonal_naive runs without error on feature_matrix ✅
+- moving_average_7d runs without error on feature_matrix ✅
+- moving_average_28d runs without error on feature_matrix ✅
+- Seasonal naive p50 = lag_units_7d (D-7 value) on deterministic fixture ✅
+- Seasonal naive falls back to rolling_mean_7d when lag_7d is null ✅
+- Moving average reads rolling_units_mean, not target_units_sold (no leakage) ✅
+
+### Persistence
+- Forecast rows persisted to forecasts table ✅
+- Forecast rows include actual_units in backtest mode ✅
+- ForecastRun record created with status=completed ✅
+- Model metrics persisted to model_metrics table ✅
+
+### Math correctness
+- absolute_error = |actual - forecast| per row ✅
+- squared_error = (actual - forecast)² per row ✅
+- WAPE = sum(|a-f|) / sum(a); None when sum(actual)=0 ✅
+- SMAPE: zero-denominator rows contribute 0 (no NaN/inf) ✅
+- Bias = (sum(f)-sum(a)) / sum(a); None when sum(actual)=0 ✅
+
+### Levels
+- Metrics computed at overall level ✅
+- Metrics computed at category level ✅
+- Metrics computed at store level ✅
+
+### Idempotency
+- Re-running same model_type deletes prior run (clear-before-rewrite) ✅
+- Only one completed run per model_type exists at any time ✅
+
+### API
+- POST /api/forecasts/baseline/run returns completed status + metrics ✅
+- GET /api/forecasts/runs lists all runs ✅
+- GET /api/forecasts/latest returns latest run + sample rows ✅
+- GET /api/forecasts/product/{id} returns product-level actuals vs forecast ✅
+- GET /api/model-metrics returns persisted metrics ✅
+- /api/data-health includes forecast_counts + latest_forecast_run ✅
+
+### Constraints
+- No stockout/reorder/ML fields in Forecast or ModelMetric schema ✅
+- WAPE/Bias return None (not 0 or inf) when denominator is zero ✅
 
 ## 6. Stockout / Reorder Tests (Sprint 5)
 - Risk tier = critical when days_until_stockout ≤ lead_time_days

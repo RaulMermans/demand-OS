@@ -8,15 +8,20 @@ Primary metric: WRMSSE (Weighted Root Mean Squared Scaled Error), aligned with M
 
 ## Model Roadmap
 
-### Phase A — Naive Baselines (Sprint 4a)
-- Last-value carry-forward
-- Seasonal naive: same weekday, 4 weeks ago
-- 7-day moving average
+### Phase A — Naive Baselines (Sprint 4) ✅
+- Seasonal naive: forecast(D) = lag_units_7d [units sold D-7]; fallback chain documented
+- 7-day moving average: forecast(D) = rolling_units_mean_7d [mean over D-7..D-1]
+- 28-day moving average: forecast(D) = rolling_units_mean_28d [mean over D-28..D-1]
+- All forecast signals read from leakage-safe feature_matrix
+- Backtesting: last backtest_days of feature_matrix as test period (default 56 days)
+- Metrics: MAE, RMSE, WAPE, SMAPE, Bias at overall/category/store levels
+- Heuristic bands: p10 = max(0, p50 - σ), p90 = p50 + σ (±1 rolling std; documented heuristic)
 
-### Phase B — Global ML Model (Sprint 4b)
+### Phase B — Global ML Model (Sprint 5)
 - LightGBM trained across all (product, store) series simultaneously
 - One model, N series — avoids sparse-data problem for low-volume SKUs
 - Inspired by Nixtla/mlforecast global model approach
+- Evaluate against Sprint 4 baselines; adopt only if meaningful improvement
 
 ### Phase C — Prediction Intervals (Sprint 4c)
 - Quantile regression: q=0.1, 0.9 (80% interval), q=0.05, 0.95 (90% interval)

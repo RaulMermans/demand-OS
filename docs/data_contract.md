@@ -101,6 +101,61 @@ always rebuild completely because lag/rolling depend on full history.
 - `mature_91_365`: 91–365
 - `established_365_plus`: > 365
 
+## Forecast Tables (Sprint 4)
+
+Produced by `ForecastingService.run_baseline_forecast()`. Input: `feature_matrix`. Output: `forecast_runs`, `forecasts`, `model_metrics`.
+
+### forecast_runs
+One row per forecast run.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String | Primary key (`forecast-run-<uuid>`) |
+| `model_name` | String | Model identifier (same as model_type for baselines) |
+| `model_type` | String | `seasonal_naive` / `moving_average_7d` / `moving_average_28d` |
+| `horizon_days` | Int | Intended forecast horizon (default 28) |
+| `backtest_mode` | Bool | True for Sprint 4 (all runs are backtests) |
+| `train_start_date` | Date | Earliest date in feature_matrix (informational) |
+| `train_end_date` | Date | Day before test window starts |
+| `test_start_date` | Date | max_date − backtest_days + 1 |
+| `test_end_date` | Date | max_date in feature_matrix |
+| `status` | String | `running` / `completed` / `failed` |
+| `rows_created` | Int | Number of Forecast rows written |
+| `config_json` | JSON | backtest_days, source_feature_run_id |
+
+### forecasts
+One row per (run_id × forecast_date × product_id × store_id).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `p50_units` | Float | Point forecast (required) |
+| `p10_units` | Float | Lower band: max(0, p50 − σ) — heuristic only |
+| `p90_units` | Float | Upper band: p50 + σ — heuristic only |
+| `actual_units` | Float | Historical actuals joined for backtest evaluation |
+| `absolute_error` | Float | `|actual − p50|` |
+| `squared_error` | Float | `(actual − p50)²` |
+| `absolute_percentage_error` | Float | SMAPE per-row: `2·|f−a|/(|a|+|f|)`; 0 when denominator=0 |
+
+**p10/p90 bands** are computed as p50 ± 1 standard deviation of recent demand (rolling_units_std_7d or std_28d). These are uncertainty heuristics. Coverage guarantees are not provided for baseline models.
+
+### model_metrics
+One row per (run_id × level × level_value).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `level` | String | `overall` / `category` / `store` |
+| `level_value` | String | `"all"` for overall; category name / store_id otherwise |
+| `mae` | Float | Mean Absolute Error |
+| `rmse` | Float | Root Mean Squared Error |
+| `wape` | Float | Weighted APE = sum(|a-f|)/sum(a); **None** when sum(actual)=0 |
+| `smape` | Float | Mean symmetric APE; zero-denominator rows contribute 0 |
+| `bias` | Float | (sum(f)−sum(a))/sum(a); **None** when sum(actual)=0 |
+
+**Idempotency:** Re-running the same model_type deletes the prior run, forecasts, and metrics before writing new ones (clear-before-rewrite).
+
+**Forbidden fields in forecast tables:**
+`stockout_probability`, `days_until_stockout`, `risk_tier`, `recommended_qty`, `reorder_point`, `economic_order_qty`
+
 ## Accepted Data Formats
 
 | Source | Format | Sprint |

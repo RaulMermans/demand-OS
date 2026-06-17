@@ -502,34 +502,59 @@ class ModelVersion(Base):
     hyperparameters = Column(JSON, default=dict)
     artifact_path = Column(String)
     is_active = Column(Boolean, default=False)
-    metrics = Column(JSON, default=dict)   # rmse, mae, smape, etc.
+    metrics = Column(JSON, default=dict)
 
 
 class ForecastRun(Base):
+    """Tracks each baseline or ML forecast run. Computed by ForecastingService."""
     __tablename__ = "forecast_runs"
 
     id = Column(String, primary_key=True)
+    model_name = Column(String, nullable=False)   # e.g. "seasonal_naive"
+    model_type = Column(String, nullable=False)   # "seasonal_naive" / "moving_average_7d" / "moving_average_28d"
+    horizon_days = Column(Integer, default=28)
+    backtest_mode = Column(Boolean, default=True)
+    train_start_date = Column(Date)
+    train_end_date = Column(Date)
+    test_start_date = Column(Date)
+    test_end_date = Column(Date)
+    status = Column(String)           # running / completed / failed
+    started_at = Column(DateTime, nullable=False)
+    completed_at = Column(DateTime)
+    rows_created = Column(Integer, default=0)
+    error_message = Column(Text)
+    config_json = Column(JSON, default=dict)
     model_version_id = Column(String, ForeignKey("model_versions.id"), nullable=True)
-    run_at = Column(DateTime, nullable=False)
-    forecast_horizon_days = Column(Integer, default=28)
-    status = Column(String)
-    records_produced = Column(Integer, default=0)
 
 
 class Forecast(Base):
-    """Point + interval forecasts per product/store/date. Computed by forecasting_service."""
+    """
+    One row per (run_id × forecast_date × product_id × store_id).
+    Computed by ForecastingService.
+
+    p10/p90 are simple uncertainty bands: p50 ± 1 std of recent demand.
+    These are heuristics, not true probabilistic intervals.
+    absolute_percentage_error stores the SMAPE per-row component:
+      2 * |forecast - actual| / (|actual| + |forecast|), zero when denominator=0.
+    """
     __tablename__ = "forecasts"
 
     id = Column(String, primary_key=True)
-    forecast_run_id = Column(String, ForeignKey("forecast_runs.id"), nullable=True)
+    forecast_run_id = Column(String, ForeignKey("forecast_runs.id"), nullable=True, index=True)
+    forecast_date = Column(Date, nullable=False, index=True)
     product_id = Column(String, nullable=False, index=True)
     store_id = Column(String, nullable=False, index=True)
-    forecast_date = Column(Date, nullable=False, index=True)
-    predicted_units = Column(Float)
-    lower_bound = Column(Float)
-    upper_bound = Column(Float)
-    confidence_level = Column(Float, default=0.9)
-    computed_at = Column(DateTime, default=datetime.utcnow)
+    horizon_day = Column(Integer, default=1)    # ordinal step in the forecast horizon
+    model_name = Column(String)
+    model_type = Column(String)
+    p50_units = Column(Float)                   # point forecast (required)
+    p10_units = Column(Float)                   # lower band (heuristic)
+    p90_units = Column(Float)                   # upper band (heuristic)
+    actual_units = Column(Float)                # actuals joined for backtest evaluation
+    absolute_error = Column(Float)
+    squared_error = Column(Float)
+    absolute_percentage_error = Column(Float)   # SMAPE per-row component
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class StockoutRisk(Base):
@@ -568,13 +593,29 @@ class ReorderRecommendation(Base):
 
 
 class ModelMetric(Base):
+    """
+    Aggregated forecast metrics per (run, level).
+
+    level values: "overall", "category", "store", "product"
+    level_value:  "all" for overall, category name, store_id, or product_id otherwise.
+
+    WAPE/Bias are None when sum(actual)=0 (undefined denominator).
+    SMAPE is the mean of per-row symmetric APE; zero-denominator rows contribute 0.
+    """
     __tablename__ = "model_metrics"
 
     id = Column(String, primary_key=True)
-    model_version_id = Column(String, ForeignKey("model_versions.id"), nullable=True)
-    metric_name = Column(String, nullable=False)
-    metric_value = Column(Float)
-    product_id = Column(String)   # null = aggregate metric
-    store_id = Column(String)
+    run_id = Column(String, ForeignKey("forecast_runs.id"), nullable=True, index=True)
+    model_name = Column(String, nullable=False)
+    model_type = Column(String, nullable=False)
     horizon_days = Column(Integer)
-    computed_at = Column(DateTime, default=datetime.utcnow)
+    level = Column(String)          # "overall" / "category" / "store" / "product"
+    level_value = Column(String)    # value at that level; "all" for overall
+    mae = Column(Float)
+    rmse = Column(Float)
+    wape = Column(Float)            # None when sum(actual)=0
+    smape = Column(Float)
+    bias = Column(Float)            # None when sum(actual)=0
+    rows_evaluated = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    model_version_id = Column(String, nullable=True)   # reserved for future ML models
