@@ -7,7 +7,7 @@ from app.db.models import (
     RawProduct, RawStore, RawOrder, RawInventorySnapshot,
     RawPromotion, RawSupplier, RawPurchaseOrder,
     IngestionRun, AggregationRun, SalesDaily, InventoryDaily, ProductStoreDaily,
-    FeatureMatrix, FeatureRun, ForecastRun, Forecast, ModelMetric,
+    FeatureMatrix, FeatureRun, ForecastRun, Forecast, ModelMetric, ModelVersion,
 )
 from app.schemas.api import OverviewResponse, DataHealthResponse
 from app.services.validation_service import ValidationService
@@ -77,6 +77,23 @@ def get_overview(db: Session = Depends(get_db)):
         if mm:
             latest_wape = mm.wape
 
+    # ML model readiness (Sprint 5)
+    latest_ml_mv = (
+        db.query(ModelVersion)
+        .filter(
+            ModelVersion.status == "completed",
+            ModelVersion.model_type == "ml_global_regressor",
+        )
+        .order_by(ModelVersion.created_at.desc())
+        .first()
+    )
+    latest_ml_wape = None
+    if latest_ml_mv and latest_ml_mv.metrics_summary_json:
+        latest_ml_wape = (
+            latest_ml_mv.metrics_summary_json.get("overall", {}).get("wape")
+        )
+
+    import os as _os
     return OverviewResponse(
         status="ok",
         data_mode="mock",
@@ -97,6 +114,15 @@ def get_overview(db: Session = Depends(get_db)):
             "critical_risks": 0,
             "pending_recommendations": 0,
             "last_ingestion_run": str(latest_run.started_at) if latest_run else None,
+            # ML model readiness fields (honest — null when no ML model trained)
+            "latest_ml_model_status": latest_ml_mv.status if latest_ml_mv else None,
+            "latest_ml_model_algorithm": latest_ml_mv.algorithm if latest_ml_mv else None,
+            "latest_ml_wape": latest_ml_wape,
+            "best_baseline_wape": latest_wape,
+            "model_artifact_exists": (
+                latest_ml_mv.artifact_path is not None
+                and _os.path.exists(latest_ml_mv.artifact_path)
+            ) if latest_ml_mv else False,
         },
     )
 
@@ -196,6 +222,30 @@ def get_data_health(db: Session = Depends(get_db)):
             "rows_created": latest_frun.rows_created or 0,
         }
 
+    # ML model counts (Sprint 5)
+    model_versions_count = db.query(func.count(ModelVersion.id)).scalar() or 0
+    ml_runs_count = (
+        db.query(func.count(ForecastRun.id))
+        .filter(ForecastRun.model_type == "hist_gradient_boosting")
+        .scalar() or 0
+    )
+    latest_ml_mv = (
+        db.query(ModelVersion)
+        .filter(
+            ModelVersion.status == "completed",
+            ModelVersion.model_type == "ml_global_regressor",
+        )
+        .order_by(ModelVersion.created_at.desc())
+        .first()
+    )
+    latest_ml_mv_info = None
+    if latest_ml_mv:
+        latest_ml_mv_info = {
+            "model_version_id": latest_ml_mv.id,
+            "algorithm": latest_ml_mv.algorithm,
+            "status": latest_ml_mv.status,
+        }
+
     # Canonical counts
     sales_daily_count = db.query(func.count(SalesDaily.id)).scalar() or 0
     inv_daily_count   = db.query(func.count(InventoryDaily.id)).scalar() or 0
@@ -216,7 +266,7 @@ def get_data_health(db: Session = Depends(get_db)):
     )
 
     checks = [
-        {"name": "data_seeded",           "status": "passed"},
+        {"name": "data_seeded", "status": "passed"},
         {"name": "products_present",      "status": "passed", "detail": f"{products_count} products"},
         {"name": "stores_present",        "status": "passed", "detail": f"{stores_count} stores"},
         {"name": "orders_present",        "status": "passed", "detail": f"{orders_count} order lines"},
@@ -231,8 +281,10 @@ def get_data_health(db: Session = Depends(get_db)):
          "detail": f"sales_daily={sales_daily_count}, inventory_daily={inv_daily_count}"},
         {"name": "feature_build",         "status": "passed" if latest_feat and latest_feat.status == "completed" else "warning",
          "detail": f"feature_matrix={fm_count} rows"},
-        {"name": "forecast_run",          "status": "passed" if latest_frun else "warning",
+        {"name": "forecast_run", "status": "passed" if latest_frun else "warning",
          "detail": f"forecast_runs={forecast_runs_count}, forecasts={forecasts_count}"},
+        {"name": "ml_model", "status": "passed" if latest_ml_mv else "warning",
+         "detail": f"model_versions={model_versions_count}, ml_forecast_runs={ml_runs_count}"},
     ]
 
     all_passed = all(c["status"] == "passed" for c in checks)
@@ -262,6 +314,11 @@ def get_data_health(db: Session = Depends(get_db)):
             "model_metrics": mm_count,
         },
         "latest_forecast_run": latest_frun_info,
+        "model_counts": {
+            "model_versions": model_versions_count,
+            "ml_forecast_runs": ml_runs_count,
+        },
+        "latest_model_version": latest_ml_mv_info,
         "checks":  checks,
         "message": "Data health checks complete.",
     }

@@ -96,7 +96,41 @@
 - No stockout/reorder/ML fields in Forecast or ModelMetric schema ✅
 - WAPE/Bias return None (not 0 or inf) when denominator is zero ✅
 
-## 6. Stockout / Reorder Tests (Sprint 5)
+## 6. ML Training Tests (Sprint 5) ✅
+
+### CI / Repo Hygiene
+- `.github/workflows/ci.yml` exists ✅
+- `.github/dependabot.yml` exists ✅
+- `.gitignore` protects model artifacts and generated data ✅
+- Repo hygiene job blocks venv, pycache, node_modules, .env ✅
+
+### ML Training
+- TrainingService trains HistGradientBoosting from feature_matrix ✅
+- Training uses only rows before backtest window (train_end < test_start) ✅
+- target_units_sold and all forbidden fields excluded from features ✅
+- Categorical encoding is deterministic (sorted categories) ✅
+- Model artifact saved to models/forecasting/{model_version_id}.joblib ✅
+- ModelVersion row persisted with status=completed ✅
+- Forecast rows persisted for ML model ✅
+- All p50 forecasts ≥ 0 ✅
+- actual_units joined for backtest rows ✅
+- ModelMetric rows persisted ✅
+- Metrics at overall level ✅
+- Metrics at category and store levels ✅
+- Baseline comparison works when baseline runs exist ✅
+- Baseline comparison graceful when no baselines ✅
+- ML not forced to win: ml_won reflects actual WAPE comparison ✅
+- Re-running same config is clear-before-rewrite safe ✅
+- POST /api/models/train works ✅
+- GET /api/models/versions works ✅
+- GET /api/models/latest works ✅
+- GET /api/models/compare works ✅
+- /api/data-health includes model_counts after training ✅
+- /api/overview includes honest ML readiness fields ✅
+- No stockout/reorder tables populated in Sprint 5 ✅
+- Existing Sprint 0–4 tests still pass ✅
+
+## 7. Stockout / Reorder Tests (Sprint 6)
 - Risk tier = critical when days_until_stockout ≤ lead_time_days
 - Safety stock formula: Z × σ(demand) × √lead_time
 - EOQ formula: sqrt(2 × D × S / H)

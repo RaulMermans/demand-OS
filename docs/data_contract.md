@@ -156,6 +156,51 @@ One row per (run_id × level × level_value).
 **Forbidden fields in forecast tables:**
 `stockout_probability`, `days_until_stockout`, `risk_tier`, `recommended_qty`, `reorder_point`, `economic_order_qty`
 
+## Model Registry (Sprint 5)
+
+Produced by `TrainingService.train_ml_forecaster()`. Input: `feature_matrix`. Output: `model_versions`, `forecast_runs`, `forecasts`, `model_metrics`.
+
+### model_versions
+One row per trained model version.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String | Primary key (`model-<uuid>`) |
+| `model_name` | String | Display name |
+| `algorithm` | String | `hist_gradient_boosting` / `seasonal_naive` / etc. |
+| `model_type` | String | `ml_global_regressor` / `baseline` |
+| `status` | String | `running` / `completed` / `failed` |
+| `training_start_date` | Date | Earliest training date |
+| `training_end_date` | Date | Last training date (day before test window) |
+| `test_start_date` | Date | First test date |
+| `test_end_date` | Date | Last test date |
+| `feature_columns_json` | JSON | List of input feature column names |
+| `target_column` | String | `target_units_sold` |
+| `artifact_path` | String | Path to saved .joblib artifact |
+| `metrics_summary_json` | JSON | Overall/category/store metrics |
+| `config_json` | JSON | Training hyperparameters |
+
+**Artifact format** (`models/forecasting/{model_version_id}.joblib`):
+```python
+{
+    "model": HistGradientBoostingRegressor,  # fitted
+    "encoder": OrdinalEncoder,               # fitted on training categoricals
+    "numeric_columns": [...],                 # 27 numeric feature names
+    "categorical_columns": [...],             # 3 categorical feature names
+    "feature_columns": [...],                 # all 30 feature names
+    "trained_at": "2024-01-01T00:00:00",
+}
+```
+
+**Categorical encoding:**
+- OrdinalEncoder with categories sorted alphabetically from training set
+- Unseen values at inference → encoded as -1 (unknown)
+- Columns: category, store_channel, product_age_bucket
+
+**Idempotency:** Re-running same algorithm deletes prior run (clear-before-rewrite).
+
+**Generated artifacts are excluded from git via `.gitignore`.**
+
 ## Accepted Data Formats
 
 | Source | Format | Sprint |

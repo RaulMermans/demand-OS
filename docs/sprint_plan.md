@@ -158,23 +158,73 @@
 - No stockout risk scoring yet (Sprint 5)
 - No reorder recommendations yet (Sprint 5)
 
-## Sprint 5 — Stockout Risk + Reorder
-- [ ] Implement StockoutService:
-  - Days-until-stockout calculation
-  - Safety stock (Z × σ × √LT)
-  - Risk tier assignment (critical / high / medium / low)
-- [ ] Implement RecommendationService:
-  - Reorder point (ROP)
-  - Economic Order Quantity (EOQ)
-  - Supplier + delivery date
-- [ ] Inventory Risk heatmap page
-- [ ] Recommendations table
+## Sprint 5 — ML Forecasting Model + Model Registry + CI ✅
+- [x] GitHub Actions CI with backend, frontend, and repo-hygiene jobs
+- [x] Dependabot config for GitHub Actions, pip, and npm
+- [x] `.gitignore` updated to protect model artifacts and generated data
+- [x] `scikit-learn` + `joblib` added to pyproject.toml
+- [x] `ModelVersion` ORM expanded with full registry fields (algorithm, status, dates, feature_columns_json, etc.)
+- [x] `TrainingService.train_ml_forecaster()` implemented:
+  - HistGradientBoostingRegressor (scikit-learn) across all (product, store) series
+  - 30 leakage-safe features (27 numeric + 3 categorical)
+  - OrdinalEncoder with sorted categories for deterministic encoding
+  - Train/test split by date; test = last backtest_days of feature_matrix
+  - Predictions clipped at 0; heuristic ±1σ p10/p90 bands
+  - Model artifact saved to `models/forecasting/{model_version_id}.joblib`
+  - Baseline comparison (honest: ML not forced to win)
+  - Clear-before-rewrite idempotency
+- [x] `POST /api/models/train` — trains and returns result + baseline comparison
+- [x] `GET /api/models/versions` — model registry list
+- [x] `GET /api/models/latest` — latest completed ML model
+- [x] `GET /api/models/compare` — baseline vs ML comparison
+- [x] `/api/data-health` updated with `model_counts` and `latest_model_version`
+- [x] `/api/overview` updated with honest ML readiness fields
+- [x] `scripts/train_model.py` — CLI for training
+- [x] `scripts/verify.sh` updated with Sprint 5 file checks
+- [x] `tests/test_training.py` — 27 tests covering all Sprint 5 requirements
+- [x] No stockout risk or reorder recommendation logic introduced
 
-## Sprint 6 — Model Evaluation + Observability
+**Model performance (seed=42, 4 products, 2 stores, 91 days, backtest_days=28):**
+- HistGradientBoosting WAPE: varies with data; compared honestly against baselines
+- Seasonal naive WAPE (reference): typically 0.25–0.55 on retail mock data
+
+**Counts produced:**
+- model_versions: 1 per training run
+- forecast_runs: 1 per training run (model_type="hist_gradient_boosting")
+- forecasts: ~224 rows (4 × 2 × 28 days)
+- model_metrics: overall + per-category + per-store rows
+
+**CI jobs:**
+- `backend`: Python 3.11, pytest, verify.sh
+- `frontend`: Node LTS, `npm run build` (type-check + production bundle)
+- `repo-hygiene`: no .env, no node_modules/venv/pycache, no model artifacts, no secret files
+
+**Feature engineering (30 features):**
+- 27 numeric: lag_units (1d/7d/14d/28d), rolling mean/std (7d/14d/28d), rolling revenue, calendar (6), promo (2), price/margin (7), inventory (3), days_since_launch
+- 3 categorical (OrdinalEncoder, sorted): category, store_channel, product_age_bucket
+- target_units_sold is label only — never an input feature
+
+**Limitations (to address in Sprint 6):**
+- No stockout risk scoring yet
+- p10/p90 are ±1σ heuristics, not calibrated probabilistic intervals
+- No model monitoring or drift detection
+
+## Sprint 6 — Stockout Risk Engine
+- [ ] Implement StockoutService:
+  - Days-until-stockout calculation from best available forecast + current inventory
+  - Safety stock (Z × σ(demand) × √lead_time)
+  - Risk tier assignment (critical / high / medium / low)
+  - Inventory coverage and estimated lost sales
+- [ ] Read from best persisted forecasts (ML if available, else best baseline)
+- [ ] Use current inventory_daily + inbound purchase orders + supplier lead times
+- [ ] Persist results to stockout_risks table
+- [ ] No reorder recommendations yet (Sprint 7)
+
+## Sprint 7 — Model Evaluation + Reorder Recommendations
 - [ ] Implement EvaluationService (RMSE, MAE, SMAPE, WRMSSE, bias, coverage)
+- [ ] Implement RecommendationService (ROP, EOQ, supplier + delivery date)
 - [ ] Model Performance dashboard
 - [ ] Pipeline event logging
-- [ ] Alerting stubs (critical stockout → notification)
 
 ## Sprint 7+ — Connectors + Production
 - [ ] CsvCommerceConnector (real file parsing)

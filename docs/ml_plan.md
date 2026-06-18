@@ -17,11 +17,17 @@ Primary metric: WRMSSE (Weighted Root Mean Squared Scaled Error), aligned with M
 - Metrics: MAE, RMSE, WAPE, SMAPE, Bias at overall/category/store levels
 - Heuristic bands: p10 = max(0, p50 - σ), p90 = p50 + σ (±1 rolling std; documented heuristic)
 
-### Phase B — Global ML Model (Sprint 5)
-- LightGBM trained across all (product, store) series simultaneously
+### Phase B — Global ML Model (Sprint 5) ✅
+- HistGradientBoostingRegressor (scikit-learn) across all (product, store) series
 - One model, N series — avoids sparse-data problem for low-volume SKUs
 - Inspired by Nixtla/mlforecast global model approach
-- Evaluate against Sprint 4 baselines; adopt only if meaningful improvement
+- 30 leakage-safe features: 27 numeric + 3 categorical (OrdinalEncoded, sorted)
+- Train/test split by date; last backtest_days held out for evaluation
+- Predictions clipped at 0; heuristic p10/p90 = p50 ± rolling_std_7d
+- Evaluated against Sprint 4 baselines; result reported honestly (ML may or may not win)
+- Artifact saved to models/forecasting/{model_version_id}.joblib
+- Model registry in model_versions table; baseline comparison in /api/models/compare
+- LightGBM deferred: HistGradientBoosting first to keep CI dependency-clean
 
 ### Phase C — Prediction Intervals (Sprint 4c)
 - Quantile regression: q=0.1, 0.9 (80% interval), q=0.05, 0.95 (90% interval)

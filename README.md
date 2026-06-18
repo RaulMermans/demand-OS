@@ -56,8 +56,9 @@ See [docs/architecture.md](docs/architecture.md) for full diagram.
 | 2 | Aggregation pipeline (canonical daily tables) | ✅ Done |
 | 3 | Feature engineering (leakage-safe feature_matrix) | ✅ Done |
 | 4 | Baseline forecasting + backtesting (seasonal naive, moving average) | ✅ Done |
-| 5 | ML forecasting (LightGBM/RF global model) + stockout risk | 🔜 Next |
-| 6 | Reorder recommendations + model monitoring | 🔜 |
+| 5 | ML forecasting (HistGradientBoosting global model) + model registry + CI | ✅ Done |
+| 6 | Stockout risk engine (days-until-stockout, risk tiers, inventory coverage) | 🔜 Next |
+| 7 | Reorder recommendations + model monitoring | 🔜 |
 | 7+ | Real connectors (Shopify, CSV, WooCommerce) | 🔜 |
 
 ---
@@ -112,6 +113,36 @@ pytest
 
 ```bash
 bash scripts/verify.sh
+```
+
+## Train the ML Model
+
+```bash
+# Seed data + run pipeline first
+curl -X POST http://localhost:8000/api/demo/reset
+curl -X POST http://localhost:8000/api/aggregation/run -H 'Content-Type: application/json' -d '{}'
+curl -X POST http://localhost:8000/api/features/build -H 'Content-Type: application/json' -d '{}'
+
+# Then train
+python scripts/train_model.py --algorithm hist_gradient_boosting --horizon-days 28 --backtest-days 56
+
+# Or via API
+curl -X POST http://localhost:8000/api/models/train \
+  -H 'Content-Type: application/json' \
+  -d '{"algorithm": "hist_gradient_boosting", "horizon_days": 28, "backtest_days": 56}'
+```
+
+## CI
+
+GitHub Actions runs on every push and PR:
+- **backend**: Python 3.11, pytest, verify.sh
+- **frontend**: Node LTS, `npm run build`
+- **repo-hygiene**: no .env, no artifacts, no secrets committed
+
+Local CI-equivalent:
+```bash
+cd apps/api && pytest && cd ../.. && bash scripts/verify.sh
+cd apps/web && npm install && npm run build
 ```
 
 ---

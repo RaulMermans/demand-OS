@@ -31,13 +31,16 @@ apps/web/.env.local
 .DS_Store
 Thumbs.db
 
-# Models
-models/*.pkl
-models/*.joblib
-models/*.json
-models/*.bin
-models/*.lgb
-models/*.xgb
+# Models — generated artifacts are never committed
+models/*
+!models/.gitkeep
+!models/forecasting/
+models/forecasting/*
+!models/forecasting/.gitkeep
+*.joblib
+*.pkl
+*.parquet
+*.csv
 
 # Data — raw and processed data files (keep gitkeep, ignore real data)
 data/raw/*

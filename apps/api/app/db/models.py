@@ -493,16 +493,42 @@ class FeatureMatrix(Base):
 
 
 class ModelVersion(Base):
+    """
+    Registry entry for every trained model (baseline or ML).
+
+    Sprint 5 adds full ML registry fields alongside legacy scaffold fields.
+    algorithm values: seasonal_naive / moving_average_7d / moving_average_28d /
+                      hist_gradient_boosting / lightgbm_optional
+    status values: running / completed / failed
+    """
     __tablename__ = "model_versions"
 
     id = Column(String, primary_key=True)
-    model_type = Column(String)        # lightgbm / xgboost / naive / etc.
+
+    # Legacy scaffold fields (kept for FK compatibility)
+    model_type = Column(String)        # ml_global_regressor / baseline
     trained_at = Column(DateTime)
     training_cutoff_date = Column(Date)
     hyperparameters = Column(JSON, default=dict)
     artifact_path = Column(String)
     is_active = Column(Boolean, default=False)
     metrics = Column(JSON, default=dict)
+
+    # Sprint 5 registry fields
+    model_name = Column(String)
+    algorithm = Column(String)         # hist_gradient_boosting / seasonal_naive / etc.
+    status = Column(String)            # running / completed / failed
+    training_start_date = Column(Date)
+    training_end_date = Column(Date)
+    test_start_date = Column(Date)
+    test_end_date = Column(Date)
+    feature_run_id = Column(String)
+    feature_columns_json = Column(JSON, default=list)
+    target_column = Column(String, default="target_units_sold")
+    metrics_summary_json = Column(JSON, default=dict)
+    config_json = Column(JSON, default=dict)
+    error_message = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class ForecastRun(Base):

@@ -83,6 +83,12 @@ After any schema change, also run:
 cd apps/api && pytest tests/test_raw_data_rule.py -v
 ```
 
+Full verification (equivalent to CI):
+
+```bash
+bash scripts/verify.sh
+```
+
 Do not mark a task complete until tests pass.
 
 ---
