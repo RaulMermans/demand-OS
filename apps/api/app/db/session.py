@@ -1,21 +1,21 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
-from typing import Generator
 
 from app.config import get_settings
+from app.db.base import Base
 
 settings = get_settings()
 
 engine = create_engine(
     settings.database_url,
-    connect_args={"check_same_thread": False} if "sqlite" in settings.database_url else {},
+    connect_args={"check_same_thread": False} if settings.database_url.startswith("sqlite") else {},
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
+def get_db():
+    db: Session = SessionLocal()
     try:
         yield db
     finally:
@@ -23,6 +23,4 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def init_db() -> None:
-    from app.db.base import Base
-    from app.db import models  # noqa: F401 — registers all ORM classes
     Base.metadata.create_all(bind=engine)
