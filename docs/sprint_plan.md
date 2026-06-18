@@ -209,22 +209,82 @@
 - p10/p90 are ±1σ heuristics, not calibrated probabilistic intervals
 - No model monitoring or drift detection
 
-## Sprint 6 — Stockout Risk Engine
-- [ ] Implement StockoutService:
-  - Days-until-stockout calculation from best available forecast + current inventory
-  - Safety stock (Z × σ(demand) × √lead_time)
-  - Risk tier assignment (critical / high / medium / low)
-  - Inventory coverage and estimated lost sales
-- [ ] Read from best persisted forecasts (ML if available, else best baseline)
-- [ ] Use current inventory_daily + inbound purchase orders + supplier lead times
-- [ ] Persist results to stockout_risks table
-- [ ] No reorder recommendations yet (Sprint 7)
+## Sprint 6 — Stockout Risk Engine ✅
+- [x] `StockoutRiskRun` table: full audit record per risk engine execution
+- [x] `StockoutRisk` table: expanded Sprint 6 schema per (risk_run × product × store)
+- [x] `ForecastRun.mode` column added: `backtest` / `forward_planning`
+- [x] `ForecastingService.run_planning_forecast()`: forward-looking baseline forecasts
+- [x] `POST /api/forecasts/planning/run`: generate future forecast rows (mode=forward_planning)
+- [x] `StockoutService.run_stockout_risk()`: full implementation:
+  - Forward planning mode: uses forward_planning forecast + latest inventory_daily
+  - Historical simulation mode: uses backtest forecast + backtest start date
+  - Current inventory from latest `inventory_daily` on/before as_of_date
+  - Inbound POs (status: submitted/confirmed) within [as_of_date+1, as_of_date+horizon]
+  - Supplier lead time from `raw_suppliers.lead_time_days_max`
+  - Forecast demand: sum(p50_units), sum(p90_units with null→p50 fallback) over horizon
+  - Projected end inventory (p50 and p90), average daily forecast, days of supply
+  - Days until stockout (null when no projected stockout within horizon)
+  - Safety stock: 1.65 × rolling_std_7d × √lead_time (from feature_matrix last row)
+  - Inventory coverage ratio, lost sales units/value estimate
+  - Risk tier: critical / high / medium / low / unknown (deterministic rules)
+  - Risk score: 0–100 numeric (base by tier + supplier reliability + lost sales adjustments)
+  - Idempotency: clear-before-rewrite for same (mode, horizon, as_of_date)
+- [x] `POST /api/risks/run`, `GET /api/risks/runs`, `GET /api/risks/latest`
+- [x] `GET /api/risks` (ranked, filtered by tier/store/category)
+- [x] `GET /api/risks/product/{product_id}` (risk per store for one product)
+- [x] `/api/data-health` updated with `risk_counts` and `latest_stockout_risk_run`
+- [x] `/api/overview` updated with honest risk metrics (no hardcoded values):
+  - `critical_stockout_count`, `high_stockout_count`, `medium_stockout_count`, `low_stockout_count`
+  - `estimated_lost_sales_value`, `latest_risk_run_status`, `latest_risk_horizon_days`
+- [x] `scripts/run_planning_forecast.py` (--model, --horizon-days, --dry-run)
+- [x] `scripts/run_stockout_risk.py` (--horizon-days, --forecast-run-id, --mode, --dry-run)
+- [x] `scripts/verify.sh` updated with Sprint 6 file checks
+- [x] `tests/test_stockout.py` — 35 tests (all passing):
+  - Formula correctness (p50 sum, p90 fallback, days-of-supply, projected inventory)
+  - Safety stock formula verification
+  - Lost sales units and value formulas
+  - All 5 risk tier triggers (critical/high/medium/low/unknown)
+  - Risk score bounded 0–100
+  - Inbound PO horizon inclusion/exclusion
+  - Supplier lead time join
+  - Idempotency / clear-before-rewrite
+  - Forward planning mode errors without usable forecast
+  - API endpoints (run, latest, list, product)
+  - Data-health and overview honest metric inclusion
+  - No reorder recommendation fields
+  - No reorder recommendations in ReorderRecommendation table
+- [x] No reorder recommendations implemented (Sprint 7)
 
-## Sprint 7 — Model Evaluation + Reorder Recommendations
-- [ ] Implement EvaluationService (RMSE, MAE, SMAPE, WRMSSE, bias, coverage)
-- [ ] Implement RecommendationService (ROP, EOQ, supplier + delivery date)
-- [ ] Model Performance dashboard
-- [ ] Pipeline event logging
+**Counts produced (seed=42, 4 products, 2 stores, 91 days, horizon=28):**
+- stockout_risk_runs: 1 per risk run call
+- stockout_risks: up to (products × stores) rows per run
+
+**Risk tier breakdown (indicative, depends on inventory levels and forecasts):**
+- critical: products/stores where demand within lead-time window exceeds available stock
+- high: projected p50 end inventory negative, or coverage ratio < 1.0
+- medium: p90 projection below safety stock, or thin coverage ratio
+- low: well-covered inventory with safety buffer
+
+**Limitations (to address in Sprint 7):**
+- Planning forecast is a flat (constant) projection — no ML future inference yet
+- No reorder quantities or EOQ calculations yet (Sprint 7)
+- Safety stock formula uses rolling_units_std_7d as demand_std_daily (reasonable for weekly data)
+
+## Sprint 7 — Reorder Recommendation Engine
+- [ ] Implement `RecommendationService.generate_reorder_recommendations()`:
+  - Convert stockout risk rows into suggested reorder quantities
+  - Reorder point: safety_stock + lead_time_demand
+  - Reorder quantity: demand × (lead_time + review_period) + safety_stock - current_inventory
+  - EOQ-style constraints: balance ordering cost vs holding cost
+  - Recommendation status tracking: pending / approved / dismissed
+  - Idempotency: one recommendation per (product, store) per risk run
+- [ ] `POST /api/recommendations/generate` — generate recommendations from latest risk run
+- [ ] `GET /api/recommendations` — list pending recommendations
+- [ ] `PATCH /api/recommendations/{id}/approve` or `/dismiss`
+- [ ] No automatic purchase order creation — recommendations are human-approved only
+- [ ] Update `/api/overview` with `pending_recommendations` count
+- [ ] No real external purchase order API calls
+- [ ] `tests/test_recommendations.py` covering formula correctness and approval flow
 
 ## Sprint 7+ — Connectors + Production
 - [ ] CsvCommerceConnector (real file parsing)

@@ -29,6 +29,18 @@ Primary metric: WRMSSE (Weighted Root Mean Squared Scaled Error), aligned with M
 - Model registry in model_versions table; baseline comparison in /api/models/compare
 - LightGBM deferred: HistGradientBoosting first to keep CI dependency-clean
 
+### Phase B2 — Forward Planning Forecasts (Sprint 6) ✅
+- `ForecastingService.run_planning_forecast()` generates future forecast rows for the next horizon_days
+- Uses last available feature_matrix values per (product, store) as a seed
+- Applies the chosen baseline formula as a flat (constant) projection:
+  - seasonal_naive: last lag_units_7d value
+  - moving_average_7d: last rolling_units_mean_7d
+  - moving_average_28d: last rolling_units_mean_28d
+- Rows tagged `mode=forward_planning`, `backtest_mode=False`, `actual_units=None`
+- Preferred by StockoutService over backtest rows for operational risk scoring
+- Limitation: ML model not applied for future inference in this sprint — flat projection is a conservative estimate
+- ML forward planning planned for Sprint 7+ (requires feature engineering for future dates)
+
 ### Phase C — Prediction Intervals (Sprint 4c)
 - Quantile regression: q=0.1, 0.9 (80% interval), q=0.05, 0.95 (90% interval)
 - Conformal prediction as alternative (distribution-free coverage guarantee)

@@ -201,6 +201,90 @@ One row per trained model version.
 
 **Generated artifacts are excluded from git via `.gitignore`.**
 
+## Stockout Risk Tables (Sprint 6)
+
+Produced by `StockoutService.run_stockout_risk()`. Input: `forecast_runs`, `forecasts`, `inventory_daily`, `raw_purchase_orders`, `raw_suppliers`, `raw_products`, `feature_matrix`. Output: `stockout_risk_runs`, `stockout_risks`.
+
+### stockout_risk_runs
+One row per risk run (audit record).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String | Primary key (`risk-run-<uuid>`) |
+| `source_forecast_run_id` | String | FK to `forecast_runs.id` |
+| `mode` | String | `forward_planning` / `historical_simulation` |
+| `status` | String | `running` / `completed` / `failed` |
+| `risk_horizon_days` | Int | Horizon used for risk calculation |
+| `as_of_date` | Date | The "today" of the risk calculation |
+| `rows_created` | Int | Number of StockoutRisk rows written |
+| `critical_count` / `high_count` / `medium_count` / `low_count` / `unknown_count` | Int | Tier breakdowns |
+
+### stockout_risks
+One row per (risk_run_id × product_id × store_id).
+
+| Field group | Key fields |
+|-------------|-----------|
+| Identity | `risk_run_id`, `as_of_date`, `product_id`, `store_id`, `category`, `supplier_id` |
+| Inventory | `current_on_hand_units`, `current_available_units`, `inbound_units_within_horizon` |
+| Supplier | `supplier_lead_time_days`, `supplier_reliability_score` |
+| Forecast | `forecast_demand_p50`, `forecast_demand_p90`, `average_daily_forecast` |
+| Projection | `projected_end_inventory_p50`, `projected_end_inventory_p90` |
+| Risk metrics | `days_of_supply`, `days_until_stockout`, `expected_stockout_date` |
+| Safety | `safety_stock_units`, `inventory_coverage_ratio` |
+| Lost sales | `lost_sales_units_estimate`, `lost_sales_value_estimate` |
+| Output | `risk_score` (0–100), `risk_tier` (critical/high/medium/low/unknown), `risk_reason` |
+
+**Risk tier rules (deterministic):**
+```
+critical : days_until_stockout is not null AND <= min(7, supplier_lead_time_days)
+high     : projected_end_inventory_p50 < 0 OR inventory_coverage_ratio < 1.0
+medium   : projected_end_inventory_p90 < safety_stock_units OR coverage_ratio < 1.25
+low      : projected_end_inventory_p90 >= safety_stock_units AND coverage_ratio >= 1.25
+unknown  : missing forecast, inventory, or supplier data
+```
+
+**Key formulas:**
+```
+current_available_units     = on_hand_units  (no separate reserved field in inventory_daily)
+inbound_units_within_horizon = sum(PO.quantity_ordered where delivery_date in horizon
+                               and status in {submitted, confirmed})
+forecast_demand_p50          = sum(p50_units over horizon days)
+average_daily_forecast       = forecast_demand_p50 / horizon_days
+projected_end_inventory_p50  = available + inbound - forecast_demand_p50
+days_of_supply               = available / average_daily_forecast  (null when avg==0)
+days_until_stockout          = (available + inbound) / avg_daily  when proj_p50 < 0
+safety_stock_units           = 1.65 * demand_std_daily * sqrt(lead_time_days)
+  demand_std_daily           = last rolling_units_std_7d from feature_matrix; fallback 0
+inventory_coverage_ratio     = (available + inbound) / max(forecast_p50, 1)
+lost_sales_units_estimate    = max(0, forecast_p50 - available - inbound)
+lost_sales_value_estimate    = lost_sales_units_estimate * retail_price
+risk_score                   = base_score_by_tier + reliability_adjustment + lost_sales_adjustment
+  capped at 100; critical=95, high=75, medium=45, low=15, unknown=null
+```
+
+**Modes:**
+- `forward_planning`: uses forecast rows covering as_of_date+1 through as_of_date+horizon_days; as_of_date = latest inventory_daily date. Represents actual operational risk.
+- `historical_simulation`: uses backtest forecast rows from the backtest window. Clearly marked as simulation, NOT operational risk.
+
+**Idempotency:** Clears previous completed runs with same (mode, horizon_days, as_of_date) before inserting.
+
+**Forbidden fields (not in Sprint 6):**
+`recommended_units`, `reorder_quantity`, `reorder_point`, `purchase_order_action`, `economic_order_qty`
+These belong to Sprint 7 RecommendationService.
+
+### Forward Planning Forecast (Sprint 6)
+
+Produced by `ForecastingService.run_planning_forecast()`. Extends `forecast_runs` with `mode="forward_planning"` and `backtest_mode=False`.
+
+This uses a flat (constant) projection from the last available feature values per (product, store):
+- `seasonal_naive`: last `lag_units_7d` value projected forward
+- `moving_average_7d`: last `rolling_units_mean_7d` projected forward
+- `moving_average_28d`: last `rolling_units_mean_28d` projected forward
+
+Planning forecast rows have `actual_units=None` (no actuals for future dates). They are preferred by StockoutService for the `forward_planning` mode.
+
+**Limitation:** ML models are not applied to future dates in Sprint 6. The baseline formula is used as a conservative demand estimate. True ML forward inference requires a separate step (planned for Sprint 7+).
+
 ## Accepted Data Formats
 
 | Source | Format | Sprint |

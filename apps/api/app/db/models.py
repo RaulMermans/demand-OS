@@ -540,6 +540,7 @@ class ForecastRun(Base):
     model_type = Column(String, nullable=False)   # "seasonal_naive" / "moving_average_7d" / "moving_average_28d"
     horizon_days = Column(Integer, default=28)
     backtest_mode = Column(Boolean, default=True)
+    mode = Column(String, default="backtest")     # backtest / forward_planning
     train_start_date = Column(Date)
     train_end_date = Column(Date)
     test_start_date = Column(Date)
@@ -583,20 +584,88 @@ class Forecast(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class StockoutRiskRun(Base):
+    """Tracks each execution of StockoutService.run_stockout_risk()."""
+    __tablename__ = "stockout_risk_runs"
+
+    id = Column(String, primary_key=True)
+    source_forecast_run_id = Column(String, ForeignKey("forecast_runs.id"), nullable=True)
+    source_model_version_id = Column(String, ForeignKey("model_versions.id"), nullable=True)
+    mode = Column(String)               # forward_planning / historical_simulation
+    status = Column(String)             # running / completed / failed
+    started_at = Column(DateTime, nullable=False)
+    completed_at = Column(DateTime)
+    risk_horizon_days = Column(Integer)
+    as_of_date = Column(Date)
+    rows_created = Column(Integer, default=0)
+    critical_count = Column(Integer, default=0)
+    high_count = Column(Integer, default=0)
+    medium_count = Column(Integer, default=0)
+    low_count = Column(Integer, default=0)
+    unknown_count = Column(Integer, default=0)
+    checks_json = Column(JSON, default=list)
+    config_json = Column(JSON, default=dict)
+    error_message = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class StockoutRisk(Base):
-    """Stockout probability and days-until-stockout. Computed by stockout_service."""
+    """
+    Stockout risk score per (risk_run, product, store).
+    Computed by StockoutService from forecasts + inventory + inbound POs + supplier data.
+
+    risk_tier values: critical / high / medium / low / unknown
+    risk_score: 0–100 numeric score (higher = worse risk)
+
+    Safety stock formula: Z * demand_std_daily * sqrt(supplier_lead_time_days)
+      Z = 1.65 (95th percentile service level)
+      demand_std_daily = rolling_units_std_7d from feature_matrix last row
+    """
     __tablename__ = "stockout_risks"
 
     id = Column(String, primary_key=True)
+    risk_run_id = Column(String, ForeignKey("stockout_risk_runs.id"), nullable=False, index=True)
+    as_of_date = Column(Date, nullable=False, index=True)
     product_id = Column(String, nullable=False, index=True)
     store_id = Column(String, nullable=False, index=True)
-    risk_date = Column(Date, nullable=False, index=True)
-    stockout_probability = Column(Float)   # 0–1
+    category = Column(String)
+    subcategory = Column(String)
+    supplier_id = Column(String)
+    forecast_run_id = Column(String, ForeignKey("forecast_runs.id"), nullable=True)
+    model_type = Column(String)
+    model_name = Column(String)
+    forecast_horizon_days = Column(Integer)
+
+    # Inventory position
+    current_on_hand_units = Column(Float)
+    current_reserved_units = Column(Float, default=0.0)
+    current_available_units = Column(Float)
+    inbound_units_within_horizon = Column(Float, default=0.0)
+    supplier_lead_time_days = Column(Integer)
+    supplier_reliability_score = Column(Float)
+
+    # Forecast demand
+    forecast_demand_p50 = Column(Float)
+    forecast_demand_p90 = Column(Float)
+    average_daily_forecast = Column(Float)
+    projected_end_inventory_p50 = Column(Float)
+    projected_end_inventory_p90 = Column(Float)
+    days_of_supply = Column(Float)
     days_until_stockout = Column(Float)
-    current_on_hand = Column(Float)
-    safety_stock_level = Column(Float)
-    risk_tier = Column(String)             # critical / high / medium / low
-    computed_at = Column(DateTime, default=datetime.utcnow)
+    expected_stockout_date = Column(Date)
+
+    # Risk metrics
+    safety_stock_units = Column(Float)
+    inventory_coverage_ratio = Column(Float)
+    lost_sales_units_estimate = Column(Float)
+    lost_sales_value_estimate = Column(Float)
+
+    # Risk output
+    risk_score = Column(Float)          # 0–100
+    risk_tier = Column(String)          # critical / high / medium / low / unknown
+    risk_reason = Column(Text)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class ReorderRecommendation(Base):

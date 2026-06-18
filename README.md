@@ -57,8 +57,8 @@ See [docs/architecture.md](docs/architecture.md) for full diagram.
 | 3 | Feature engineering (leakage-safe feature_matrix) | ✅ Done |
 | 4 | Baseline forecasting + backtesting (seasonal naive, moving average) | ✅ Done |
 | 5 | ML forecasting (HistGradientBoosting global model) + model registry + CI | ✅ Done |
-| 6 | Stockout risk engine (days-until-stockout, risk tiers, inventory coverage) | 🔜 Next |
-| 7 | Reorder recommendations + model monitoring | 🔜 |
+| 6 | Stockout risk engine (days-until-stockout, risk tiers, inventory coverage, lost sales) | ✅ Done |
+| 7 | Reorder recommendation engine (ROP, EOQ, approval flow) | 🔜 Next |
 | 7+ | Real connectors (Shopify, CSV, WooCommerce) | 🔜 |
 
 ---
@@ -130,6 +130,34 @@ python scripts/train_model.py --algorithm hist_gradient_boosting --horizon-days 
 curl -X POST http://localhost:8000/api/models/train \
   -H 'Content-Type: application/json' \
   -d '{"algorithm": "hist_gradient_boosting", "horizon_days": 28, "backtest_days": 56}'
+```
+
+## Run Stockout Risk (Sprint 6)
+
+```bash
+# Full pipeline + risk scoring
+curl -X POST http://localhost:8000/api/demo/reset
+curl -X POST http://localhost:8000/api/aggregation/run -H 'Content-Type: application/json' -d '{}'
+curl -X POST http://localhost:8000/api/features/build -H 'Content-Type: application/json' -d '{}'
+curl -X POST http://localhost:8000/api/forecasts/baseline/run -H 'Content-Type: application/json' -d '{"model_type":"seasonal_naive"}'
+
+# Generate forward-looking forecast rows (preferred for risk scoring)
+curl -X POST http://localhost:8000/api/forecasts/planning/run \
+  -H 'Content-Type: application/json' \
+  -d '{"model_type": "seasonal_naive", "horizon_days": 28}'
+
+# Run risk engine
+curl -X POST http://localhost:8000/api/risks/run \
+  -H 'Content-Type: application/json' \
+  -d '{"horizon_days": 28, "mode": "forward_planning"}'
+
+# View results
+curl http://localhost:8000/api/risks/latest
+curl http://localhost:8000/api/risks?risk_tier=critical
+
+# Or via scripts
+python scripts/run_planning_forecast.py --model seasonal_naive --horizon-days 28
+python scripts/run_stockout_risk.py --horizon-days 28
 ```
 
 ## CI

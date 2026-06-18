@@ -210,6 +210,48 @@ def get_product_forecast(
 
 
 # ---------------------------------------------------------------------------
+# POST /api/forecasts/planning/run
+# ---------------------------------------------------------------------------
+
+class PlanningRunRequest(BaseModel):
+    model_type: str = "seasonal_naive"
+    horizon_days: int = 28
+    source_feature_run_id: Optional[str] = None
+
+
+@router.post("/forecasts/planning/run")
+def run_planning_forecast(
+    body: PlanningRunRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Generate forward-looking forecast rows for the next horizon_days.
+
+    Uses the latest feature_matrix row per (product, store) as a feature seed
+    and projects demand using the chosen baseline model.
+
+    These rows are tagged mode=forward_planning and are preferred by
+    POST /api/risks/run when computing stockout risk.
+
+    Limitation: This is a flat (constant) projection — it does NOT apply
+    the ML model for future dates. The baseline formula is applied to the
+    last known feature values, giving a conservative demand estimate.
+    """
+    if body.model_type not in VALID_MODEL_TYPES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid model_type '{body.model_type}'. Allowed: {sorted(VALID_MODEL_TYPES)}",
+        )
+    svc = ForecastingService(db)
+    result = svc.run_planning_forecast(
+        model_type=body.model_type,
+        horizon_days=body.horizon_days,
+        source_feature_run_id=body.source_feature_run_id,
+    )
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
 

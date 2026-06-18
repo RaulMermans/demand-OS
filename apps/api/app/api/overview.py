@@ -8,6 +8,7 @@ from app.db.models import (
     RawPromotion, RawSupplier, RawPurchaseOrder,
     IngestionRun, AggregationRun, SalesDaily, InventoryDaily, ProductStoreDaily,
     FeatureMatrix, FeatureRun, ForecastRun, Forecast, ModelMetric, ModelVersion,
+    StockoutRiskRun, StockoutRisk,
 )
 from app.schemas.api import OverviewResponse, DataHealthResponse
 from app.services.validation_service import ValidationService
@@ -93,6 +94,29 @@ def get_overview(db: Session = Depends(get_db)):
             latest_ml_mv.metrics_summary_json.get("overall", {}).get("wape")
         )
 
+    # Risk counts (Sprint 6)
+    latest_risk_run = (
+        db.query(StockoutRiskRun)
+        .filter(StockoutRiskRun.status == "completed")
+        .order_by(StockoutRiskRun.started_at.desc())
+        .first()
+    )
+    critical_count = latest_risk_run.critical_count if latest_risk_run else 0
+    high_count = latest_risk_run.high_count if latest_risk_run else 0
+    medium_count = latest_risk_run.medium_count if latest_risk_run else 0
+    low_count = latest_risk_run.low_count if latest_risk_run else 0
+
+    # Estimated lost sales value from latest risk run
+    lost_sales_value = None
+    if latest_risk_run:
+        lost_sales_value = (
+            db.query(func.sum(StockoutRisk.lost_sales_value_estimate))
+            .filter(StockoutRisk.risk_run_id == latest_risk_run.id)
+            .scalar()
+        )
+        if lost_sales_value is not None:
+            lost_sales_value = float(lost_sales_value)
+
     import os as _os
     return OverviewResponse(
         status="ok",
@@ -111,8 +135,6 @@ def get_overview(db: Session = Depends(get_db)):
             "latest_baseline_wape": latest_wape,
             "forecast_rows_count": forecast_rows_count,
             "model_metrics_count": model_metrics_count,
-            "critical_risks": 0,
-            "pending_recommendations": 0,
             "last_ingestion_run": str(latest_run.started_at) if latest_run else None,
             # ML model readiness fields (honest — null when no ML model trained)
             "latest_ml_model_status": latest_ml_mv.status if latest_ml_mv else None,
@@ -123,6 +145,14 @@ def get_overview(db: Session = Depends(get_db)):
                 latest_ml_mv.artifact_path is not None
                 and _os.path.exists(latest_ml_mv.artifact_path)
             ) if latest_ml_mv else False,
+            # Sprint 6: honest risk metrics (null when no risk run has been executed)
+            "critical_stockout_count": critical_count,
+            "high_stockout_count": high_count,
+            "medium_stockout_count": medium_count,
+            "low_stockout_count": low_count,
+            "estimated_lost_sales_value": lost_sales_value,
+            "latest_risk_run_status": latest_risk_run.status if latest_risk_run else None,
+            "latest_risk_horizon_days": latest_risk_run.risk_horizon_days if latest_risk_run else None,
         },
     )
 
@@ -265,6 +295,25 @@ def get_data_health(db: Session = Depends(get_db)):
         .scalar() or 0
     )
 
+    # Risk counts (Sprint 6)
+    risk_runs_count = db.query(func.count(StockoutRiskRun.id)).scalar() or 0
+    risks_count     = db.query(func.count(StockoutRisk.id)).scalar() or 0
+    latest_risk_run = (
+        db.query(StockoutRiskRun)
+        .filter(StockoutRiskRun.status == "completed")
+        .order_by(StockoutRiskRun.started_at.desc())
+        .first()
+    )
+    latest_risk_run_info = None
+    if latest_risk_run:
+        latest_risk_run_info = {
+            "run_id": latest_risk_run.id,
+            "status": latest_risk_run.status,
+            "mode": latest_risk_run.mode,
+            "as_of_date": str(latest_risk_run.as_of_date) if latest_risk_run.as_of_date else None,
+            "rows_created": latest_risk_run.rows_created or 0,
+        }
+
     checks = [
         {"name": "data_seeded", "status": "passed"},
         {"name": "products_present",      "status": "passed", "detail": f"{products_count} products"},
@@ -285,6 +334,8 @@ def get_data_health(db: Session = Depends(get_db)):
          "detail": f"forecast_runs={forecast_runs_count}, forecasts={forecasts_count}"},
         {"name": "ml_model", "status": "passed" if latest_ml_mv else "warning",
          "detail": f"model_versions={model_versions_count}, ml_forecast_runs={ml_runs_count}"},
+        {"name": "stockout_risk_run", "status": "passed" if latest_risk_run else "warning",
+         "detail": f"stockout_risk_runs={risk_runs_count}, stockout_risks={risks_count}"},
     ]
 
     all_passed = all(c["status"] == "passed" for c in checks)
@@ -319,6 +370,11 @@ def get_data_health(db: Session = Depends(get_db)):
             "ml_forecast_runs": ml_runs_count,
         },
         "latest_model_version": latest_ml_mv_info,
+        "risk_counts": {
+            "stockout_risk_runs": risk_runs_count,
+            "stockout_risks": risks_count,
+        },
+        "latest_stockout_risk_run": latest_risk_run_info,
         "checks":  checks,
         "message": "Data health checks complete.",
     }

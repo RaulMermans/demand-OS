@@ -41,10 +41,11 @@ It ingests raw operational commerce records and computes all derived insights in
                         │
                         ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                   DECISION LAYER                                 │
-│  StockoutService    → stockout_risks (DB)                       │
-│  RecommendationSvc  → reorder_recommendations (DB)              │
-│  EvaluationService  → model_metrics (DB)                        │
+│                   RISK LAYER  (Sprint 6)                        │
+│  StockoutService → stockout_risk_runs + stockout_risks (DB)     │
+│  Inputs: forecasts + inventory_daily + POs + supplier info      │
+│  Outputs: risk_tier, risk_score, days_until_stockout,           │
+│           safety_stock, coverage_ratio, lost_sales_estimate     │
 └───────────────────────┬─────────────────────────────────────────┘
                         │
                         ▼
@@ -68,8 +69,9 @@ It ingests raw operational commerce records and computes all derived insights in
 | Aggregate | sales_daily, inventory_daily, promotion_daily, product_store_daily | AggregationService | 2 |
 | Feature | feature_matrix | FeatureService | 3 |
 | Model | forecast_runs, forecasts, model_metrics | ForecastingService | 4 |
-| ML Model | model_versions | ForecastingService (future) | 5 |
-| Decision | stockout_risks, reorder_recommendations | StockoutService, RecommendationService | 5–6 |
+| ML Model | model_versions | TrainingService | 5 |
+| Risk | stockout_risk_runs, stockout_risks | StockoutService | 6 |
+| Recommendation | reorder_recommendations | RecommendationService | 7 (planned) |
 
 ## Key Design Decisions
 

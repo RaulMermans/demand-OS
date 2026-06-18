@@ -74,9 +74,10 @@ from datetime import datetime, timedelta, date
 import pandas as pd
 import numpy as np
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.db.models import FeatureMatrix, ForecastRun, Forecast, ModelMetric
+from app.db.models import FeatureMatrix, ForecastRun, Forecast, ModelMetric, InventoryDaily
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +127,7 @@ class ForecastingService:
             model_type=model_type,
             horizon_days=horizon_days,
             backtest_mode=True,
+            mode="backtest",
             status="running",
             started_at=datetime.utcnow(),
             config_json={
@@ -228,6 +230,169 @@ class ForecastingService:
 
         except Exception as exc:
             logger.exception("Baseline forecast run %s failed", run_id)
+            self.db.rollback()
+            run.status = "failed"
+            run.error_message = str(exc)
+            run.completed_at = datetime.utcnow()
+            self.db.add(run)
+            self.db.commit()
+            raise
+
+    def run_planning_forecast(
+        self,
+        model_type: str,
+        horizon_days: int = 28,
+        source_feature_run_id: str | None = None,
+    ) -> dict:
+        """
+        Generate forward-looking forecast rows for the next horizon_days beyond
+        the latest canonical date in the feature_matrix.
+
+        Uses the last available feature values per (product, store) to project
+        demand using the chosen baseline model (constant projection).
+
+        Unlike backtesting, these rows have:
+          - actual_units = None (no actuals for future)
+          - backtest_mode = False
+          - mode = "forward_planning"
+
+        The resulting run is tagged as "forward_planning" and is preferred
+        by StockoutService when computing risk.
+
+        Limitation: This uses a flat projection from the last known feature values.
+        It does NOT use an ML model for these future rows — that requires a separate
+        inference step not implemented in Sprint 6. For ML forward planning, the
+        seasonal_naive or MA baseline is used as a conservative estimate.
+        """
+        if model_type not in VALID_MODEL_TYPES:
+            raise ValueError(
+                f"Unknown model_type '{model_type}'. "
+                f"Must be one of {sorted(VALID_MODEL_TYPES)}"
+            )
+
+        run_id = f"forecast-run-{uuid.uuid4()}"
+        run = ForecastRun(
+            id=run_id,
+            model_name=model_type,
+            model_type=model_type,
+            horizon_days=horizon_days,
+            backtest_mode=False,
+            mode="forward_planning",
+            status="running",
+            started_at=datetime.utcnow(),
+            config_json={
+                "horizon_days": horizon_days,
+                "source_feature_run_id": source_feature_run_id,
+                "planning_mode": True,
+            },
+        )
+        self.db.add(run)
+        self.db.flush()
+
+        try:
+            df = self._load_feature_matrix(source_feature_run_id)
+            if df.empty:
+                run.status = "failed"
+                run.error_message = (
+                    "feature_matrix is empty — run POST /api/features/build first"
+                )
+                run.completed_at = datetime.utcnow()
+                self.db.commit()
+                return {"status": "failed", "run_id": run_id, "error": "feature_matrix is empty"}
+
+            # Determine as_of_date from latest inventory_daily if available,
+            # else from feature_matrix max date
+            inv_max = self.db.query(func.max(InventoryDaily.date)).scalar()
+            feat_max_date = df["date"].max()
+            if hasattr(feat_max_date, "date"):
+                feat_max_date = feat_max_date.date()
+            as_of_date = inv_max if inv_max else feat_max_date
+
+            # Get the last row per (product, store) to use as feature seed
+            df["date_only"] = df["date"].dt.date
+            last_rows = (
+                df.sort_values("date")
+                .groupby(["product_id", "store_id"])
+                .last()
+                .reset_index()
+            )
+
+            # Apply the baseline model to get p50 from the last feature row
+            last_rows = self._apply_baseline(last_rows, model_type)
+            run.train_start_date = df["date_only"].min()
+            run.train_end_date = feat_max_date
+            run.test_start_date = as_of_date + timedelta(days=1)
+            run.test_end_date = as_of_date + timedelta(days=horizon_days)
+            self.db.flush()
+
+            # Generate forecast rows for each future date
+            rows = []
+            for _, seed in last_rows.iterrows():
+                p50 = float(seed["p50_units"]) if not math.isnan(seed["p50_units"]) else 0.0
+                p10 = float(seed["p10_units"]) if not math.isnan(seed.get("p10_units", float("nan"))) else max(0.0, p50 * 0.8)
+                p90 = float(seed["p90_units"]) if not math.isnan(seed.get("p90_units", float("nan"))) else p50 * 1.2
+
+                for day in range(1, horizon_days + 1):
+                    fc_date = as_of_date + timedelta(days=day)
+                    rows.append({
+                        "id": str(uuid.uuid4()),
+                        "forecast_run_id": run_id,
+                        "forecast_date": fc_date,
+                        "product_id": seed["product_id"],
+                        "store_id": seed["store_id"],
+                        "horizon_day": day,
+                        "model_name": model_type,
+                        "model_type": model_type,
+                        "p50_units": p50,
+                        "p10_units": p10,
+                        "p90_units": p90,
+                        "actual_units": None,
+                        "absolute_error": None,
+                        "squared_error": None,
+                        "absolute_percentage_error": None,
+                        "created_at": datetime.utcnow(),
+                    })
+
+            # Clear previous forward_planning runs for same model_type
+            prev_runs = (
+                self.db.query(ForecastRun)
+                .filter(
+                    ForecastRun.model_type == model_type,
+                    ForecastRun.mode == "forward_planning",
+                    ForecastRun.id != run_id,
+                )
+                .all()
+            )
+            for prev in prev_runs:
+                self.db.query(Forecast).filter(
+                    Forecast.forecast_run_id == prev.id
+                ).delete(synchronize_session=False)
+                self.db.delete(prev)
+            if prev_runs:
+                self.db.flush()
+
+            self.db.bulk_insert_mappings(Forecast, rows)
+            run.status = "completed"
+            run.completed_at = datetime.utcnow()
+            run.rows_created = len(rows)
+            self.db.commit()
+
+            return {
+                "status": "completed",
+                "run_id": run_id,
+                "model_type": model_type,
+                "mode": "forward_planning",
+                "horizon_days": horizon_days,
+                "as_of_date": str(as_of_date),
+                "rows_created": len(rows),
+                "forecast_window": {
+                    "start": str(run.test_start_date),
+                    "end": str(run.test_end_date),
+                },
+            }
+
+        except Exception as exc:
+            logger.exception("Planning forecast run %s failed", run_id)
             self.db.rollback()
             run.status = "failed"
             run.error_message = str(exc)

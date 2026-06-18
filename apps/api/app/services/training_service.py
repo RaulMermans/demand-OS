@@ -221,6 +221,7 @@ class TrainingService:
             model_type=algorithm,
             horizon_days=horizon_days,
             backtest_mode=True,
+            mode="backtest",
             status="running",
             started_at=datetime.utcnow(),
             model_version_id=model_version_id,
