@@ -24,10 +24,10 @@ ROOT_FILES=(
 for f in "${ROOT_FILES[@]}"; do
   if [ -f "$f" ]; then
     echo "   ✅ $f"
-    ((PASS++))
+    ((PASS += 1))
   else
     echo "   ❌ $f — MISSING"
-    ((FAIL++))
+    ((FAIL += 1))
   fi
 done
 
@@ -47,10 +47,10 @@ DOC_FILES=(
 for f in "${DOC_FILES[@]}"; do
   if [ -f "$f" ]; then
     echo "   ✅ $f"
-    ((PASS++))
+    ((PASS += 1))
   else
     echo "   ❌ $f — MISSING"
-    ((FAIL++))
+    ((FAIL += 1))
   fi
 done
 
@@ -98,10 +98,10 @@ BACKEND_FILES=(
 for f in "${BACKEND_FILES[@]}"; do
   if [ -f "$f" ]; then
     echo "   ✅ $f"
-    ((PASS++))
+    ((PASS += 1))
   else
     echo "   ❌ $f — MISSING"
-    ((FAIL++))
+    ((FAIL += 1))
   fi
 done
 
@@ -118,16 +118,16 @@ if command -v python3 &>/dev/null; then
     if python3 -m pytest tests/ -v --tb=short; then
       echo ""
       echo "   ✅ All pytest tests passed"
-      ((PASS++))
+      ((PASS += 1))
     else
       echo ""
       echo "   ❌ pytest tests FAILED"
-      ((FAIL++))
+      ((FAIL += 1))
     fi
   else
     echo "   ⚠️  SKIP — Python dependencies not installed."
     echo "   Run: cd apps/api && pip install -e '.[dev]'"
-    ((SKIP++))
+    ((SKIP += 1))
   fi
 else
   echo "   ⚠️  SKIP — python3 not found."
@@ -155,10 +155,10 @@ FRONTEND_FILES=(
 for f in "${FRONTEND_FILES[@]}"; do
   if [ -f "$f" ]; then
     echo "   ✅ $f"
-    ((PASS++))
+    ((PASS += 1))
   else
     echo "   ❌ $f — MISSING"
-    ((FAIL++))
+    ((FAIL += 1))
   fi
 done
 
@@ -182,7 +182,7 @@ for field in "${FORBIDDEN_FIELDS[@]}"; do
   if grep -qE "^[[:space:]]+${field}[[:space:]]*[:=]" "$RAW_SCHEMA" 2>/dev/null; then
     echo "   ❌ FORBIDDEN field declaration found in $RAW_SCHEMA: $field"
     SCHEMA_CLEAN=false
-    ((FAIL++))
+    ((FAIL += 1))
   fi
 done
 if [ "$SCHEMA_CLEAN" = true ]; then
