@@ -268,9 +268,9 @@ risk_score                   = base_score_by_tier + reliability_adjustment + los
 
 **Idempotency:** Clears previous completed runs with same (mode, horizon_days, as_of_date) before inserting.
 
-**Forbidden fields (not in Sprint 6):**
+**Forbidden fields in stockout_risks (enforced):**
 `recommended_units`, `reorder_quantity`, `reorder_point`, `purchase_order_action`, `economic_order_qty`
-These belong to Sprint 7 RecommendationService.
+These belong to Sprint 7 RecommendationService (implemented in `reorder_recommendations`).
 
 ### Forward Planning Forecast (Sprint 6)
 
@@ -284,6 +284,66 @@ This uses a flat (constant) projection from the last available feature values pe
 Planning forecast rows have `actual_units=None` (no actuals for future dates). They are preferred by StockoutService for the `forward_planning` mode.
 
 **Limitation:** ML models are not applied to future dates in Sprint 6. The baseline formula is used as a conservative demand estimate. True ML forward inference requires a separate step (planned for Sprint 7+).
+
+## Recommendation Tables (Sprint 7)
+
+Produced by `RecommendationService.run_reorder_recommendations()`. Input: `stockout_risks`, `raw_products`. Output: `recommendation_runs`, `reorder_recommendations`.
+
+### recommendation_runs
+One row per recommendation engine execution.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String | Primary key (`rec-run-<uuid>`) |
+| `source_risk_run_id` | String | FK to `stockout_risk_runs.id` |
+| `mode` | String | `recommendation_only` (only mode in Sprint 7) |
+| `status` | String | `running` / `completed` / `failed` |
+| `as_of_date` | Date | as_of_date from the source risk run |
+| `rows_created` | Int | Number of ReorderRecommendation rows written |
+| `critical_count` / `high_count` / `medium_count` / `low_count` | Int | Urgency breakdowns |
+| `total_recommended_units` | Float | Sum of recommended_units_rounded |
+| `total_estimated_value` | Float | Sum of estimated_order_cost |
+
+### reorder_recommendations
+One row per (recommendation_run × product × store).
+
+Key formulas (all deterministic, no LLM):
+```
+inventory_position        = current_available_units + inbound_units_within_horizon
+lead_time_demand_units    = average_daily_forecast × supplier_lead_time_days
+reorder_point_units       = lead_time_demand_units + safety_stock_units
+recommended_units         = max(0, reorder_point_units - inventory_position)
+recommended_units_rounded = ceil(raw / order_multiple) × order_multiple
+  clamped to min_order_quantity when recommended_units > 0
+estimated_order_cost      = recommended_units_rounded × unit_cost
+estimated_lost_sales_avoided = min(lost_sales_value_estimate, rounded × unit_price)
+  (estimate only — not a guaranteed recovery amount)
+```
+
+Urgency rules (deterministic):
+```
+critical: risk_tier=critical  OR  days_until_stockout <= 7
+high:     risk_tier=high  OR  days_until_stockout <= supplier_lead_time_days
+medium:   risk_tier=medium  OR  recommended_units_rounded > 0
+low:      otherwise
+```
+
+Confidence levels: high / medium / low / unknown (based on data completeness).
+
+Status workflow: `open` → `reviewed` → `approved_internal` / `ignored` / `resolved`
+`approved_internal` = approved inside DemandOS only; no purchase order created.
+
+**Supplier / order constraints in Sprint 7:**
+- `min_order_quantity` defaults to 1.0 (no separate supplier constraint table yet)
+- `order_multiple` defaults to 1.0
+
+**Forbidden actions (hard boundary):**
+- `approved_internal` MUST NOT create a purchase order
+- MUST NOT contact supplier systems
+- MUST NOT send emails or Slack messages
+- MUST NOT write to `raw_purchase_orders`
+
+**Idempotency:** Clears previous completed runs with same `source_risk_run_id` before inserting.
 
 ## Accepted Data Formats
 

@@ -95,6 +95,8 @@ BACKEND_FILES=(
   "scripts/train_model.py"
   "scripts/run_planning_forecast.py"
   "scripts/run_stockout_risk.py"
+  "scripts/run_recommendations.py"
+  "apps/api/tests/test_recommendations.py"
   ".github/workflows/ci.yml"
   ".github/dependabot.yml"
 )

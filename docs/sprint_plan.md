@@ -270,21 +270,78 @@
 - No reorder quantities or EOQ calculations yet (Sprint 7)
 - Safety stock formula uses rolling_units_std_7d as demand_std_daily (reasonable for weekly data)
 
-## Sprint 7 — Reorder Recommendation Engine
-- [ ] Implement `RecommendationService.generate_reorder_recommendations()`:
-  - Convert stockout risk rows into suggested reorder quantities
-  - Reorder point: safety_stock + lead_time_demand
-  - Reorder quantity: demand × (lead_time + review_period) + safety_stock - current_inventory
-  - EOQ-style constraints: balance ordering cost vs holding cost
-  - Recommendation status tracking: pending / approved / dismissed
-  - Idempotency: one recommendation per (product, store) per risk run
-- [ ] `POST /api/recommendations/generate` — generate recommendations from latest risk run
-- [ ] `GET /api/recommendations` — list pending recommendations
-- [ ] `PATCH /api/recommendations/{id}/approve` or `/dismiss`
-- [ ] No automatic purchase order creation — recommendations are human-approved only
-- [ ] Update `/api/overview` with `pending_recommendations` count
-- [ ] No real external purchase order API calls
-- [ ] `tests/test_recommendations.py` covering formula correctness and approval flow
+## Sprint 7 — Reorder Recommendation Engine ✅
+- [x] `RecommendationRun` table: audit record per recommendation engine execution
+- [x] `ReorderRecommendation` table: full Sprint 7 schema per (rec_run × product × store)
+- [x] `RecommendationService.run_reorder_recommendations()` — full implementation:
+  - Selects latest completed forward_planning stockout risk run (or specific run_id)
+  - Reads stockout_risk rows; filters low-risk rows by default
+  - Joins product info (unit_cost, unit_price) from raw_products
+  - Computes inventory_position = available + inbound
+  - Computes lead_time_demand = average_daily_forecast × lead_time_days
+  - Computes reorder_point = lead_time_demand + safety_stock_units
+  - Computes recommended_units = max(0, reorder_point - inventory_position)
+  - Rounds recommended_units_rounded to order_multiple (default 1)
+  - Applies min_order_quantity constraint (default 1)
+  - Computes estimated_order_cost = recommended_units_rounded × unit_cost
+  - Computes estimated_lost_sales_avoided = min(lost_sales_value, rounded × unit_price)
+  - Assigns urgency via deterministic rules (critical/high/medium/low)
+  - Generates template-based recommendation_reason (no LLM)
+  - Assigns confidence_level from data completeness (high/medium/low/unknown)
+  - Idempotency: clear-before-rewrite for same source_risk_run_id
+- [x] `POST /api/recommendations/run` — generate recommendations
+- [x] `GET /api/recommendations/runs` — list all recommendation runs
+- [x] `GET /api/recommendations/latest` — latest completed run + ranked rows
+- [x] `GET /api/recommendations` — ranked/filtered list (urgency, status, tier, store, category)
+- [x] `GET /api/recommendations/product/{product_id}` — per-product recommendations
+- [x] `PATCH /api/recommendations/{id}/status` — status workflow (no purchase orders)
+- [x] `/api/data-health` updated with `recommendation_counts` and `latest_recommendation_run`
+- [x] `/api/overview` updated with honest recommendation metrics:
+  - open_recommendation_count, critical_recommendation_count, high_recommendation_count
+  - total_recommended_units, estimated_order_cost, estimated_lost_sales_avoided
+  - latest_recommendation_run_status
+- [x] `scripts/run_recommendations.py` (--risk-run-id, --include-low-risk, --dry-run)
+- [x] `scripts/verify.sh` updated with Sprint 7 file checks
+- [x] `tests/test_recommendations.py` — 41 tests covering all Sprint 7 requirements
+- [x] No real purchase orders, no external API calls, no email/Slack
+
+**Formulas implemented:**
+- `inventory_position = current_available_units + inbound_units_within_horizon`
+- `lead_time_demand = average_daily_forecast × supplier_lead_time_days`
+- `reorder_point = lead_time_demand + safety_stock_units`
+- `recommended_units = max(0, reorder_point - inventory_position)`
+- `recommended_units_rounded = ceil(raw / order_multiple) × order_multiple`
+  clamped to min_order_quantity when recommended_units > 0
+- `estimated_order_cost = recommended_units_rounded × unit_cost`
+- `estimated_lost_sales_avoided = min(lost_sales_value_estimate, rounded × unit_price)`
+
+**Urgency rules (deterministic):**
+- critical: risk_tier=critical OR days_until_stockout <= 7
+- high: risk_tier=high OR days_until_stockout <= supplier_lead_time_days
+- medium: risk_tier=medium OR recommended_units_rounded > 0
+- low: otherwise
+
+**Status workflow:** open → reviewed → approved_internal / ignored / resolved
+approved_internal = approved inside DemandOS only; no external action taken.
+
+**Counts produced (seed=42, 4 products, 2 stores, 91 days, horizon=28):**
+- recommendation_runs: 1 per run call
+- reorder_recommendations: up to products × stores non-low-risk rows
+
+**Limitations (to address in Sprint 8):**
+- Min order quantity and order multiple defaults to 1 (no supplier constraint table yet)
+- Flat forward-planning forecast used; ML future inference not yet implemented
+- No dashboard pages connected to real recommendation data yet
+
+## Sprint 8 — Backend API Hardening + Dashboard Data Contracts (Planned)
+- [ ] Stabilize all API response contracts with typed schemas
+- [ ] Add typed frontend API clients in `apps/web/lib/api.ts`
+- [ ] Connect dashboard pages to real backend data (no hardcoded values)
+- [ ] Add `/recommendations` dashboard page
+- [ ] Add Alembic migration support
+- [ ] Add API key authentication layer
+- [ ] Dashboard: forecasts, risks, recommendations with real computed metrics
+- [ ] No new business logic unless needed to support dashboard contracts
 
 ## Sprint 7+ — Connectors + Production
 - [ ] CsvCommerceConnector (real file parsing)

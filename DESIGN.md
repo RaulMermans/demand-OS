@@ -18,23 +18,27 @@ Raw → Clean → Aggregate → Feature → Model → Decision
 | Aggregate | sales_daily, inventory_daily, promotion_daily, product_store_daily | AggregationService | 2 |
 | Feature | feature_matrix | FeatureService | 3 |
 | Model | model_versions, forecast_runs, forecasts | ForecastingService | 4 |
-| Decision | stockout_risks, reorder_recommendations, model_metrics | StockoutService, RecommendationService, EvaluationService | 5–6 |
+| Risk | stockout_risk_runs, stockout_risks | StockoutService | 6 |
+| Recommendation | recommendation_runs, reorder_recommendations | RecommendationService | 7 |
+| Evaluation | model_metrics | EvaluationService | 5–6 |
 
 ---
 
 ## Core Workflow
 
 ```
-1. Connector.fetch_*()          → raw Pydantic objects
-2. IngestionService.run()       → writes to raw_* tables
-3. ValidationService.validate() → emits PipelineEvents for errors
-4. AggregationService.run()     → writes to sales_daily, inventory_daily
-5. FeatureService.run()         → writes to feature_matrix
-6. ForecastingService.run()     → writes to forecasts
-7. StockoutService.run()        → writes to stockout_risks
-8. RecommendationService.run()  → writes to reorder_recommendations
-9. EvaluationService.evaluate() → writes to model_metrics
-10. FastAPI serves all outputs  → Next.js dashboard reads from API
+1.  Connector.fetch_*()                       → raw Pydantic objects
+2.  IngestionService.run()                    → writes to raw_* tables
+3.  ValidationService.validate()              → emits PipelineEvents for errors
+4.  AggregationService.run()                  → writes to *_clean, sales_daily, inventory_daily
+5.  FeatureService.build_feature_matrix()     → writes to feature_matrix
+6.  ForecastingService.run_baseline_forecast()→ writes to forecast_runs, forecasts
+7.  ForecastingService.run_planning_forecast()→ writes forward-planning forecast rows
+8.  StockoutService.run_stockout_risk()       → writes to stockout_risk_runs, stockout_risks
+9.  RecommendationService.run_reorder_recommendations() → writes to recommendation_runs,
+                                                          reorder_recommendations
+10. EvaluationService.evaluate()              → writes to model_metrics
+11. FastAPI serves all outputs                → Next.js dashboard reads from API
 ```
 
 ---
@@ -67,9 +71,10 @@ connector instance passed to `IngestionService` changes.
 | `/` | /api/status | 0 (scaffold) |
 | `/overview` | /api/overview | 2 |
 | `/forecasts` | /api/forecasts | 4 |
-| `/risks` | /api/risks | 5 |
-| `/model-performance` | /api/metrics | 6 |
+| `/risks` | /api/risks | 6 |
+| `/model-performance` | /api/metrics | 5–6 |
 | `/data-health` | /api/data-health | 1 |
+| `/recommendations` | /api/recommendations | 7 (scaffold — connect in Sprint 8) |
 
 ---
 
@@ -110,8 +115,8 @@ Each service has exactly one responsibility:
 | AggregationService | raw_* tables | *_clean tables, sales_daily, inventory_daily, promotion_daily, product_store_daily, aggregation_runs |
 | FeatureService | sales_daily, inventory_daily, raw_promotions, raw_suppliers | feature_matrix |
 | ForecastingService | feature_matrix | model_versions, forecast_runs, forecasts |
-| StockoutService | forecasts, inventory_daily, raw_products, raw_suppliers | stockout_risks |
-| RecommendationService | stockout_risks, forecasts, raw_suppliers, raw_products | reorder_recommendations |
+| StockoutService | forecasts, inventory_daily, raw_products, raw_suppliers | stockout_risk_runs, stockout_risks |
+| RecommendationService | stockout_risks, raw_products | recommendation_runs, reorder_recommendations |
 | EvaluationService | forecasts, sales_daily | model_metrics |
 
 Services never call each other. They read from and write to the DB only.

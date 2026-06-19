@@ -50,12 +50,23 @@ It ingests raw operational commerce records and computes all derived insights in
                         │
                         ▼
 ┌─────────────────────────────────────────────────────────────────┐
+│                RECOMMENDATION LAYER  (Sprint 7)                  │
+│  RecommendationService → recommendation_runs +                   │
+│                          reorder_recommendations (DB)            │
+│  Inputs: stockout_risks + raw_products                           │
+│  Computes: lead_time_demand, reorder_point, inventory_position,  │
+│            recommended_units, urgency, reason, confidence        │
+│  Recommendation-only: no purchase orders, no external calls      │
+└───────────────────────┬─────────────────────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────────────────────┐
 │                    API / DASHBOARD                               │
 │  FastAPI (port 8000)      Next.js dashboard (port 3000)         │
 │  /health /api/overview    / /overview /forecasts /risks         │
 │  /api/forecasts           /model-performance /data-health        │
-│  /api/risks                                                     │
-│  /api/recommendations                                           │
+│  /api/risks               /recommendations                      │
+│  /api/recommendations/run                                       │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -71,7 +82,7 @@ It ingests raw operational commerce records and computes all derived insights in
 | Model | forecast_runs, forecasts, model_metrics | ForecastingService | 4 |
 | ML Model | model_versions | TrainingService | 5 |
 | Risk | stockout_risk_runs, stockout_risks | StockoutService | 6 |
-| Recommendation | reorder_recommendations | RecommendationService | 7 (planned) |
+| Recommendation | recommendation_runs, reorder_recommendations | RecommendationService | 7 |
 
 ## Key Design Decisions
 

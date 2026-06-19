@@ -8,7 +8,7 @@ from app.db.models import (
     RawPromotion, RawSupplier, RawPurchaseOrder,
     IngestionRun, AggregationRun, SalesDaily, InventoryDaily, ProductStoreDaily,
     FeatureMatrix, FeatureRun, ForecastRun, Forecast, ModelMetric, ModelVersion,
-    StockoutRiskRun, StockoutRisk,
+    StockoutRiskRun, StockoutRisk, RecommendationRun, ReorderRecommendation,
 )
 from app.schemas.api import OverviewResponse, DataHealthResponse
 from app.services.validation_service import ValidationService
@@ -117,6 +117,39 @@ def get_overview(db: Session = Depends(get_db)):
         if lost_sales_value is not None:
             lost_sales_value = float(lost_sales_value)
 
+    # Recommendation counts (Sprint 7)
+    latest_rec_run = (
+        db.query(RecommendationRun)
+        .filter(RecommendationRun.status == "completed")
+        .order_by(RecommendationRun.started_at.desc())
+        .first()
+    )
+    open_rec_count = 0
+    critical_rec_count = 0
+    high_rec_count = 0
+    total_rec_units = 0.0
+    estimated_order_cost = 0.0
+    estimated_lost_sales_avoided = 0.0
+    if latest_rec_run:
+        open_rec_count = (
+            db.query(func.count(ReorderRecommendation.id))
+            .filter(
+                ReorderRecommendation.recommendation_run_id == latest_rec_run.id,
+                ReorderRecommendation.status == "open",
+            )
+            .scalar() or 0
+        )
+        critical_rec_count = latest_rec_run.critical_count or 0
+        high_rec_count = latest_rec_run.high_count or 0
+        total_rec_units = float(latest_rec_run.total_recommended_units or 0.0)
+        estimated_order_cost = float(latest_rec_run.total_estimated_value or 0.0)
+        avoided = (
+            db.query(func.sum(ReorderRecommendation.estimated_lost_sales_avoided))
+            .filter(ReorderRecommendation.recommendation_run_id == latest_rec_run.id)
+            .scalar()
+        )
+        estimated_lost_sales_avoided = float(avoided or 0.0)
+
     import os as _os
     return OverviewResponse(
         status="ok",
@@ -153,6 +186,16 @@ def get_overview(db: Session = Depends(get_db)):
             "estimated_lost_sales_value": lost_sales_value,
             "latest_risk_run_status": latest_risk_run.status if latest_risk_run else None,
             "latest_risk_horizon_days": latest_risk_run.risk_horizon_days if latest_risk_run else None,
+            # Sprint 7: honest recommendation metrics (null when no recommendations run)
+            "open_recommendation_count": open_rec_count,
+            "critical_recommendation_count": critical_rec_count,
+            "high_recommendation_count": high_rec_count,
+            "total_recommended_units": total_rec_units,
+            "estimated_order_cost": estimated_order_cost,
+            "estimated_lost_sales_avoided": estimated_lost_sales_avoided,
+            "latest_recommendation_run_status": (
+                latest_rec_run.status if latest_rec_run else None
+            ),
         },
     )
 
@@ -295,6 +338,23 @@ def get_data_health(db: Session = Depends(get_db)):
         .scalar() or 0
     )
 
+    # Recommendation counts (Sprint 7)
+    rec_runs_count = db.query(func.count(RecommendationRun.id)).scalar() or 0
+    recs_count     = db.query(func.count(ReorderRecommendation.id)).scalar() or 0
+    latest_rec_run = (
+        db.query(RecommendationRun)
+        .filter(RecommendationRun.status == "completed")
+        .order_by(RecommendationRun.started_at.desc())
+        .first()
+    )
+    latest_rec_run_info = None
+    if latest_rec_run:
+        latest_rec_run_info = {
+            "run_id": latest_rec_run.id,
+            "status": latest_rec_run.status,
+            "mode": latest_rec_run.mode,
+        }
+
     # Risk counts (Sprint 6)
     risk_runs_count = db.query(func.count(StockoutRiskRun.id)).scalar() or 0
     risks_count     = db.query(func.count(StockoutRisk.id)).scalar() or 0
@@ -336,6 +396,8 @@ def get_data_health(db: Session = Depends(get_db)):
          "detail": f"model_versions={model_versions_count}, ml_forecast_runs={ml_runs_count}"},
         {"name": "stockout_risk_run", "status": "passed" if latest_risk_run else "warning",
          "detail": f"stockout_risk_runs={risk_runs_count}, stockout_risks={risks_count}"},
+        {"name": "recommendation_run", "status": "passed" if latest_rec_run else "warning",
+         "detail": f"recommendation_runs={rec_runs_count}, reorder_recommendations={recs_count}"},
     ]
 
     all_passed = all(c["status"] == "passed" for c in checks)
@@ -375,6 +437,11 @@ def get_data_health(db: Session = Depends(get_db)):
             "stockout_risks": risks_count,
         },
         "latest_stockout_risk_run": latest_risk_run_info,
+        "recommendation_counts": {
+            "recommendation_runs": rec_runs_count,
+            "reorder_recommendations": recs_count,
+        },
+        "latest_recommendation_run": latest_rec_run_info,
         "checks":  checks,
         "message": "Data health checks complete.",
     }

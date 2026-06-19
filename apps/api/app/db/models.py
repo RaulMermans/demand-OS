@@ -668,23 +668,105 @@ class StockoutRisk(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class RecommendationRun(Base):
+    """Tracks each execution of RecommendationService.run_reorder_recommendations()."""
+    __tablename__ = "recommendation_runs"
+
+    id = Column(String, primary_key=True)       # rec-run-<uuid>
+    source_risk_run_id = Column(String, ForeignKey("stockout_risk_runs.id"), nullable=True)
+    source_forecast_run_id = Column(String, nullable=True)
+    mode = Column(String, default="recommendation_only")  # recommendation_only / historical_simulation
+    status = Column(String)                     # running / completed / failed
+    started_at = Column(DateTime, nullable=False)
+    completed_at = Column(DateTime)
+    as_of_date = Column(Date)
+    horizon_days = Column(Integer)
+    rows_created = Column(Integer, default=0)
+    critical_count = Column(Integer, default=0)
+    high_count = Column(Integer, default=0)
+    medium_count = Column(Integer, default=0)
+    low_count = Column(Integer, default=0)
+    total_recommended_units = Column(Float, default=0.0)
+    total_estimated_value = Column(Float, default=0.0)
+    checks_json = Column(JSON, default=list)
+    config_json = Column(JSON, default=dict)
+    error_message = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class ReorderRecommendation(Base):
-    """Reorder recommendations. Computed by recommendation_service."""
+    """
+    Reorder recommendations per (rec_run × product × store).
+    Computed by RecommendationService from stockout_risks.
+
+    status values: open / reviewed / approved_internal / ignored / resolved
+    urgency values: critical / high / medium / low
+    confidence_level values: high / medium / low / unknown
+
+    approved_internal means a user approved the recommendation inside DemandOS only.
+    It does NOT create a purchase order or trigger any external system.
+
+    Formulas (all deterministic):
+      inventory_position     = current_available_units + inbound_units_within_horizon
+      lead_time_demand_units = average_daily_forecast × supplier_lead_time_days
+      reorder_point_units    = lead_time_demand_units + safety_stock_units
+      recommended_units      = max(0, reorder_point_units - inventory_position)
+      recommended_units_rounded = ceil(raw / order_multiple) × order_multiple
+        clamped to min_order_quantity when recommended > 0
+      estimated_order_cost   = recommended_units_rounded × unit_cost
+      estimated_lost_sales_avoided = min(lost_sales_value_estimate, rounded × unit_price)
+    """
     __tablename__ = "reorder_recommendations"
 
     id = Column(String, primary_key=True)
+    recommendation_run_id = Column(String, ForeignKey("recommendation_runs.id"), nullable=False, index=True)
+    source_risk_run_id = Column(String, ForeignKey("stockout_risk_runs.id"), nullable=True)
+    source_risk_id = Column(String, ForeignKey("stockout_risks.id"), nullable=True)
+
+    as_of_date = Column(Date, nullable=False, index=True)
     product_id = Column(String, nullable=False, index=True)
     store_id = Column(String, nullable=False, index=True)
-    supplier_id = Column(String, nullable=True)
-    recommendation_date = Column(Date, nullable=False, index=True)
-    recommended_qty = Column(Float)
-    reorder_point = Column(Float)
-    economic_order_qty = Column(Float)
-    expected_delivery_date = Column(Date)
-    estimated_cost = Column(Float)
-    rationale = Column(Text)
-    status = Column(String, default="pending")   # pending / approved / dismissed
-    computed_at = Column(DateTime, default=datetime.utcnow)
+    category = Column(String)
+    subcategory = Column(String)
+    supplier_id = Column(String)
+
+    risk_tier = Column(String)
+    risk_score = Column(Float)
+    expected_stockout_date = Column(Date)
+    days_until_stockout = Column(Float)
+
+    current_available_units = Column(Float)
+    inbound_units_within_horizon = Column(Float, default=0.0)
+    inventory_position = Column(Float)
+
+    supplier_lead_time_days = Column(Integer)
+    supplier_reliability_score = Column(Float)
+
+    forecast_demand_p50 = Column(Float)
+    forecast_demand_p90 = Column(Float)
+    lead_time_demand_units = Column(Float)
+    safety_stock_units = Column(Float)
+    reorder_point_units = Column(Float)
+
+    recommended_units = Column(Float)
+    recommended_units_rounded = Column(Float)
+    min_order_quantity = Column(Float, default=1.0)
+    order_multiple = Column(Float, default=1.0)
+    estimated_order_cost = Column(Float)
+    estimated_lost_sales_value = Column(Float)
+    estimated_lost_sales_avoided = Column(Float)
+
+    urgency = Column(String)             # critical / high / medium / low
+    recommendation_reason = Column(Text)
+    confidence_level = Column(String)    # high / medium / low / unknown
+
+    status = Column(String, default="open")  # open / reviewed / approved_internal / ignored / resolved
+    reviewed_at = Column(DateTime)
+    reviewed_by = Column(String)
+    review_note = Column(Text)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)
 
 
 class ModelMetric(Base):
