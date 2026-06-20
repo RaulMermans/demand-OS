@@ -26,6 +26,7 @@ from app.db.session import get_db
 from app.db.models import RecommendationRun, ReorderRecommendation
 from app.services.recommendation_service import VALID_STATUS
 from app.services.recommendation_service import RecommendationService
+from app.api.auth import require_api_key
 
 router = APIRouter()
 
@@ -111,6 +112,7 @@ def _sort_key(r: ReorderRecommendation):
 def run_recommendations(
     body: RecommendationRunRequest,
     db: Session = Depends(get_db),
+    _: None = Depends(require_api_key),
 ):
     """
     Generate reorder recommendations from a completed stockout risk run.
@@ -301,6 +303,7 @@ def update_recommendation_status(
     recommendation_id: str,
     body: RecommendationStatusUpdate,
     db: Session = Depends(get_db),
+    _: None = Depends(require_api_key),
 ):
     """
     Update recommendation status (reviewed, approved_internal, ignored, resolved).

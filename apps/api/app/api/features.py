@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import FeatureMatrix, FeatureRun
 from app.services.feature_service import FeatureService
+from app.api.auth import require_api_key
 
 router = APIRouter()
 
@@ -22,8 +23,11 @@ class FeatureBuildRequest(BaseModel):
 
 
 @router.post("/features/build")
-def build_features(req: FeatureBuildRequest = FeatureBuildRequest(),
-                   db: Session = Depends(get_db)):
+def build_features(
+    req: FeatureBuildRequest = FeatureBuildRequest(),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_api_key),
+):
     """
     Run the feature engineering pipeline.
     Reads product_store_daily; writes to feature_matrix.

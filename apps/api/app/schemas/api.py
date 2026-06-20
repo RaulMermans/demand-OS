@@ -333,6 +333,26 @@ class DashboardModelSummaryResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Dashboard Sprint 9 — pipeline status and product drilldown
+# ---------------------------------------------------------------------------
+
+class DashboardPipelineStatusResponse(BaseModel):
+    status: str
+    all_steps_complete: bool
+    steps: list[dict[str, Any]]
+
+
+class DashboardProductResponse(BaseModel):
+    status: str
+    product_id: str
+    product: dict[str, Any]
+    supplier: Optional[dict[str, Any]] = None
+    risk_rows: list[dict[str, Any]] = []
+    recommendation_rows: list[dict[str, Any]] = []
+    forecast_rows: list[dict[str, Any]] = []
+
+
+# ---------------------------------------------------------------------------
 # Scaffold / legacy
 # ---------------------------------------------------------------------------
 

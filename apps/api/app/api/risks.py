@@ -17,6 +17,7 @@ from typing import Optional
 from app.db.session import get_db
 from app.db.models import StockoutRiskRun, StockoutRisk
 from app.services.stockout_service import StockoutService, VALID_MODES
+from app.api.auth import require_api_key
 
 router = APIRouter()
 
@@ -42,6 +43,7 @@ class RiskRunRequest(BaseModel):
 def run_stockout_risk(
     body: RiskRunRequest,
     db: Session = Depends(get_db),
+    _: None = Depends(require_api_key),
 ):
     """
     Run the stockout risk engine.

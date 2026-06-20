@@ -69,12 +69,34 @@ connector instance passed to `IngestionService` changes.
 | Route | Data Source | Sprint |
 |-------|-------------|--------|
 | `/` | /api/status | 0 (scaffold) |
-| `/overview` | /api/overview | 2 |
-| `/forecasts` | /api/forecasts | 4 |
-| `/risks` | /api/risks | 6 |
-| `/model-performance` | /api/metrics | 5–6 |
+| `/overview` | /api/overview + /api/dashboard/pipeline-status | 2, 9 |
+| `/forecasts` | /api/dashboard/forecast-summary + product drilldown | 4, 9 |
+| `/risks` | /api/dashboard/risk-summary + /api/risks | 6, 9 |
+| `/model-performance` | /api/metrics + /api/dashboard/model-summary | 5–6 |
 | `/data-health` | /api/data-health | 1 |
-| `/recommendations` | /api/recommendations | 7 (scaffold — connect in Sprint 8) |
+| `/recommendations` | /api/recommendations + urgency chart | 7–9 |
+| `/pipeline` | /api/dashboard/pipeline-status (write: all pipeline POSTs) | 9 |
+
+## API Key Guard (Sprint 9)
+
+When `DEMANDOS_API_KEY` is set in the environment, all POST/PATCH write and control
+endpoints require the header `X-DemandOS-API-Key: <key>`. Read-only GET endpoints
+remain public for demo visibility.
+
+Protected endpoints: `POST /api/demo/reset`, `POST /api/ingestion/run`,
+`POST /api/aggregation/run`, `POST /api/features/build`,
+`POST /api/forecasts/baseline/run`, `POST /api/forecasts/planning/run`,
+`POST /api/models/train`, `POST /api/risks/run`, `POST /api/recommendations/run`,
+`PATCH /api/recommendations/{id}/status`
+
+When `DEMANDOS_API_KEY` is not set (default), the guard is disabled and all requests
+pass — designed for local development.
+
+The API key is:
+- Never logged or stored in the database
+- Never hardcoded in frontend code
+- Stored in sessionStorage (not localStorage) when entered via the `/pipeline` UI
+- Cleared when the browser tab closes
 
 ---
 

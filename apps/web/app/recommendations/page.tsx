@@ -15,6 +15,15 @@ import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
 import StatusBadge from "@/components/StatusBadge";
 import DataTable from "@/components/DataTable";
+import ChartCard from "@/components/ChartCard";
+import BarChartPanel from "@/components/BarChartPanel";
+
+const URGENCY_COLORS: Record<string, string> = {
+  critical: "#dc2626",
+  high: "#c2410c",
+  medium: "#a16207",
+  low: "#15803d",
+};
 
 const URGENCY_OPTS = ["", "critical", "high", "medium", "low"];
 const STATUS_OPTS = ["", "open", "reviewed", "approved_internal", "ignored", "resolved"];
@@ -57,6 +66,14 @@ export default function RecommendationsPage() {
     }
   };
 
+  const urgencyChartData = summary?.urgency_counts
+    ? Object.entries(summary.urgency_counts).map(([k, v]) => ({
+        name: k.charAt(0).toUpperCase() + k.slice(1),
+        value: v,
+        color: URGENCY_COLORS[k] ?? "#6b7280",
+      })).filter((d) => d.value > 0)
+    : [];
+
   return (
     <div>
       <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "4px" }}>Recommendations</h1>
@@ -74,15 +91,15 @@ export default function RecommendationsPage() {
       {!loading && !error && summary && !summary.has_recommendation_run && (
         <EmptyState
           title="No recommendation run has been generated yet."
-          message="Run POST /api/recommendations/run to generate reorder recommendations from the latest risk run."
+          message="Go to Pipeline Controls and run the Recommendations step, or run POST /api/recommendations/run."
         />
       )}
 
       {summary?.has_recommendation_run && (
         <>
-          {/* Summary cards */}
-          <section style={{ marginBottom: "32px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
+          {/* Summary KPI cards */}
+          <section style={{ marginBottom: "24px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "12px" }}>
               {[
                 { label: "Open", value: fmt(summary.open_count) },
                 { label: "Critical", value: fmt(summary.urgency_counts.critical), color: "#dc2626" },
@@ -103,6 +120,18 @@ export default function RecommendationsPage() {
               </div>
             )}
           </section>
+
+          {/* Urgency distribution chart */}
+          {urgencyChartData.length > 0 && (
+            <ChartCard title="Recommendation Urgency Distribution" subtitle="Count by urgency level (latest run)">
+              <BarChartPanel
+                data={urgencyChartData}
+                height={160}
+                emptyMessage="No urgency data."
+                valueFormatter={(v) => String(v)}
+              />
+            </ChartCard>
+          )}
 
           {/* Filters */}
           <div style={{ display: "flex", gap: "16px", marginBottom: "16px", flexWrap: "wrap", alignItems: "center" }}>

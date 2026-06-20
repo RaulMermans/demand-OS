@@ -38,6 +38,8 @@ from app.schemas.api import (
     DashboardRecommendationSummaryResponse,
     DashboardModelSummaryResponse,
     DataHealthResponse,
+    DashboardPipelineStatusResponse,
+    DashboardProductResponse,
 )
 
 router = APIRouter()
@@ -417,3 +419,284 @@ def dashboard_data_health(db: Session = Depends(get_db)):
     """
     from app.api.overview import get_data_health as _get_data_health
     return _get_data_health(db=db)
+
+
+# ---------------------------------------------------------------------------
+# GET /api/dashboard/pipeline-status
+# ---------------------------------------------------------------------------
+
+@router.get("/dashboard/pipeline-status", response_model=DashboardPipelineStatusResponse)
+def dashboard_pipeline_status(db: Session = Depends(get_db)):
+    """
+    One-shot pipeline readiness status for the Pipeline page.
+
+    Returns the status and last-run info for every pipeline stage in the
+    expected execution order. No new business logic — reads existing run tables.
+    """
+    products_count = db.query(func.count(RawProduct.id)).scalar() or 0
+
+    latest_ingestion = (
+        db.query(IngestionRun)
+        .order_by(IngestionRun.started_at.desc())
+        .first()
+    )
+    latest_aggregation = (
+        db.query(AggregationRun)
+        .order_by(AggregationRun.started_at.desc())
+        .first()
+    )
+    latest_feature = (
+        db.query(FeatureRun)
+        .order_by(FeatureRun.started_at.desc())
+        .first()
+    )
+    latest_baseline = (
+        db.query(ForecastRun)
+        .filter(ForecastRun.backtest_mode == True)
+        .order_by(ForecastRun.started_at.desc())
+        .first()
+    )
+    latest_ml = (
+        db.query(ModelVersion)
+        .filter(ModelVersion.model_type == "ml_global_regressor")
+        .order_by(ModelVersion.created_at.desc())
+        .first()
+    )
+    latest_planning = (
+        db.query(ForecastRun)
+        .filter(ForecastRun.backtest_mode == False)
+        .order_by(ForecastRun.started_at.desc())
+        .first()
+    )
+    latest_risk = (
+        db.query(StockoutRiskRun)
+        .order_by(StockoutRiskRun.started_at.desc())
+        .first()
+    )
+    latest_rec = (
+        db.query(RecommendationRun)
+        .order_by(RecommendationRun.started_at.desc())
+        .first()
+    )
+
+    def _run_status(run, status_field: str = "status") -> str:
+        if run is None:
+            return "not_run"
+        return getattr(run, status_field, "unknown") or "unknown"
+
+    def _run_info(run) -> dict | None:
+        if run is None:
+            return None
+        info: dict = {"id": run.id}
+        for attr in ("status", "started_at", "completed_at", "finished_at",
+                     "rows_created", "records_produced", "model_type",
+                     "mode", "as_of_date", "risk_horizon_days"):
+            val = getattr(run, attr, None)
+            info[attr] = str(val) if val is not None else None
+        return info
+
+    steps = [
+        {
+            "step": "reset_demo",
+            "label": "Reset / Seed Demo Data",
+            "endpoint": "POST /api/demo/reset",
+            "status": "completed" if products_count > 0 else "not_run",
+            "detail": f"{products_count} products seeded" if products_count > 0 else None,
+        },
+        {
+            "step": "aggregation",
+            "label": "Run Aggregation",
+            "endpoint": "POST /api/aggregation/run",
+            "status": _run_status(latest_aggregation, "status").replace("success", "completed"),
+            "last_run": _run_info(latest_aggregation),
+        },
+        {
+            "step": "features",
+            "label": "Build Features",
+            "endpoint": "POST /api/features/build",
+            "status": _run_status(latest_feature),
+            "last_run": _run_info(latest_feature),
+        },
+        {
+            "step": "baseline_forecast",
+            "label": "Run Baseline Forecast",
+            "endpoint": "POST /api/forecasts/baseline/run",
+            "status": _run_status(latest_baseline),
+            "last_run": _run_info(latest_baseline),
+        },
+        {
+            "step": "train_ml",
+            "label": "Train ML Model",
+            "endpoint": "POST /api/models/train",
+            "status": _run_status(latest_ml),
+            "last_run": _run_info(latest_ml),
+        },
+        {
+            "step": "planning_forecast",
+            "label": "Run Planning Forecast",
+            "endpoint": "POST /api/forecasts/planning/run",
+            "status": _run_status(latest_planning),
+            "last_run": _run_info(latest_planning),
+        },
+        {
+            "step": "stockout_risk",
+            "label": "Run Stockout Risk",
+            "endpoint": "POST /api/risks/run",
+            "status": _run_status(latest_risk),
+            "last_run": _run_info(latest_risk),
+        },
+        {
+            "step": "recommendations",
+            "label": "Run Recommendations",
+            "endpoint": "POST /api/recommendations/run",
+            "status": _run_status(latest_rec),
+            "last_run": _run_info(latest_rec),
+        },
+    ]
+
+    all_done = all(s["status"] in ("completed", "success") for s in steps)
+
+    return DashboardPipelineStatusResponse(
+        status="ok",
+        all_steps_complete=all_done,
+        steps=steps,
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET /api/dashboard/product/{product_id}
+# ---------------------------------------------------------------------------
+
+@router.get("/dashboard/product/{product_id}", response_model=DashboardProductResponse)
+def dashboard_product(product_id: str, db: Session = Depends(get_db)):
+    """
+    Read-only product drilldown for the dashboard.
+
+    Returns product metadata, latest risk per store, and latest
+    recommendations per store — all from already-computed persisted data.
+    No new business logic.
+    """
+    product = db.query(RawProduct).filter(RawProduct.id == product_id).first()
+    if not product:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Product '{product_id}' not found.")
+
+    # Latest risk run
+    latest_risk_run = (
+        db.query(StockoutRiskRun)
+        .filter(StockoutRiskRun.status == "completed")
+        .order_by(StockoutRiskRun.started_at.desc())
+        .first()
+    )
+    risk_rows: list[dict] = []
+    if latest_risk_run:
+        risks = (
+            db.query(StockoutRisk)
+            .filter(
+                StockoutRisk.risk_run_id == latest_risk_run.id,
+                StockoutRisk.product_id == product_id,
+            )
+            .all()
+        )
+        for r in risks:
+            risk_rows.append({
+                "store_id": r.store_id,
+                "risk_tier": r.risk_tier,
+                "risk_score": r.risk_score,
+                "days_until_stockout": r.days_until_stockout,
+                "current_available_units": r.current_available_units,
+                "lost_sales_value_estimate": r.lost_sales_value_estimate,
+                "risk_reason": r.risk_reason,
+                "as_of_date": str(r.as_of_date) if r.as_of_date else None,
+            })
+
+    # Latest recommendation run
+    latest_rec_run = (
+        db.query(RecommendationRun)
+        .filter(RecommendationRun.status == "completed")
+        .order_by(RecommendationRun.started_at.desc())
+        .first()
+    )
+    rec_rows: list[dict] = []
+    if latest_rec_run:
+        recs = (
+            db.query(ReorderRecommendation)
+            .filter(
+                ReorderRecommendation.recommendation_run_id == latest_rec_run.id,
+                ReorderRecommendation.product_id == product_id,
+            )
+            .all()
+        )
+        for r in recs:
+            rec_rows.append({
+                "store_id": r.store_id,
+                "urgency": r.urgency,
+                "recommended_units_rounded": r.recommended_units_rounded,
+                "estimated_order_cost": r.estimated_order_cost,
+                "estimated_lost_sales_avoided": r.estimated_lost_sales_avoided,
+                "status": r.status,
+                "days_until_stockout": r.days_until_stockout,
+                "recommendation_reason": r.recommendation_reason,
+            })
+
+    # Latest forecast rows for this product
+    latest_frun = (
+        db.query(ForecastRun)
+        .filter(ForecastRun.status == "completed")
+        .order_by(ForecastRun.started_at.desc())
+        .first()
+    )
+    forecast_rows: list[dict] = []
+    if latest_frun:
+        frows = (
+            db.query(Forecast)
+            .filter(
+                Forecast.forecast_run_id == latest_frun.id,
+                Forecast.product_id == product_id,
+            )
+            .order_by(Forecast.forecast_date)
+            .limit(100)
+            .all()
+        )
+        for f in frows:
+            forecast_rows.append({
+                "forecast_date": str(f.forecast_date) if f.forecast_date else None,
+                "store_id": f.store_id,
+                "p50_units": f.p50_units,
+                "p10_units": f.p10_units,
+                "p90_units": f.p90_units,
+                "actual_units": f.actual_units,
+            })
+
+    supplier = None
+    if product.supplier_id:
+        sup = db.query(RawSupplier).filter(RawSupplier.id == product.supplier_id).first()
+        if sup:
+            supplier = {
+                "supplier_id": sup.id,
+                "name": sup.name,
+                "lead_time_days_min": sup.lead_time_days_min,
+                "lead_time_days_max": sup.lead_time_days_max,
+                "reliability_score": sup.reliability_score,
+            }
+
+    return DashboardProductResponse(
+        status="ok",
+        product_id=product_id,
+        product={
+            "id": product.id,
+            "sku": product.sku,
+            "name": product.name,
+            "category": product.category,
+            "brand": product.brand,
+            "unit_cost": product.unit_cost,
+            "unit_price": product.unit_price,
+            "lead_time_days": product.lead_time_days,
+            "is_active": product.is_active,
+            "supplier_id": product.supplier_id,
+        },
+        supplier=supplier,
+        risk_rows=risk_rows,
+        recommendation_rows=rec_rows,
+        forecast_rows=forecast_rows,
+    )

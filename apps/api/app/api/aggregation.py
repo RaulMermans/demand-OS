@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import AggregationRun, SalesDaily, InventoryDaily, ProductStoreDaily
 from app.services.aggregation_service import AggregationService
+from app.api.auth import require_api_key
 
 router = APIRouter()
 
@@ -23,8 +24,11 @@ class AggregationRunRequest(BaseModel):
 
 
 @router.post("/aggregation/run")
-def run_aggregation(req: AggregationRunRequest = AggregationRunRequest(),
-                    db: Session = Depends(get_db)):
+def run_aggregation(
+    req: AggregationRunRequest = AggregationRunRequest(),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_api_key),
+):
     """
     Trigger a full aggregation pass.
     Uses the full raw data date range when start/end are omitted.

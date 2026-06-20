@@ -360,14 +360,57 @@ curl -X POST http://localhost:8000/api/recommendations/run
 cd apps/web && npm run dev  # port 3000
 ```
 
-## Sprint 9 — Dashboard UX + Pipeline Controls (Planned)
-- [ ] Charts/graphs for forecasts and risk trends
-- [ ] Safe manual pipeline controls (trigger pipeline stages from UI)
-- [ ] Product drilldown pages
-- [ ] Better tables with sorting and column selection
-- [ ] API key authentication layer
-- [ ] No new ML/risk/recommendation formulas
-- [ ] No external side effects without approval gates
+## Sprint 9 — Dashboard UX + Safe Pipeline Controls + API Key Guard ✅
+- [x] Charts on Overview, Forecasts, Risks, and Recommendations pages (recharts)
+- [x] `KpiCard`, `ChartCard`, `BarChartPanel`, `LineChartPanel` components
+- [x] `PipelineControlButton`, `ApiKeyInput` components
+- [x] `/pipeline` page — safe manual controls for every pipeline stage
+- [x] "Run Full Demo Pipeline" button (sequential, stops on first failure, confirm before reset)
+- [x] Product forecast drilldown embedded in `/forecasts` (product ID input + line chart)
+- [x] `DEMANDOS_API_KEY` env var guard on all POST/PATCH write endpoints
+- [x] Disabled by default (local dev works without key)
+- [x] API key stored in sessionStorage only (not localStorage, not env)
+- [x] `GET /api/dashboard/pipeline-status` — per-step readiness for 8 pipeline stages
+- [x] `GET /api/dashboard/product/{product_id}` — read-only product drilldown
+- [x] `GET /api/dashboard/pipeline-status` used on Overview and Pipeline pages
+- [x] 26 new backend tests (`test_api_key_guard.py`) — 321 total, all passing
+- [x] TypeScript clean, Next.js build passing
+- [x] `scripts/verify.sh` updated with Sprint 9 checks
+- [x] No new ML/risk/recommendation formulas
+- [x] No external side effects
+
+**Sprint 9 local demo commands:**
+```bash
+# Backend
+uvicorn app.main:app --reload  # port 8000
+
+# Run demo via UI (go to /pipeline)
+# Or via curl:
+curl -X POST http://localhost:8000/api/demo/reset
+curl -X POST http://localhost:8000/api/aggregation/run
+curl -X POST http://localhost:8000/api/features/build
+curl -X POST http://localhost:8000/api/forecasts/baseline/run
+curl -X POST http://localhost:8000/api/models/train
+curl -X POST http://localhost:8000/api/forecasts/planning/run
+curl -X POST http://localhost:8000/api/risks/run
+curl -X POST http://localhost:8000/api/recommendations/run
+
+# Frontend
+cd apps/web && npm run dev  # port 3000
+# Pages: / /overview /forecasts /risks /recommendations /model-performance /data-health /pipeline
+```
+
+**API Key Guard usage:**
+```bash
+# Set key in .env (never commit):
+DEMANDOS_API_KEY=your-secret-key
+
+# Call with key:
+curl -X POST http://localhost:8000/api/aggregation/run \
+  -H "X-DemandOS-API-Key: your-secret-key"
+
+# In the UI: go to /pipeline, enter the key in the API Key field, then run pipeline steps.
+```
 
 ## Sprint 10+ — Connectors + Production
 - [ ] CsvCommerceConnector (real file parsing)

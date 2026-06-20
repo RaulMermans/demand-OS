@@ -3,6 +3,10 @@
  *
  * All functions use NEXT_PUBLIC_API_BASE_URL (defaults to http://localhost:8000).
  * No hardcoded production URLs. No fake fallback data.
+ *
+ * Write/control endpoints optionally accept an API key sent as
+ * X-DemandOS-API-Key header. The key is read from sessionStorage via
+ * lib/apiKey.ts — never from environment variables.
  */
 
 import type {
@@ -30,14 +34,18 @@ import type {
   DashboardRiskSummaryResponse,
   DashboardRecommendationSummaryResponse,
   DashboardModelSummaryResponse,
+  DashboardPipelineStatusResponse,
+  DashboardProductResponse,
+  PipelineControlResponse,
 } from "./types";
+import { getStoredApiKey } from "./apiKey";
 
 const BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ??
   "http://localhost:8000";
 
 // ---------------------------------------------------------------------------
-// Internal fetch helper
+// Internal fetch helpers
 // ---------------------------------------------------------------------------
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -57,6 +65,30 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(detail);
   }
   return res.json() as Promise<T>;
+}
+
+/** POST to a write/control endpoint, attaching the stored API key if present. */
+async function apiPost<T>(path: string, body?: unknown): Promise<T> {
+  const key = getStoredApiKey();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (key) headers["X-DemandOS-API-Key"] = key;
+  return apiFetch<T>(path, {
+    method: "POST",
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+}
+
+/** PATCH to a write endpoint, attaching the stored API key if present. */
+async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
+  const key = getStoredApiKey();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (key) headers["X-DemandOS-API-Key"] = key;
+  return apiFetch<T>(path, {
+    method: "PATCH",
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -240,11 +272,93 @@ export function updateRecommendationStatus(
   id: string,
   payload: StatusUpdatePayload
 ): Promise<StatusUpdateResponse> {
-  return apiFetch<StatusUpdateResponse>(
+  return apiPatch<StatusUpdateResponse>(
     `/api/recommendations/${encodeURIComponent(id)}/status`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    }
+    payload
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Pipeline controls (write — sends API key header when configured)
+// ---------------------------------------------------------------------------
+
+export function runDemoReset(params?: {
+  seed?: number;
+  product_count?: number;
+  store_count?: number;
+  history_days?: number;
+}): Promise<PipelineControlResponse> {
+  return apiPost<PipelineControlResponse>("/api/demo/reset", params ?? {});
+}
+
+export function runAggregation(): Promise<PipelineControlResponse> {
+  return apiPost<PipelineControlResponse>("/api/aggregation/run", {});
+}
+
+export function runFeatureBuild(): Promise<PipelineControlResponse> {
+  return apiPost<PipelineControlResponse>("/api/features/build", {});
+}
+
+export function runBaselineForecast(params?: {
+  model_type?: string;
+  horizon_days?: number;
+  backtest_days?: number;
+}): Promise<PipelineControlResponse> {
+  return apiPost<PipelineControlResponse>("/api/forecasts/baseline/run", params ?? {
+    model_type: "seasonal_naive",
+    horizon_days: 28,
+    backtest_days: 56,
+  });
+}
+
+export function runModelTrain(params?: {
+  algorithm?: string;
+  horizon_days?: number;
+  backtest_days?: number;
+}): Promise<PipelineControlResponse> {
+  return apiPost<PipelineControlResponse>("/api/models/train", params ?? {
+    algorithm: "hist_gradient_boosting",
+    horizon_days: 28,
+    backtest_days: 56,
+  });
+}
+
+export function runPlanningForecast(params?: {
+  model_type?: string;
+  horizon_days?: number;
+}): Promise<PipelineControlResponse> {
+  return apiPost<PipelineControlResponse>("/api/forecasts/planning/run", params ?? {
+    model_type: "seasonal_naive",
+    horizon_days: 28,
+  });
+}
+
+export function runStockoutRisk(params?: {
+  horizon_days?: number;
+  mode?: string;
+}): Promise<PipelineControlResponse> {
+  return apiPost<PipelineControlResponse>("/api/risks/run", params ?? {
+    horizon_days: 28,
+    mode: "forward_planning",
+  });
+}
+
+export function runRecommendations(params?: {
+  include_low_risk?: boolean;
+}): Promise<PipelineControlResponse> {
+  return apiPost<PipelineControlResponse>("/api/recommendations/run", params ?? {});
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard — Sprint 9 endpoints
+// ---------------------------------------------------------------------------
+
+export function getDashboardPipelineStatus(): Promise<DashboardPipelineStatusResponse> {
+  return apiFetch<DashboardPipelineStatusResponse>("/api/dashboard/pipeline-status");
+}
+
+export function getDashboardProduct(productId: string): Promise<DashboardProductResponse> {
+  return apiFetch<DashboardProductResponse>(
+    `/api/dashboard/product/${encodeURIComponent(productId)}`
   );
 }

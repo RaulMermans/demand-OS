@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.db.models import IngestionRun
 from app.connectors.mock_commerce import MockCommerceConnector, MockConfig
 from app.services.ingestion_service import IngestionService
+from app.api.auth import require_api_key
 
 router = APIRouter()
 
@@ -21,7 +22,11 @@ class IngestionRequest(BaseModel):
 
 
 @router.post("/ingestion/run")
-def trigger_ingestion(req: IngestionRequest, db: Session = Depends(get_db)):
+def trigger_ingestion(
+    req: IngestionRequest,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_api_key),
+):
     """
     Run mock ingestion for the given date range.
     Uses MockCommerceConnector with the provided seed/config.

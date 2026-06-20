@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     # Connector selection: mock | csv | shopify
     active_connector: str = "mock"
 
+    # Optional API key guard for write/control endpoints.
+    # When set, all POST/PATCH mutation endpoints require:
+    #   X-DemandOS-API-Key: <value>
+    # Leave empty (default) to disable the guard in local dev.
+    # Never commit a real key here — set via environment variable.
+    demandos_api_key: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -18,6 +18,7 @@ from typing import Optional
 from app.db.session import get_db
 from app.db.models import ForecastRun, ModelMetric, ModelVersion
 from app.services.training_service import TrainingService
+from app.api.auth import require_api_key
 
 router = APIRouter()
 
@@ -41,6 +42,7 @@ class TrainRequest(BaseModel):
 def train_model(
     body: TrainRequest,
     db: Session = Depends(get_db),
+    _: None = Depends(require_api_key),
 ):
     """
     Train an ML demand forecasting model.

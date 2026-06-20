@@ -12,6 +12,9 @@ import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
 import StatusBadge from "@/components/StatusBadge";
 import DataTable from "@/components/DataTable";
+import ChartCard from "@/components/ChartCard";
+import BarChartPanel from "@/components/BarChartPanel";
+import KpiCard from "@/components/KpiCard";
 
 export default function ModelPerformancePage() {
   const [summary, setSummary] = useState<DashboardModelSummaryResponse | null>(null);
@@ -38,6 +41,21 @@ export default function ModelPerformancePage() {
   const fmtPct = (n: number | null | undefined) =>
     n == null ? "—" : `${(n * 100).toFixed(2)}%`;
 
+  // Comparison bar chart: baseline vs ML WAPE
+  const compChartData = summary?.baseline_comparison
+    ? [
+        {
+          name: "Baseline",
+          value: Math.round((summary.baseline_comparison.best_baseline_wape as number ?? 0) * 1000) / 10,
+        },
+        {
+          name: "ML Model",
+          value: Math.round((summary.baseline_comparison.ml_wape as number ?? 0) * 1000) / 10,
+          color: "#1d4ed8",
+        },
+      ].filter((d) => d.value > 0)
+    : [];
+
   return (
     <div>
       <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "4px" }}>Model Performance</h1>
@@ -51,13 +69,43 @@ export default function ModelPerformancePage() {
       {!loading && !error && summary && !summary.has_ml_model && (
         <EmptyState
           title="No ML model has been trained yet."
-          message="Run POST /api/models/train to train the ML forecasting model. Baseline metrics are available via POST /api/forecasts/baseline/run."
+          message="Go to Pipeline Controls and run Train ML Model, or run POST /api/models/train."
         />
       )}
 
       {summary?.has_ml_model && (
         <>
-          {/* Latest model summary */}
+          {/* ML model KPI summary */}
+          <section style={{ marginBottom: "24px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "12px" }}>
+              {[
+                { label: "Algorithm", value: summary.latest_model_version?.algorithm as string ?? "—" },
+                { label: "ML WAPE", value: summary.latest_model_version?.ml_wape != null ? fmtPct(summary.latest_model_version.ml_wape as number) : "—" },
+                { label: "Baseline WAPE", value: summary.baseline_comparison?.best_baseline_wape != null ? fmtPct(summary.baseline_comparison.best_baseline_wape as number) : "—" },
+                { label: "ML won", value: summary.baseline_comparison?.ml_won != null ? (summary.baseline_comparison.ml_won ? "Yes" : "No") : "—" },
+                { label: "Artifact", value: summary.latest_model_version?.artifact_exists ? "Present" : "Missing" },
+              ].map((m) => (
+                <KpiCard key={m.label} label={m.label} value={m.value} />
+              ))}
+            </div>
+          </section>
+
+          {/* WAPE comparison chart */}
+          {compChartData.length > 0 && (
+            <ChartCard
+              title="WAPE: Baseline vs ML"
+              subtitle="Lower WAPE is better — overall level (all products/stores)"
+            >
+              <BarChartPanel
+                data={compChartData}
+                height={160}
+                emptyMessage="No comparison data."
+                valueFormatter={(v) => `${v}%`}
+              />
+            </ChartCard>
+          )}
+
+          {/* Latest model detail */}
           <section style={{ marginBottom: "32px" }}>
             <h2 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
               Latest ML Model
@@ -122,7 +170,7 @@ export default function ModelPerformancePage() {
             </section>
           )}
 
-          {/* Model versions */}
+          {/* Model versions registry */}
           {versions && versions.versions.length > 0 && (
             <section>
               <h2 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>

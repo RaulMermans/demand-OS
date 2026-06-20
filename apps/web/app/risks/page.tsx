@@ -8,6 +8,17 @@ import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
 import StatusBadge from "@/components/StatusBadge";
 import DataTable from "@/components/DataTable";
+import ChartCard from "@/components/ChartCard";
+import BarChartPanel from "@/components/BarChartPanel";
+import KpiCard from "@/components/KpiCard";
+
+const TIER_COLORS: Record<string, string> = {
+  critical: "#dc2626",
+  high: "#c2410c",
+  medium: "#a16207",
+  low: "#15803d",
+  unknown: "#6b7280",
+};
 
 const TIER_FILTER_OPTIONS = ["", "critical", "high", "medium", "low"];
 
@@ -35,6 +46,14 @@ export default function RisksPage() {
   const fmt = (n: number | null | undefined, decimals = 0) =>
     n == null ? "—" : n.toLocaleString("en", { maximumFractionDigits: decimals });
 
+  const tierChartData = summary?.tier_counts
+    ? ["critical", "high", "medium", "low", "unknown"].map((t) => ({
+        name: t.charAt(0).toUpperCase() + t.slice(1),
+        value: summary.tier_counts[t] ?? 0,
+        color: TIER_COLORS[t],
+      }))
+    : [];
+
   return (
     <div>
       <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "4px" }}>Inventory Risk</h1>
@@ -48,49 +67,59 @@ export default function RisksPage() {
       {!loading && !error && summary && !summary.has_risk_run && (
         <EmptyState
           title="No risk run has been generated yet."
-          message="Run POST /api/risks/run to compute stockout risk scores."
+          message="Go to Pipeline Controls and click Run Stockout Risk, or run POST /api/risks/run."
         />
       )}
 
       {summary?.has_risk_run && (
         <>
-          {/* Risk tier counts */}
-          <section style={{ marginBottom: "32px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "12px" }}>
-              {[
-                { label: "Critical", value: summary.tier_counts.critical, color: "#dc2626" },
-                { label: "High", value: summary.tier_counts.high, color: "#c2410c" },
-                { label: "Medium", value: summary.tier_counts.medium, color: "#a16207" },
-                { label: "Low", value: summary.tier_counts.low, color: "#15803d" },
-                { label: "Unknown", value: summary.tier_counts.unknown, color: "var(--text-secondary)" },
-              ].map((t) => (
-                <div
-                  key={t.label}
-                  style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "16px", textAlign: "center", cursor: "pointer" }}
-                  onClick={() => { const next = t.label.toLowerCase(); const newFilter = next === tierFilter ? "" : next; setTierFilter(newFilter); load(newFilter); }}
-                >
-                  <div style={{ fontSize: "28px", fontWeight: 700, color: t.color }}>{t.value}</div>
-                  <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "4px" }}>{t.label}</div>
-                </div>
+          {/* KPI tier cards */}
+          <section style={{ marginBottom: "24px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "12px" }}>
+              {(["critical", "high", "medium", "low", "unknown"] as const).map((t) => (
+                <KpiCard
+                  key={t}
+                  label={t.charAt(0).toUpperCase() + t.slice(1)}
+                  value={summary.tier_counts[t] ?? 0}
+                  color={TIER_COLORS[t]}
+                  onClick={() => {
+                    const newFilter = t === tierFilter ? "" : t;
+                    setTierFilter(newFilter);
+                    load(newFilter);
+                  }}
+                />
               ))}
             </div>
-
             {summary.estimated_lost_sales_value != null && (
-              <div style={{ marginTop: "16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "16px", display: "flex", justifyContent: "space-between" }}>
+              <div style={{ marginTop: "12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "16px", display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--text-secondary)", fontSize: "13px" }}>Estimated total lost sales value</span>
                 <span style={{ fontWeight: 700, fontSize: "16px" }}>€{fmt(summary.estimated_lost_sales_value, 0)}</span>
               </div>
             )}
           </section>
 
+          {/* Risk tier distribution chart */}
+          <ChartCard
+            title="Risk Tier Distribution"
+            subtitle="Number of product/store combinations per risk tier (latest run)"
+          >
+            <BarChartPanel
+              data={tierChartData.filter((d) => d.value > 0)}
+              height={180}
+              emptyMessage="No risk data to display."
+              valueFormatter={(v) => String(v)}
+            />
+          </ChartCard>
+
           {/* Run info */}
           {summary.latest_run && (
-            <div style={{ marginBottom: "24px", fontSize: "12px", color: "var(--text-secondary)" }}>
-              Run {String(summary.latest_run.run_id ?? "").slice(0, 16)}… · as of {String(summary.latest_run.as_of_date ?? "")} · {String(summary.latest_run.risk_horizon_days ?? "?")}-day horizon
+            <div style={{ marginBottom: "16px", fontSize: "12px", color: "var(--text-secondary)" }}>
+              Run {String(summary.latest_run.run_id ?? "").slice(0, 16)}… · as of{" "}
+              {String(summary.latest_run.as_of_date ?? "")} · {String(summary.latest_run.risk_horizon_days ?? "?")}-day horizon
             </div>
           )}
 
-          {/* Filter */}
+          {/* Filter bar */}
           <div style={{ display: "flex", gap: "8px", marginBottom: "16px", alignItems: "center" }}>
             <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Filter tier:</span>
             {TIER_FILTER_OPTIONS.map((opt) => (
@@ -116,14 +145,53 @@ export default function RisksPage() {
           {risks && (
             <DataTable
               columns={[
-                { key: "product_id", header: "Product ID", render: (r) => <span style={{ fontFamily: "monospace", fontSize: "11px" }}>{String(r.product_id).slice(0, 12)}…</span> },
-                { key: "store_id", header: "Store", render: (r) => <span style={{ fontFamily: "monospace", fontSize: "11px" }}>{String(r.store_id).slice(0, 10)}…</span> },
+                {
+                  key: "product_id",
+                  header: "Product ID",
+                  render: (r) => (
+                    <span style={{ fontFamily: "monospace", fontSize: "11px" }}>
+                      {String(r.product_id).slice(0, 12)}…
+                    </span>
+                  ),
+                },
+                {
+                  key: "store_id",
+                  header: "Store",
+                  render: (r) => (
+                    <span style={{ fontFamily: "monospace", fontSize: "11px" }}>
+                      {String(r.store_id).slice(0, 10)}…
+                    </span>
+                  ),
+                },
                 { key: "category", header: "Category" },
                 { key: "risk_tier", header: "Tier", render: (r) => <StatusBadge value={r.risk_tier as string} /> },
-                { key: "risk_score", header: "Score", align: "right", render: (r) => r.risk_score != null ? (r.risk_score as number).toFixed(0) : "—" },
-                { key: "days_until_stockout", header: "Days until SO", align: "right", render: (r) => r.days_until_stockout != null ? (r.days_until_stockout as number).toFixed(0) : "—" },
-                { key: "current_available_units", header: "Available", align: "right", render: (r) => r.current_available_units != null ? (r.current_available_units as number).toFixed(0) : "—" },
-                { key: "lost_sales_value_estimate", header: "Est. lost sales", align: "right", render: (r) => r.lost_sales_value_estimate != null ? `€${(r.lost_sales_value_estimate as number).toFixed(0)}` : "—" },
+                {
+                  key: "risk_score",
+                  header: "Score",
+                  align: "right",
+                  render: (r) => r.risk_score != null ? (r.risk_score as number).toFixed(0) : "—",
+                },
+                {
+                  key: "days_until_stockout",
+                  header: "Days until SO",
+                  align: "right",
+                  render: (r) => r.days_until_stockout != null ? (r.days_until_stockout as number).toFixed(0) : "—",
+                },
+                {
+                  key: "current_available_units",
+                  header: "Available",
+                  align: "right",
+                  render: (r) => r.current_available_units != null ? (r.current_available_units as number).toFixed(0) : "—",
+                },
+                {
+                  key: "lost_sales_value_estimate",
+                  header: "Est. lost sales",
+                  align: "right",
+                  render: (r) =>
+                    r.lost_sales_value_estimate != null
+                      ? `€${(r.lost_sales_value_estimate as number).toFixed(0)}`
+                      : "—",
+                },
               ]}
               rows={risks.rows as unknown as Record<string, unknown>[]}
               emptyMessage="No risks found for the selected filter."

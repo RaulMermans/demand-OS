@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/recommendations", label: "Recommendations" },
   { href: "/model-performance", label: "Model Performance" },
   { href: "/data-health", label: "Data Health" },
+  { href: "/pipeline", label: "Pipeline Controls" },
 ];
 
 export default function AppShell({ children }: { children: ReactNode }) {
@@ -40,7 +41,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             DemandOS
           </div>
           <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>
-            Sprint 8 · API + Dashboard
+            Sprint 9 · Dashboard UX
           </div>
         </div>
 

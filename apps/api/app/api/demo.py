@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.connectors.mock_commerce import MockCommerceConnector, MockConfig
 from app.services.ingestion_service import IngestionService
+from app.api.auth import require_api_key
 
 router = APIRouter()
 
@@ -23,7 +24,11 @@ class DemoResetRequest(BaseModel):
 
 
 @router.post("/demo/reset")
-def reset_demo(req: DemoResetRequest = DemoResetRequest(), db: Session = Depends(get_db)):
+def reset_demo(
+    req: DemoResetRequest = DemoResetRequest(),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_api_key),
+):
     """
     Clear all existing mock data and regenerate a fresh seeded demo dataset.
 

@@ -472,3 +472,84 @@ export interface DashboardModelSummaryResponse {
   baseline_comparison: Record<string, unknown> | null;
   message: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Pipeline controls
+// ---------------------------------------------------------------------------
+
+export interface PipelineControlResponse {
+  status: string;
+  message?: string;
+  [key: string]: unknown;
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard — Sprint 9
+// ---------------------------------------------------------------------------
+
+export interface PipelineStep {
+  step: string;
+  label: string;
+  endpoint: string;
+  status: string;
+  detail?: string | null;
+  last_run?: Record<string, unknown> | null;
+}
+
+export interface DashboardPipelineStatusResponse {
+  status: string;
+  all_steps_complete: boolean;
+  steps: PipelineStep[];
+}
+
+export interface DashboardProductResponse {
+  status: string;
+  product_id: string;
+  product: {
+    id: string;
+    sku: string;
+    name: string;
+    category: string | null;
+    brand: string | null;
+    unit_cost: number | null;
+    unit_price: number | null;
+    lead_time_days: number | null;
+    is_active: boolean;
+    supplier_id: string | null;
+  };
+  supplier: {
+    supplier_id: string;
+    name: string;
+    lead_time_days_min: number | null;
+    lead_time_days_max: number | null;
+    reliability_score: number | null;
+  } | null;
+  risk_rows: Array<{
+    store_id: string;
+    risk_tier: string | null;
+    risk_score: number | null;
+    days_until_stockout: number | null;
+    current_available_units: number | null;
+    lost_sales_value_estimate: number | null;
+    risk_reason: string | null;
+    as_of_date: string | null;
+  }>;
+  recommendation_rows: Array<{
+    store_id: string;
+    urgency: string | null;
+    recommended_units_rounded: number | null;
+    estimated_order_cost: number | null;
+    estimated_lost_sales_avoided: number | null;
+    status: string;
+    days_until_stockout: number | null;
+    recommendation_reason: string | null;
+  }>;
+  forecast_rows: Array<{
+    forecast_date: string | null;
+    store_id: string;
+    p50_units: number | null;
+    p10_units: number | null;
+    p90_units: number | null;
+    actual_units: number | null;
+  }>;
+}

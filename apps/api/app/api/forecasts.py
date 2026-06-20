@@ -16,6 +16,7 @@ from typing import Optional
 from app.db.session import get_db
 from app.db.models import ForecastRun, Forecast
 from app.services.forecasting_service import ForecastingService, VALID_MODEL_TYPES
+from app.api.auth import require_api_key
 
 router = APIRouter()
 
@@ -39,6 +40,7 @@ class BaselineRunRequest(BaseModel):
 def run_baseline_forecast(
     body: BaselineRunRequest,
     db: Session = Depends(get_db),
+    _: None = Depends(require_api_key),
 ):
     """
     Run a baseline demand forecast with historical backtesting.
@@ -223,6 +225,7 @@ class PlanningRunRequest(BaseModel):
 def run_planning_forecast(
     body: PlanningRunRequest,
     db: Session = Depends(get_db),
+    _: None = Depends(require_api_key),
 ):
     """
     Generate forward-looking forecast rows for the next horizon_days.
