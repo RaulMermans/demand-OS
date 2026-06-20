@@ -61,20 +61,25 @@ It ingests raw operational commerce records and computes all derived insights in
                         │
                         ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    API / DASHBOARD  (Sprint 8)                   │
+│                    API / DASHBOARD  (Sprint 8–10)                │
 │  FastAPI (port 8000)             Next.js (port 3000)            │
 │  /health /api/overview           / /overview /forecasts         │
 │  /api/forecasts /api/risks       /risks /recommendations        │
 │  /api/recommendations            /model-performance /data-health│
-│  /api/dashboard/overview         /pipeline (Sprint 9 controls)  │
-│  /api/dashboard/pipeline-status  Typed API client: lib/api.ts   │
-│  /api/dashboard/product/{id}     Response types: lib/types.ts   │
-│  /api/dashboard/...              Charts: recharts (Sprint 9)     │
-│  Alembic migrations              BarChartPanel, LineChartPanel   │
-│  API key guard (Sprint 9):       KpiCard, PipelineControlButton  │
-│    X-DemandOS-API-Key header     ApiKeyInput (sessionStorage)    │
-│    on all write/control POST     EmptyState, StatusBadge,        │
-│    Disabled when no key set      DataTable, LoadingState         │
+│  /api/dashboard/overview         /pipeline (controls + run log) │
+│  /api/dashboard/pipeline-status  /products/[productId] drilldown│
+│  /api/dashboard/product/{id}     Typed API client: lib/api.ts   │
+│  /api/demo/run-full-pipeline     Response types: lib/types.ts   │
+│  /api/demo/pipeline-runs         Charts: recharts                │
+│  /api/demo/pipeline-runs/latest  BarChartPanel, LineChartPanel  │
+│  Alembic migrations              KpiCard, PipelineControlButton  │
+│  API key guard (Sprint 9):       ApiKeyInput (sessionStorage)    │
+│    X-DemandOS-API-Key header     EmptyState, StatusBadge,        │
+│    on all write/control POST     DataTable, LoadingState         │
+│    Disabled when no key set      DurableRunPanel (Sprint 10)     │
+│  DemoPipelineService (Sprint 10) Vercel deployment ready         │
+│    8-stage orchestration         apps/web/vercel.json            │
+│    DemoPipelineRun table         NEXT_PUBLIC_API_BASE_URL        │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -94,6 +99,7 @@ It ingests raw operational commerce records and computes all derived insights in
 | API Contracts | schemas/api.py Pydantic response types | Sprint 8 | 8 |
 | Migrations | Alembic alembic/versions/ | Alembic | 8 |
 | Dashboard UX | Charts, pipeline controls, API key guard | Sprint 9 | 9 |
+| Demo Orchestration | demo_pipeline_runs | DemoPipelineService | 10 |
 
 ## API Contract Standards (Sprint 8)
 

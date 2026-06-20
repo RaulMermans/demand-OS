@@ -412,10 +412,59 @@ curl -X POST http://localhost:8000/api/aggregation/run \
 # In the UI: go to /pipeline, enter the key in the API Key field, then run pipeline steps.
 ```
 
-## Sprint 10+ — Connectors + Production
+## Sprint 10 — End-to-End Demo Flow + UX Polish + Vercel Deployment Setup ✅
+- [x] `DemoPipelineService` orchestrates all 8 pipeline stages in sequence
+- [x] `DemoPipelineRun` table: durable run record with per-step status
+- [x] `POST /api/demo/run-full-pipeline` — full pipeline in one call (API-key protected)
+- [x] `GET /api/demo/pipeline-runs` — list all pipeline run records
+- [x] `GET /api/demo/pipeline-runs/latest` — latest run with step breakdown
+- [x] `/pipeline` page updated: durable run panel, step links to dashboard pages
+- [x] `/products/[productId]` page: product drilldown with forecast chart + risk + recommendations
+- [x] `apps/web/vercel.json` — Vercel-ready configuration
+- [x] `apps/web/.env.example` — `NEXT_PUBLIC_API_BASE_URL` documented
+- [x] `apps/api/.env.example` — `DEMANDOS_API_KEY` documented
+- [x] `docs/demo_runbook.md` — step-by-step demo guide
+- [x] `docs/operator_runbook.md` — operator guide (reset, API key, safety guarantees)
+- [x] `docs/deployment.md` — Vercel frontend + backend deployment docs
+- [x] `docs/screenshots/README.md` — portfolio screenshot guide
+- [x] 13 new backend tests (`test_demo_pipeline.py`) — 334 total, all passing
+- [x] TypeScript clean, Next.js build passing
+- [x] `scripts/verify.sh` updated with Sprint 10 checks (112/112 passing)
+- [x] No new ML/risk/recommendation formulas introduced
+- [x] No external side effects
+
+**Sprint 10 local demo commands:**
+```bash
+# Backend
+uvicorn app.main:app --reload  # port 8000
+
+# Full pipeline via UI:
+# Go to http://localhost:3000/pipeline → Run Full Demo Pipeline
+
+# Full pipeline via API:
+curl -X POST http://localhost:8000/api/demo/run-full-pipeline
+curl http://localhost:8000/api/demo/pipeline-runs/latest
+
+# Frontend
+cd apps/web && npm run dev  # port 3000
+
+# Pages: / /overview /forecasts /risks /recommendations /model-performance /data-health /pipeline /products/{id}
+```
+
+**Vercel deployment (frontend only):**
+```bash
+cd apps/web
+vercel         # preview
+vercel --prod  # production
+# Set NEXT_PUBLIC_API_BASE_URL in Vercel environment variables
+```
+
+## Sprint 11+ — QA, Observability, Backend Deployment + Connectors
+- [ ] End-to-end smoke tests
+- [ ] Health/readiness check endpoints
+- [ ] Production config validation
+- [ ] Backend deployment to Render/Railway/Fly
 - [ ] CsvCommerceConnector (real file parsing)
 - [ ] ShopifyConnector (Admin API)
-- [ ] WooCommerceConnector
-- [ ] One-click pipeline orchestration
-- [ ] Auth (API keys or JWT)
-- [ ] Deployment: Vercel + Railway/Fly
+- [ ] Model monitoring / drift detection
+- [ ] Case study prep

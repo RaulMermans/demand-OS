@@ -43,6 +43,9 @@ DOC_FILES=(
   "docs/observability.md" "docs/security.md" "docs/roadmap.md"
   "docs/case_study_notes.md" "docs/reference_repositories.md"
   "docs/decisions/0001-deterministic-ml-workflow.md"
+  "docs/demo_runbook.md"
+  "docs/operator_runbook.md"
+  "docs/deployment.md"
 )
 for f in "${DOC_FILES[@]}"; do
   if [ -f "$f" ]; then
@@ -103,6 +106,8 @@ BACKEND_FILES=(
   "apps/api/tests/test_api_contracts.py"
   "apps/api/tests/test_alembic.py"
   "apps/api/tests/test_api_key_guard.py"
+  "apps/api/tests/test_demo_pipeline.py"
+  "apps/api/app/services/demo_pipeline_service.py"
   ".github/workflows/ci.yml"
   ".github/dependabot.yml"
   "apps/api/alembic.ini"
@@ -183,6 +188,8 @@ FRONTEND_FILES=(
   "apps/web/lib/api.ts"
   "apps/web/lib/types.ts"
   "apps/web/lib/apiKey.ts"
+  "apps/web/vercel.json"
+  "apps/web/.env.example"
 )
 for f in "${FRONTEND_FILES[@]}"; do
   if [ -f "$f" ]; then
@@ -221,6 +228,58 @@ if [ "$SCHEMA_CLEAN" = true ]; then
   echo "   ✅ No forbidden derived field declarations in raw schema"
   echo "   ℹ️  (Authoritative check: pytest tests/test_raw_data_rule.py)"
   ((PASS++))
+fi
+
+echo ""
+
+# -------------------------------------------------------------------
+# 7a. Sprint 10 — check full pipeline endpoint and env docs
+# -------------------------------------------------------------------
+echo "7a. Checking Sprint 10 additions..."
+
+# Check full pipeline endpoint in demo.py
+if grep -q "run-full-pipeline" apps/api/app/api/demo.py 2>/dev/null; then
+  echo "   ✅ POST /api/demo/run-full-pipeline present in demo.py"
+  ((PASS += 1))
+else
+  echo "   ❌ POST /api/demo/run-full-pipeline MISSING from demo.py"
+  ((FAIL += 1))
+fi
+
+# Check DemoPipelineRun model
+if grep -q "DemoPipelineRun" apps/api/app/db/models.py 2>/dev/null; then
+  echo "   ✅ DemoPipelineRun model present in models.py"
+  ((PASS += 1))
+else
+  echo "   ❌ DemoPipelineRun model MISSING from models.py"
+  ((FAIL += 1))
+fi
+
+# Check pipeline page imports full pipeline function
+if grep -q "runFullDemoPipeline\|run-full-pipeline" apps/web/app/pipeline/page.tsx 2>/dev/null; then
+  echo "   ✅ Full demo pipeline control present in pipeline page"
+  ((PASS += 1))
+else
+  echo "   ❌ Full demo pipeline control MISSING from pipeline page"
+  ((FAIL += 1))
+fi
+
+# Check NEXT_PUBLIC_API_BASE_URL is documented
+if grep -q "NEXT_PUBLIC_API_BASE_URL" apps/web/.env.example 2>/dev/null; then
+  echo "   ✅ NEXT_PUBLIC_API_BASE_URL documented in apps/web/.env.example"
+  ((PASS += 1))
+else
+  echo "   ❌ NEXT_PUBLIC_API_BASE_URL MISSING from apps/web/.env.example"
+  ((FAIL += 1))
+fi
+
+# Check product drilldown page exists
+if [ -f "apps/web/app/products/[productId]/page.tsx" ]; then
+  echo "   ✅ Product drilldown page exists"
+  ((PASS += 1))
+else
+  echo "   ❌ Product drilldown page MISSING"
+  ((FAIL += 1))
 fi
 
 echo ""

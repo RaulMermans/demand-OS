@@ -553,3 +553,44 @@ export interface DashboardProductResponse {
     actual_units: number | null;
   }>;
 }
+
+// ---------------------------------------------------------------------------
+// Demo Pipeline — Sprint 10
+// ---------------------------------------------------------------------------
+
+export interface DemoPipelineStepRecord {
+  step_name: string;
+  step_label: string;
+  status: "pending" | "running" | "completed" | "failed" | "skipped";
+  started_at: string | null;
+  completed_at: string | null;
+  result_summary: string | null;
+  error_message: string | null;
+}
+
+export interface DemoPipelineRunRecord {
+  run_id: string;
+  status: "pending" | "running" | "completed" | "failed";
+  started_at: string | null;
+  completed_at: string | null;
+  current_step: string | null;
+  steps: DemoPipelineStepRecord[];
+  error_message: string | null;
+  created_at: string | null;
+}
+
+export interface FullPipelineResponse {
+  status: string;
+  message: string;
+  run: DemoPipelineRunRecord;
+}
+
+export interface PipelineRunsResponse {
+  runs: DemoPipelineRunRecord[];
+  total: number;
+}
+
+export interface LatestPipelineRunResponse {
+  status: string;
+  run: DemoPipelineRunRecord | null;
+}

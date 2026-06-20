@@ -796,3 +796,25 @@ class ModelMetric(Base):
     rows_evaluated = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     model_version_id = Column(String, nullable=True)   # reserved for future ML models
+
+
+class DemoPipelineRun(Base):
+    """
+    Durable run record for the full demo pipeline (Sprint 10).
+
+    Each call to POST /api/demo/run-full-pipeline creates one record.
+    steps_json holds a list of per-step dicts with step_name, status,
+    started_at, completed_at, result_summary, error_message.
+
+    status values: pending / running / completed / failed
+    """
+    __tablename__ = "demo_pipeline_runs"
+
+    id = Column(String, primary_key=True)
+    status = Column(String, default="pending")   # pending / running / completed / failed
+    started_at = Column(DateTime, nullable=False)
+    completed_at = Column(DateTime)
+    current_step = Column(String)
+    steps_json = Column(JSON, default=list)
+    error_message = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)

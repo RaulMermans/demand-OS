@@ -37,6 +37,9 @@ import type {
   DashboardPipelineStatusResponse,
   DashboardProductResponse,
   PipelineControlResponse,
+  FullPipelineResponse,
+  PipelineRunsResponse,
+  LatestPipelineRunResponse,
 } from "./types";
 import { getStoredApiKey } from "./apiKey";
 
@@ -361,4 +364,25 @@ export function getDashboardProduct(productId: string): Promise<DashboardProduct
   return apiFetch<DashboardProductResponse>(
     `/api/dashboard/product/${encodeURIComponent(productId)}`
   );
+}
+
+// ---------------------------------------------------------------------------
+// Demo Pipeline — Sprint 10
+// ---------------------------------------------------------------------------
+
+export function runFullDemoPipeline(params?: {
+  seed?: number;
+  product_count?: number;
+  store_count?: number;
+  history_days?: number;
+}): Promise<FullPipelineResponse> {
+  return apiPost<FullPipelineResponse>("/api/demo/run-full-pipeline", params ?? {});
+}
+
+export function getDemoPipelineRuns(limit = 20): Promise<PipelineRunsResponse> {
+  return apiFetch<PipelineRunsResponse>(`/api/demo/pipeline-runs?limit=${limit}`);
+}
+
+export function getLatestDemoPipelineRun(): Promise<LatestPipelineRunResponse> {
+  return apiFetch<LatestPipelineRunResponse>("/api/demo/pipeline-runs/latest");
 }
