@@ -160,3 +160,14 @@
 - Backend: pytest (apps/api/tests/)
 - Frontend: Next.js type check (tsc --noEmit)
 - Integration: scripts/verify.sh
+
+## 10. API Contract Tests (Sprint 8)
+- All list endpoints enforce bounded limits (invalid limit=0 → 422, limit=9999 → 422)
+- All list endpoints support offset pagination
+- No-data states return predictable status strings (no_forecast, no_risk_run, no_data)
+- Dashboard summary endpoints return only computed data (no hardcoded metrics)
+- Recommendation status update accepts valid statuses; rejects unknown ones (422)
+- Recommendation endpoints never return purchase_order fields
+- Overview returns status ∈ {ok, no_data}
+- Alembic: upgrade head succeeds against SQLite test DB
+- Alembic: initial migration covers all Sprint 0–7 tables

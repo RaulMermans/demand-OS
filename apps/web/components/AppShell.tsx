@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/overview", label: "Overview" },
   { href: "/forecasts", label: "Forecasts" },
   { href: "/risks", label: "Inventory Risk" },
+  { href: "/recommendations", label: "Recommendations" },
   { href: "/model-performance", label: "Model Performance" },
   { href: "/data-health", label: "Data Health" },
 ];
@@ -39,7 +40,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             DemandOS
           </div>
           <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>
-            Scaffold · Sprint 0
+            Sprint 8 · API + Dashboard
           </div>
         </div>
 

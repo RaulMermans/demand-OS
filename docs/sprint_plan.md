@@ -333,20 +333,46 @@ approved_internal = approved inside DemandOS only; no external action taken.
 - Flat forward-planning forecast used; ML future inference not yet implemented
 - No dashboard pages connected to real recommendation data yet
 
-## Sprint 8 — Backend API Hardening + Dashboard Data Contracts (Planned)
-- [ ] Stabilize all API response contracts with typed schemas
-- [ ] Add typed frontend API clients in `apps/web/lib/api.ts`
-- [ ] Connect dashboard pages to real backend data (no hardcoded values)
-- [ ] Add `/recommendations` dashboard page
-- [ ] Add Alembic migration support
-- [ ] Add API key authentication layer
-- [ ] Dashboard: forecasts, risks, recommendations with real computed metrics
-- [ ] No new business logic unless needed to support dashboard contracts
+## Sprint 8 — Backend API Hardening + Dashboard Data Contracts ✅
+- [x] Stabilize all API response contracts with typed Pydantic schemas (`apps/api/app/schemas/api.py`)
+- [x] Add typed frontend API client (`apps/web/lib/api.ts` + `apps/web/lib/types.ts`)
+- [x] Connect all dashboard pages to real backend data (no hardcoded values)
+- [x] Add `/recommendations` dashboard page
+- [x] Add Alembic migration support (alembic.ini, env.py, script.py.mako, initial migration)
+- [x] Add 5 dashboard summary endpoints (GET /api/dashboard/*)
+- [x] Add offset pagination to recommendations and risks list endpoints
+- [x] Add reusable UX components: LoadingState, ErrorState, EmptyState, StatusBadge, DataTable
+- [x] Add 46 new tests (test_api_contracts.py + test_alembic.py)
+- [x] 295 backend tests passing; Next.js build passes; TypeScript compiles
+- [x] No new business logic introduced
 
-## Sprint 7+ — Connectors + Production
+**Sprint 8 local demo commands:**
+```bash
+uvicorn app.main:app --reload  # port 8000
+curl -X POST http://localhost:8000/api/demo/reset
+curl -X POST http://localhost:8000/api/aggregation/run
+curl -X POST http://localhost:8000/api/features/build
+curl -X POST http://localhost:8000/api/forecasts/baseline/run
+curl -X POST http://localhost:8000/api/models/train
+curl -X POST http://localhost:8000/api/forecasts/planning/run
+curl -X POST http://localhost:8000/api/risks/run
+curl -X POST http://localhost:8000/api/recommendations/run
+cd apps/web && npm run dev  # port 3000
+```
+
+## Sprint 9 — Dashboard UX + Pipeline Controls (Planned)
+- [ ] Charts/graphs for forecasts and risk trends
+- [ ] Safe manual pipeline controls (trigger pipeline stages from UI)
+- [ ] Product drilldown pages
+- [ ] Better tables with sorting and column selection
+- [ ] API key authentication layer
+- [ ] No new ML/risk/recommendation formulas
+- [ ] No external side effects without approval gates
+
+## Sprint 10+ — Connectors + Production
 - [ ] CsvCommerceConnector (real file parsing)
 - [ ] ShopifyConnector (Admin API)
 - [ ] WooCommerceConnector
-- [ ] Alembic migrations
+- [ ] One-click pipeline orchestration
 - [ ] Auth (API keys or JWT)
 - [ ] Deployment: Vercel + Railway/Fly

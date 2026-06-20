@@ -68,6 +68,7 @@ BACKEND_FILES=(
   "apps/api/app/connectors/mock_commerce.py"
   "apps/api/app/schemas/raw.py"
   "apps/api/app/schemas/derived.py"
+  "apps/api/app/schemas/api.py"
   "apps/api/app/services/ingestion_service.py"
   "apps/api/app/services/aggregation_service.py"
   "apps/api/app/services/forecasting_service.py"
@@ -80,6 +81,7 @@ BACKEND_FILES=(
   "apps/api/app/api/forecasts.py"
   "apps/api/app/api/models.py"
   "apps/api/app/api/metrics.py"
+  "apps/api/app/api/dashboard.py"
   "apps/api/tests/test_health.py"
   "apps/api/tests/test_connector_contract.py"
   "apps/api/tests/test_raw_data_rule.py"
@@ -97,8 +99,13 @@ BACKEND_FILES=(
   "scripts/run_stockout_risk.py"
   "scripts/run_recommendations.py"
   "apps/api/tests/test_recommendations.py"
+  "apps/api/tests/test_api_contracts.py"
+  "apps/api/tests/test_alembic.py"
   ".github/workflows/ci.yml"
   ".github/dependabot.yml"
+  "apps/api/alembic.ini"
+  "apps/api/alembic/env.py"
+  "apps/api/alembic/script.py.mako"
 )
 for f in "${BACKEND_FILES[@]}"; do
   if [ -f "$f" ]; then
@@ -152,10 +159,20 @@ FRONTEND_FILES=(
   "apps/web/next.config.js"
   "apps/web/app/layout.tsx"
   "apps/web/app/page.tsx"
+  "apps/web/app/overview/page.tsx"
   "apps/web/app/forecasts/page.tsx"
   "apps/web/app/risks/page.tsx"
+  "apps/web/app/recommendations/page.tsx"
+  "apps/web/app/model-performance/page.tsx"
+  "apps/web/app/data-health/page.tsx"
   "apps/web/components/AppShell.tsx"
+  "apps/web/components/LoadingState.tsx"
+  "apps/web/components/ErrorState.tsx"
+  "apps/web/components/EmptyState.tsx"
+  "apps/web/components/StatusBadge.tsx"
+  "apps/web/components/DataTable.tsx"
   "apps/web/lib/api.ts"
+  "apps/web/lib/types.ts"
 )
 for f in "${FRONTEND_FILES[@]}"; do
   if [ -f "$f" ]; then
@@ -194,6 +211,26 @@ if [ "$SCHEMA_CLEAN" = true ]; then
   echo "   ✅ No forbidden derived field declarations in raw schema"
   echo "   ℹ️  (Authoritative check: pytest tests/test_raw_data_rule.py)"
   ((PASS++))
+fi
+
+echo ""
+
+# -------------------------------------------------------------------
+# 7. Check Alembic migrations
+# -------------------------------------------------------------------
+echo "7. Checking Alembic migration files..."
+if [ -d "apps/api/alembic/versions" ]; then
+  MIGRATION_COUNT=$(find apps/api/alembic/versions -name "*.py" | wc -l | tr -d ' ')
+  if [ "$MIGRATION_COUNT" -ge 1 ]; then
+    echo "   ✅ alembic/versions/ has $MIGRATION_COUNT migration(s)"
+    ((PASS += 1))
+  else
+    echo "   ❌ alembic/versions/ exists but contains no migration files"
+    ((FAIL += 1))
+  fi
+else
+  echo "   ❌ alembic/versions/ directory missing"
+  ((FAIL += 1))
 fi
 
 echo ""

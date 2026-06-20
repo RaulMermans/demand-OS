@@ -61,12 +61,15 @@ It ingests raw operational commerce records and computes all derived insights in
                         │
                         ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    API / DASHBOARD                               │
-│  FastAPI (port 8000)      Next.js dashboard (port 3000)         │
-│  /health /api/overview    / /overview /forecasts /risks         │
-│  /api/forecasts           /model-performance /data-health        │
-│  /api/risks               /recommendations                      │
-│  /api/recommendations/run                                       │
+│                    API / DASHBOARD  (Sprint 8)                   │
+│  FastAPI (port 8000)           Next.js (port 3000)              │
+│  /health /api/overview         / /overview /forecasts           │
+│  /api/forecasts /api/risks     /risks /recommendations          │
+│  /api/recommendations          /model-performance /data-health  │
+│  /api/dashboard/overview       Typed API client: lib/api.ts     │
+│  /api/dashboard/risk-summary   Response types: lib/types.ts     │
+│  /api/dashboard/...            UI: LoadingState, ErrorState,    │
+│  Alembic migrations            EmptyState, StatusBadge, DataTable│
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -83,6 +86,17 @@ It ingests raw operational commerce records and computes all derived insights in
 | ML Model | model_versions | TrainingService | 5 |
 | Risk | stockout_risk_runs, stockout_risks | StockoutService | 6 |
 | Recommendation | recommendation_runs, reorder_recommendations | RecommendationService | 7 |
+| API Contracts | schemas/api.py Pydantic response types | Sprint 8 | 8 |
+| Migrations | Alembic alembic/versions/ | Alembic | 8 |
+
+## API Contract Standards (Sprint 8)
+
+- All endpoints return explicit Pydantic schemas (no raw ORM objects)
+- List endpoints have bounded pagination (`limit`/`offset`); max limits enforced
+- No-data states return predictable status strings (`no_data`, `no_forecast`, etc.)
+- Dashboard endpoints (`GET /api/dashboard/*`) aggregate computed data only
+- `PATCH /api/recommendations/{id}/status` never creates purchase orders
+- Frontend uses typed client (`lib/api.ts`) and explicit types (`lib/types.ts`)
 
 ## Key Design Decisions
 

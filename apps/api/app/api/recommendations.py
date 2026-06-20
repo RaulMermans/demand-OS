@@ -17,7 +17,7 @@ Safety boundary:
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -127,11 +127,15 @@ def run_recommendations(
 
 
 @router.get("/recommendations/runs")
-def list_recommendation_runs(db: Session = Depends(get_db)):
+def list_recommendation_runs(
+    limit: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
     """List all recommendation runs, most recent first."""
     runs = (
         db.query(RecommendationRun)
         .order_by(RecommendationRun.started_at.desc())
+        .limit(limit)
         .all()
     )
     return {
@@ -211,6 +215,7 @@ def list_recommendations(
     category: Optional[str] = None,
     supplier_id: Optional[str] = None,
     limit: int = 100,
+    offset: int = 0,
     db: Session = Depends(get_db),
 ):
     """
@@ -227,7 +232,7 @@ def list_recommendations(
         .first()
     )
     if run is None:
-        return {"recommendations": [], "total": 0, "run_id": None}
+        return {"recommendations": [], "total": 0, "returned": 0, "limit": limit, "offset": offset, "run_id": None}
 
     query = db.query(ReorderRecommendation).filter(
         ReorderRecommendation.recommendation_run_id == run.id
@@ -247,12 +252,14 @@ def list_recommendations(
 
     all_rows = query.all()
     all_rows_sorted = sorted(all_rows, key=_sort_key)
-    paginated = all_rows_sorted[:limit]
+    paginated = all_rows_sorted[offset: offset + limit]
 
     return {
         "recommendations": [_rec_to_dict(r) for r in paginated],
         "total": len(all_rows),
         "returned": len(paginated),
+        "limit": limit,
+        "offset": offset,
         "run_id": run.id,
     }
 

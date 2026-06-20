@@ -141,6 +141,7 @@ def list_stockout_risks(
     store_id: Optional[str] = Query(default=None),
     category: Optional[str] = Query(default=None),
     limit: int = Query(default=100, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
     """
