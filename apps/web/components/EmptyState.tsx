@@ -1,12 +1,15 @@
 "use client";
 
+import Link from "next/link";
+
 interface EmptyStateProps {
   title: string;
   message?: string;
   action?: React.ReactNode;
+  showPipelineLink?: boolean;
 }
 
-export default function EmptyState({ title, message, action }: EmptyStateProps) {
+export default function EmptyState({ title, message, action, showPipelineLink }: EmptyStateProps) {
   return (
     <div
       style={{
@@ -21,6 +24,20 @@ export default function EmptyState({ title, message, action }: EmptyStateProps) 
       </div>
       {message && (
         <div style={{ fontSize: "13px", maxWidth: "400px", margin: "0 auto" }}>{message}</div>
+      )}
+      {showPipelineLink && (
+        <div style={{ marginTop: "16px", fontSize: "13px" }}>
+          <Link
+            href="/pipeline"
+            style={{
+              color: "var(--accent)",
+              textDecoration: "underline",
+              fontWeight: 500,
+            }}
+          >
+            Go to Pipeline Controls to run the demo pipeline →
+          </Link>
+        </div>
       )}
       {action && <div style={{ marginTop: "20px" }}>{action}</div>}
     </div>

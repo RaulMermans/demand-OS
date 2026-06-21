@@ -58,8 +58,14 @@ See [docs/architecture.md](docs/architecture.md) for full diagram.
 | 4 | Baseline forecasting + backtesting (seasonal naive, moving average) | ✅ Done |
 | 5 | ML forecasting (HistGradientBoosting global model) + model registry + CI | ✅ Done |
 | 6 | Stockout risk engine (days-until-stockout, risk tiers, inventory coverage, lost sales) | ✅ Done |
-| 7 | Reorder recommendation engine (ROP, EOQ, approval flow) | 🔜 Next |
-| 7+ | Real connectors (Shopify, CSV, WooCommerce) | 🔜 |
+| 7 | Reorder recommendation engine (ROP, EOQ, approval flow) | ✅ Done |
+| 8 | Backend API hardening + dashboard data contracts | ✅ Done |
+| 9 | Dashboard UX + safe pipeline controls + API key guard | ✅ Done |
+| 10 | Demo orchestration + product drilldown + Vercel deployment | ✅ Done |
+| 10B | Single Vercel project adapter (frontend + backend same project) | ✅ Done |
+| 10C | Postgres FK insert order fix for Neon demo reset | ✅ Done |
+| 11 | Production smoke validation + observability + case study prep | ✅ Done |
+| 12 | Final screenshots, portfolio case study, MVP closeout | 🔜 Next |
 
 ---
 
@@ -178,6 +184,22 @@ Deploy the entire prototype as one Vercel project:
 
 See [docs/deployment.md](docs/deployment.md) for full instructions and serverless limitations.
 
+## Production Smoke Validation
+
+```bash
+# Read-only check against deployed app (no data mutation)
+python scripts/smoke_production.py --base-url https://demand-os-three.vercel.app
+
+# Full check including pipeline run (requires API key)
+python scripts/smoke_production.py \
+  --base-url https://demand-os-three.vercel.app \
+  --api-key "$DEMANDOS_API_KEY" \
+  --run-pipeline
+```
+
+Checks 15 conditions: readiness, all dashboard endpoints, runtime mode, demo scale,
+core counts, recommendations, and no secrets leaked in any response.
+
 ## CI
 
 GitHub Actions runs on every push and PR:
@@ -187,8 +209,8 @@ GitHub Actions runs on every push and PR:
 
 Local CI-equivalent:
 ```bash
-cd apps/api && pytest && cd ../.. && bash scripts/verify.sh
-cd apps/web && npm install && npm run build
+cd apps/api && python3 -m pytest && cd ../.. && bash scripts/verify.sh
+cd apps/web && npm ci && npm run build
 ```
 
 ---
@@ -197,12 +219,11 @@ cd apps/web && npm install && npm run build
 
 | Connector | Status |
 |-----------|--------|
-| MockCommerceConnector | Stub (Sprint 1: full implementation) |
-| CsvCommerceConnector | Stub (Sprint 2) |
-| ShopifyConnector | Stub (Sprint 3) |
-| WooCommerceConnector | Planned (Sprint 4) |
-| BigCommerceConnector | Planned (Sprint 5) |
-| ERPConnector | Future |
+| MockCommerceConnector | ✅ Implemented (Sprint 1) |
+| CsvCommerceConnector | Stub — Sprint 12+ |
+| ShopifyConnector | Stub — Sprint 12+ |
+| WooCommerceConnector | Planned |
+| ERPConnector | Planned |
 
 ---
 

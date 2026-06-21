@@ -100,6 +100,8 @@ It ingests raw operational commerce records and computes all derived insights in
 | Migrations | Alembic alembic/versions/ | Alembic | 8 |
 | Dashboard UX | Charts, pipeline controls, API key guard | Sprint 9 | 9 |
 | Demo Orchestration | demo_pipeline_runs | DemoPipelineService | 10 |
+| Observability | /api/observability/runs-summary, /api/observability/failure-summary | ObservabilityRouter | 11 |
+| Readiness Polish | /api/readiness (checks), /api/runtime/check | HealthRouter | 11 |
 
 ## API Contract Standards (Sprint 8)
 

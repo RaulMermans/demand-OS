@@ -46,6 +46,11 @@ DOC_FILES=(
   "docs/demo_runbook.md"
   "docs/operator_runbook.md"
   "docs/deployment.md"
+  "docs/case_study.md"
+  "docs/demo_script.md"
+  "docs/final_qa_checklist.md"
+  "docs/case_study_assets.md"
+  "docs/screenshots/README.md"
 )
 for f in "${DOC_FILES[@]}"; do
   if [ -f "$f" ]; then
@@ -374,6 +379,129 @@ fi
 # Check docs/deployment.md documents Vercel single project mode
 if grep -q "single Vercel project\|vercel_ephemeral\|Neon" docs/deployment.md 2>/dev/null; then
   echo "   ✅ docs/deployment.md documents single Vercel project mode"
+  ((PASS += 1))
+else
+  echo "   ❌ docs/deployment.md does not document single Vercel project mode"
+  ((FAIL += 1))
+fi
+
+echo ""
+
+# -------------------------------------------------------------------
+# 9. Sprint 11 — Observability, Smoke Script, Readiness Polish, UI, Docs
+# -------------------------------------------------------------------
+echo "9. Checking Sprint 11 additions..."
+
+# Smoke production script
+if [ -f "scripts/smoke_production.py" ]; then
+  echo "   ✅ scripts/smoke_production.py exists"
+  ((PASS += 1))
+else
+  echo "   ❌ scripts/smoke_production.py MISSING"
+  ((FAIL += 1))
+fi
+
+# Smoke script has --run-pipeline flag (read-only by default)
+if grep -q "run-pipeline" scripts/smoke_production.py 2>/dev/null && \
+   grep -q "store_true" scripts/smoke_production.py 2>/dev/null; then
+  echo "   ✅ smoke_production.py has read-only default (--run-pipeline gated)"
+  ((PASS += 1))
+else
+  echo "   ❌ smoke_production.py missing --run-pipeline flag or store_true"
+  ((FAIL += 1))
+fi
+
+# Observability API file exists
+if [ -f "apps/api/app/api/observability.py" ]; then
+  echo "   ✅ apps/api/app/api/observability.py exists"
+  ((PASS += 1))
+else
+  echo "   ❌ apps/api/app/api/observability.py MISSING"
+  ((FAIL += 1))
+fi
+
+# Observability routes present
+if grep -q "runs-summary" apps/api/app/api/observability.py 2>/dev/null && \
+   grep -q "failure-summary" apps/api/app/api/observability.py 2>/dev/null; then
+  echo "   ✅ observability endpoints (runs-summary, failure-summary) present"
+  ((PASS += 1))
+else
+  echo "   ❌ observability endpoints missing from observability.py"
+  ((FAIL += 1))
+fi
+
+# Observability router registered in main.py
+if grep -q "observability" apps/api/app/main.py 2>/dev/null; then
+  echo "   ✅ observability router registered in main.py"
+  ((PASS += 1))
+else
+  echo "   ❌ observability router not registered in main.py"
+  ((FAIL += 1))
+fi
+
+# Readiness endpoint includes api_key_guard_enabled
+if grep -q "api_key_guard_enabled" apps/api/app/api/health.py 2>/dev/null; then
+  echo "   ✅ /api/readiness includes api_key_guard_enabled field"
+  ((PASS += 1))
+else
+  echo "   ❌ /api/readiness missing api_key_guard_enabled field"
+  ((FAIL += 1))
+fi
+
+# Runtime/check endpoint exists
+if grep -q "runtime/check" apps/api/app/api/health.py 2>/dev/null; then
+  echo "   ✅ /api/runtime/check endpoint present in health.py"
+  ((PASS += 1))
+else
+  echo "   ❌ /api/runtime/check endpoint MISSING from health.py"
+  ((FAIL += 1))
+fi
+
+# Sidebar label updated (no longer says Sprint 9)
+if grep -q "Sprint 9" apps/web/components/AppShell.tsx 2>/dev/null; then
+  echo "   ❌ AppShell.tsx still says 'Sprint 9' — update the sidebar label"
+  ((FAIL += 1))
+else
+  echo "   ✅ AppShell.tsx sidebar label updated (no 'Sprint 9')"
+  ((PASS += 1))
+fi
+
+# Sidebar label says Deployed MVP or similar
+if grep -qE "Deployed MVP|Vercel Prototype|Demo Mode|Production" apps/web/components/AppShell.tsx 2>/dev/null; then
+  echo "   ✅ AppShell.tsx has current sidebar label"
+  ((PASS += 1))
+else
+  echo "   ❌ AppShell.tsx sidebar label not updated to current sprint/mode"
+  ((FAIL += 1))
+fi
+
+# Sprint 11 test file exists
+if [ -f "apps/api/tests/test_sprint11.py" ]; then
+  echo "   ✅ apps/api/tests/test_sprint11.py exists"
+  ((PASS += 1))
+else
+  echo "   ❌ apps/api/tests/test_sprint11.py MISSING"
+  ((FAIL += 1))
+fi
+
+# Case study docs
+for doc in \
+  "docs/case_study.md" \
+  "docs/demo_script.md" \
+  "docs/final_qa_checklist.md" \
+  "docs/case_study_assets.md"; do
+  if [ -f "$doc" ]; then
+    echo "   ✅ $doc"
+    ((PASS += 1))
+  else
+    echo "   ❌ $doc MISSING"
+    ((FAIL += 1))
+  fi
+done
+
+# Vercel deployment is documented in deployment.md (already checked in Sprint 10B)
+if grep -q "single Vercel project\|Single Vercel" docs/deployment.md 2>/dev/null; then
+  echo "   ✅ docs/deployment.md documents single Vercel project deployment"
   ((PASS += 1))
 else
   echo "   ❌ docs/deployment.md does not document single Vercel project mode"

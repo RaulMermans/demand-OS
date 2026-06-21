@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home" },
@@ -15,8 +15,29 @@ const NAV_ITEMS = [
   { href: "/pipeline", label: "Pipeline Controls" },
 ];
 
+interface RuntimeInfo {
+  runtime_mode?: string;
+  demo_scale?: string;
+  database?: string;
+}
+
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [runtime, setRuntime] = useState<RuntimeInfo | null>(null);
+
+  useEffect(() => {
+    const base = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+    fetch(`${base}/api/readiness`)
+      .then((r) => r.json())
+      .then((data: RuntimeInfo) => setRuntime(data))
+      .catch(() => null);
+  }, []);
+
+  const runtimeLabel =
+    runtime?.runtime_mode === "vercel" ? "Vercel" : runtime?.runtime_mode === "local" ? "Local" : null;
+  const scaleLabel =
+    runtime?.demo_scale === "small" ? "Small" : runtime?.demo_scale === "full" ? "Full" : null;
+  const dataLabel = runtime ? "Seeded" : null;
 
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
@@ -28,6 +49,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
           borderRight: "1px solid var(--border)",
           padding: "24px 0",
           flexShrink: 0,
+          display: "flex",
+          flexDirection: "column",
         }}
       >
         <div
@@ -41,11 +64,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
             DemandOS
           </div>
           <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>
-            Sprint 9 · Dashboard UX
+            Deployed MVP · Demo Mode
           </div>
         </div>
 
-        <ul style={{ listStyle: "none", padding: "0 8px" }}>
+        <ul style={{ listStyle: "none", padding: "0 8px", flex: 1 }}>
           {NAV_ITEMS.map((item) => {
             const active = pathname === item.href;
             return (
@@ -69,6 +92,38 @@ export default function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </ul>
+
+        {/* Runtime status indicator */}
+        {runtime && (
+          <div
+            style={{
+              margin: "16px 12px 0",
+              padding: "10px 12px",
+              background: "var(--surface-2)",
+              borderRadius: "6px",
+              fontSize: "10px",
+              color: "var(--text-secondary)",
+              lineHeight: "1.6",
+            }}
+          >
+            {runtimeLabel && (
+              <div>
+                <span style={{ opacity: 0.6 }}>Runtime:</span>{" "}
+                <span style={{ fontWeight: 600 }}>{runtimeLabel}</span>
+              </div>
+            )}
+            {scaleLabel && (
+              <div>
+                <span style={{ opacity: 0.6 }}>Demo scale:</span>{" "}
+                <span style={{ fontWeight: 600 }}>{scaleLabel}</span>
+              </div>
+            )}
+            <div>
+              <span style={{ opacity: 0.6 }}>Data:</span>{" "}
+              <span style={{ fontWeight: 600 }}>Seeded</span>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Main content */}

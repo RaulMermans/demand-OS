@@ -487,11 +487,43 @@ DEMANDOS_DEMO_SCALE   = small
 ```
 `NEXT_PUBLIC_API_BASE_URL` must be **left blank** for same-origin API calls.
 
-## Sprint 11+ — QA, Observability, Backend Deployment + Connectors
-- [ ] End-to-end smoke tests
-- [ ] Production config validation
-- [ ] Backend deployment to Render/Railway/Fly (Option B separation)
-- [ ] CsvCommerceConnector (real file parsing)
-- [ ] ShopifyConnector (Admin API)
-- [ ] Model monitoring / drift detection
-- [ ] Case study prep
+## Sprint 11 — Production Smoke Validation, Observability Polish, Case Study Prep ✅
+- [x] `scripts/smoke_production.py` — 15-check production smoke script (read-only by default)
+- [x] `GET /api/observability/runs-summary` — per-stage run status, runtime mode, demo scale
+- [x] `GET /api/observability/failure-summary` — latest failure per stage, bounded to 20
+- [x] `GET /api/readiness` polished — adds `database`, `api_key_guard_enabled`,
+      `external_side_effects_enabled`, `checks` (named safety checks, no secrets)
+- [x] `GET /api/runtime/check` — new endpoint: runtime config without secrets
+- [x] Sidebar label updated from "Sprint 9 · Dashboard UX" to "Deployed MVP · Demo Mode"
+- [x] Runtime status indicator in sidebar (fetches `/api/readiness` — runtime/scale/data)
+- [x] `ErrorState` improved — distinguishes API key errors, backend unavailable, no data
+- [x] `EmptyState` improved — `showPipelineLink` prop guides user to Pipeline Controls
+- [x] `docs/case_study.md` — full portfolio case study draft
+- [x] `docs/demo_script.md` — 3–5 minute presenter walkthrough script
+- [x] `docs/case_study_assets.md` — 12-screenshot checklist with filenames and proof points
+- [x] `docs/screenshots/README.md` — updated with Sprint 11 screenshot list
+- [x] `docs/final_qa_checklist.md` — deployment, pipeline, dashboard, security, docs checklist
+- [x] `apps/api/tests/test_sprint11.py` — 28 tests covering all Sprint 11 requirements
+- [x] `scripts/verify.sh` updated with Sprint 11 checks
+- [x] All existing tests still pass
+
+**Sprint 11 counts (Vercel small mode):**
+- Products: 10
+- Stores: 2
+- Orders: ~1,677
+- Inventory snapshots: ~1,156
+- Feature rows: ~1,154
+- Baseline forecast rows: ~946
+- Planning forecast rows: ~560
+- Stockout risk rows: 20
+- Reorder recommendations: 10
+
+**No new ML formulas, no real purchase orders, no external side effects.**
+
+## Sprint 12 — Final Portfolio Case Study, Screenshots, and MVP Closeout
+- [ ] Capture all 12 portfolio screenshots
+- [ ] Finalize `docs/case_study.md` with real screenshot references
+- [ ] Polish public README with architecture diagram
+- [ ] Add architecture diagram (Mermaid or SVG)
+- [ ] Run final deployed smoke test with pipeline
+- [ ] Mark MVP complete
