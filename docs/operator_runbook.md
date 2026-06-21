@@ -209,3 +209,48 @@ DemandOS does not:
 - Transmit data outside the local machine
 
 This guarantee is enforced by the project's architecture and verified in the test suite.
+
+---
+
+## Vercel Single-Project Operator Instructions
+
+When running in single Vercel project mode (`DEMANDOS_RUNTIME_MODE=vercel`):
+
+### Required Environment Variables (Vercel Panel)
+
+| Variable | Value |
+|----------|-------|
+| `DEMANDOS_API_KEY` | A strong random string |
+| `DEMANDOS_RUNTIME_MODE` | `vercel` |
+| `DEMANDOS_DEMO_SCALE` | `small` |
+| `DATABASE_URL` | Injected automatically by Neon Marketplace |
+
+`NEXT_PUBLIC_API_BASE_URL` must be **left unset** for same-origin calls.
+
+### Check Readiness
+
+```bash
+curl https://<your-vercel-domain>/api/readiness
+# Expected: {"ready": true, "status": "ok", "runtime_mode": "vercel", "demo_scale": "small", "reason": null}
+```
+
+If `ready` is `false`, check that `DATABASE_URL` is set to a Postgres URL (not SQLite).
+
+### Run Demo Pipeline on Vercel
+
+1. Go to `https://<your-vercel-domain>/pipeline`.
+2. Enter your `DEMANDOS_API_KEY` in the API Key field.
+3. Click **Run Full Demo Pipeline**.
+
+With `DEMANDOS_DEMO_SCALE=small`, the pipeline runs 10 products × 2 stores × 180 days —
+typically completes within 30–45 seconds.
+
+### Model Artifact Limitation on Vercel
+
+Vercel serverless functions have a read-only filesystem outside `/tmp`.
+Model artifacts written to `/tmp` are **ephemeral** — they do not persist across invocations.
+The `ModelVersion` row in Postgres records `artifact_path = "vercel_ephemeral"` to document this.
+Forecast results and metrics are fully stored in Postgres and are durable.
+
+To retrain a model, run the pipeline again — the new artifact is available for the
+duration of that function invocation.

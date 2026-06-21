@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.db.session import get_db
 from app.connectors.mock_commerce import MockCommerceConnector, MockConfig
 from app.services.ingestion_service import IngestionService
@@ -16,6 +17,24 @@ from app.services.demo_pipeline_service import DemoPipelineService
 from app.api.auth import require_api_key
 
 router = APIRouter()
+
+# Small-mode defaults — used when DEMANDOS_DEMO_SCALE=small (recommended for Vercel).
+_SMALL_PRODUCTS = 10
+_SMALL_STORES = 2
+_SMALL_DAYS = 180
+
+# Full-mode defaults — used locally and in CI.
+_FULL_PRODUCTS = 50
+_FULL_STORES = 5
+_FULL_DAYS = 730
+
+
+def _scale_defaults() -> dict:
+    """Return product_count/store_count/history_days based on DEMANDOS_DEMO_SCALE."""
+    scale = get_settings().demandos_demo_scale
+    if scale == "small":
+        return {"product_count": _SMALL_PRODUCTS, "store_count": _SMALL_STORES, "history_days": _SMALL_DAYS}
+    return {"product_count": _FULL_PRODUCTS, "store_count": _FULL_STORES, "history_days": _FULL_DAYS}
 
 
 class DemoResetRequest(BaseModel):
@@ -57,15 +76,24 @@ def reset_demo(
     This is the primary way to initialise DemandOS for a demo.
     The operation is idempotent: running it twice with the same seed
     produces the same data.
+
+    When DEMANDOS_DEMO_SCALE=small (recommended for Vercel), the scale defaults
+    are applied automatically: 10 products, 2 stores, 180 history days.
+    Explicit request body values always override the scale defaults.
     """
+    defaults = _scale_defaults()
+    product_count = req.product_count if req.product_count != 50 else defaults["product_count"]
+    store_count   = req.store_count   if req.store_count   != 5  else defaults["store_count"]
+    history_days  = req.history_days  if req.history_days  != 730 else defaults["history_days"]
+
     end_date   = date.today() - timedelta(days=1)
-    start_date = end_date - timedelta(days=req.history_days - 1)
+    start_date = end_date - timedelta(days=history_days - 1)
 
     config = MockConfig(
         seed=req.seed,
-        product_count=req.product_count,
-        store_count=req.store_count,
-        history_days=req.history_days,
+        product_count=product_count,
+        store_count=store_count,
+        history_days=history_days,
         start_date=start_date,
         end_date=end_date,
     )
@@ -76,15 +104,16 @@ def reset_demo(
     return {
         "status":  "ok",
         "message": (
-            f"Demo dataset seeded: {req.product_count} products, "
-            f"{req.store_count} stores, {req.history_days} days of history."
+            f"Demo dataset seeded: {product_count} products, "
+            f"{store_count} stores, {history_days} days of history."
         ),
         "config": {
             "seed":          req.seed,
-            "product_count": req.product_count,
-            "store_count":   req.store_count,
+            "product_count": product_count,
+            "store_count":   store_count,
             "start_date":    str(start_date),
             "end_date":      str(end_date),
+            "demo_scale":    get_settings().demandos_demo_scale,
         },
         "ingestion": result,
     }
@@ -114,13 +143,21 @@ def run_full_pipeline(
 
     API-key protected when DEMANDOS_API_KEY is configured.
     Does not create purchase orders or call external APIs.
+
+    When DEMANDOS_DEMO_SCALE=small (recommended for Vercel), scale defaults are
+    applied automatically to reduce execution time and avoid serverless timeouts.
     """
+    defaults = _scale_defaults()
+    product_count = req.product_count if req.product_count != 50 else defaults["product_count"]
+    store_count   = req.store_count   if req.store_count   != 5  else defaults["store_count"]
+    history_days  = req.history_days  if req.history_days  != 730 else defaults["history_days"]
+
     svc = DemoPipelineService(db)
     run = svc.run_full_pipeline(
         seed=req.seed,
-        product_count=req.product_count,
-        store_count=req.store_count,
-        history_days=req.history_days,
+        product_count=product_count,
+        store_count=store_count,
+        history_days=history_days,
     )
     return {
         "status": run.status,
@@ -129,6 +166,13 @@ def run_full_pipeline(
             if run.status == "completed"
             else f"Pipeline stopped at step '{run.current_step}': {run.error_message}"
         ),
+        "demo_scale": get_settings().demandos_demo_scale,
+        "effective_config": {
+            "seed": req.seed,
+            "product_count": product_count,
+            "store_count": store_count,
+            "history_days": history_days,
+        },
         "run": _run_to_dict(run),
     }
 

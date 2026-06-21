@@ -147,10 +147,27 @@ def _safe_float(val: Any) -> float | None:
         return None
 
 
+def _default_artifact_dir() -> str:
+    """
+    Return artifact directory appropriate for the current runtime mode.
+
+    vercel: /tmp is the only writable path in serverless containers; artifacts
+            are ephemeral (lost between invocations) but the ModelVersion row
+            and metrics persist in Postgres. artifact_path is set to
+            "vercel_ephemeral" to document this intentional limitation.
+    local:  "models/forecasting" (relative to cwd).
+    """
+    from app.config import get_settings  # local import avoids circular at module level
+    s = get_settings()
+    if s.demandos_runtime_mode == "vercel":
+        return "/tmp/demandos_models"
+    return "models/forecasting"
+
+
 class TrainingService:
     def __init__(self, db: Session, artifact_dir: str | None = None):
         self.db = db
-        self.artifact_dir = artifact_dir or "models/forecasting"
+        self.artifact_dir = artifact_dir or _default_artifact_dir()
 
     # ------------------------------------------------------------------
     # Public interface
@@ -307,7 +324,10 @@ class TrainingService:
                 test_df, run_id, algorithm, horizon_days
             )
 
-            # Save artifact
+            # Save artifact — in vercel mode /tmp is ephemeral; set a sentinel path
+            # in the DB row so callers know durable storage is unavailable.
+            from app.config import get_settings as _gs
+            _runtime_mode = _gs().demandos_runtime_mode
             os.makedirs(self.artifact_dir, exist_ok=True)
             artifact_path = os.path.join(self.artifact_dir, f"{model_version_id}.joblib")
             joblib.dump(
@@ -321,6 +341,9 @@ class TrainingService:
                 },
                 artifact_path,
             )
+            # In vercel mode record the sentinel so the UI can communicate the limitation.
+            if _runtime_mode == "vercel":
+                artifact_path = "vercel_ephemeral"
 
             # Update model version
             mv.status = "completed"

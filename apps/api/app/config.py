@@ -30,6 +30,16 @@ class Settings(BaseSettings):
     # Never commit a real key here — set via environment variable.
     demandos_api_key: str = ""
 
+    # Runtime mode — controls filesystem and DB behaviour.
+    # "local"  : default; SQLite fallback allowed; artifact files written to disk.
+    # "vercel" : serverless; Postgres required; artifact files written to /tmp only.
+    demandos_runtime_mode: str = "local"
+
+    # Demo dataset scale — controls pipeline seed size.
+    # "full"  : 50 products, 5 stores, 730 days (default for local dev).
+    # "small" : 10 products, 2 stores, 180 days (recommended for Vercel to avoid timeouts).
+    demandos_demo_scale: str = "full"
+
 
 @lru_cache
 def get_settings() -> Settings:

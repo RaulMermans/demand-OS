@@ -160,6 +160,24 @@ python scripts/run_planning_forecast.py --model seasonal_naive --horizon-days 28
 python scripts/run_stockout_risk.py --horizon-days 28
 ```
 
+## Vercel Deployment (Single Project)
+
+Deploy the entire prototype as one Vercel project:
+
+1. Import this repo in Vercel. Set **Root Directory** to `.` (repo root).
+2. Add Neon Postgres via **Storage → Connect Store → Neon**.
+3. Set environment variables in Vercel panel:
+   ```
+   DEMANDOS_API_KEY      = <strong-random-string>
+   DEMANDOS_RUNTIME_MODE = vercel
+   DEMANDOS_DEMO_SCALE   = small
+   ```
+   Leave `NEXT_PUBLIC_API_BASE_URL` **unset** (same-origin mode).
+4. Deploy. Run migrations: `DATABASE_URL=<neon-url> alembic upgrade head`
+5. Check readiness: `GET https://<domain>/api/readiness`
+
+See [docs/deployment.md](docs/deployment.md) for full instructions and serverless limitations.
+
 ## CI
 
 GitHub Actions runs on every push and PR:

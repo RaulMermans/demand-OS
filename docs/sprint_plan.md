@@ -459,11 +459,38 @@ vercel --prod  # production
 # Set NEXT_PUBLIC_API_BASE_URL in Vercel environment variables
 ```
 
+## Sprint 10B — Single Vercel Project Adapter ✅
+- [x] `vercel.json` at repo root — routes `/api/*` to Python function, `/*` to Next.js
+- [x] `api/index.py` — FastAPI adapter (imports `app.main.app` via sys.path)
+- [x] `api/__init__.py` — makes `api` a Python package for test imports
+- [x] `requirements.txt` at repo root — runtime deps for Vercel Python function
+- [x] `DEMANDOS_RUNTIME_MODE=local|vercel` — controls filesystem + DB behaviour
+- [x] `DEMANDOS_DEMO_SCALE=full|small` — controls demo seed size (small=10 products, 2 stores, 180 days)
+- [x] Training service: uses `/tmp` for artifacts in vercel mode; records `vercel_ephemeral` in DB
+- [x] Health/readiness: `/api/readiness` returns `not_ready` when vercel mode + no Postgres URL
+- [x] DB session: logs warning (not crash) when vercel + SQLite; health surface failure clearly
+- [x] Frontend API client: same-origin `/api` calls when `NEXT_PUBLIC_API_BASE_URL` is blank
+- [x] `apps/web/.env.example` — documents same-origin mode for single Vercel project
+- [x] `docs/deployment.md` — full single Vercel project setup guide with Neon Postgres
+- [x] `docs/operator_runbook.md` — Vercel operator instructions added
+- [x] `docs/demo_runbook.md` — Vercel demo instructions added
+- [x] `test_vercel_deployment.py` — tests J1-J8 (vercel.json, adapter import, readiness, scale, key guard)
+- [x] `scripts/verify.sh` updated with Sprint 10B checks
+- [x] All existing tests still pass
+
+**Required Vercel env vars for single-project mode:**
+```
+DATABASE_URL          ← injected by Neon Marketplace integration
+DEMANDOS_API_KEY      ← set in Vercel env vars panel
+DEMANDOS_RUNTIME_MODE = vercel
+DEMANDOS_DEMO_SCALE   = small
+```
+`NEXT_PUBLIC_API_BASE_URL` must be **left blank** for same-origin API calls.
+
 ## Sprint 11+ — QA, Observability, Backend Deployment + Connectors
 - [ ] End-to-end smoke tests
-- [ ] Health/readiness check endpoints
 - [ ] Production config validation
-- [ ] Backend deployment to Render/Railway/Fly
+- [ ] Backend deployment to Render/Railway/Fly (Option B separation)
 - [ ] CsvCommerceConnector (real file parsing)
 - [ ] ShopifyConnector (Admin API)
 - [ ] Model monitoring / drift detection

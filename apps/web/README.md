@@ -64,3 +64,13 @@ All pages handle loading, error, and empty states.
 | `MetricCard` | Single metric card |
 | `AppShell` | Layout shell with nav sidebar |
 | `PlaceholderPanel` | Scaffold placeholder (used before data is available) |
+
+## Vercel Deployment Note
+
+`apps/web` is **not** the Vercel root directory for single-project mode.
+Vercel should be configured with repo root (`./`) as the root directory.
+`vercel.json` at the repo root handles routing for both Next.js and FastAPI.
+
+For local development only, `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000` in `.env.local`.
+For single Vercel project mode, leave `NEXT_PUBLIC_API_BASE_URL` unset — the API client
+defaults to same-origin relative paths (`/api/...`).

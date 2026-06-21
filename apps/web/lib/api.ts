@@ -1,7 +1,8 @@
 /**
  * DemandOS typed API client.
  *
- * All functions use NEXT_PUBLIC_API_BASE_URL (defaults to http://localhost:8000).
+ * All functions use NEXT_PUBLIC_API_BASE_URL as the API base.
+ * When the env var is blank/unset, same-origin relative paths are used (/api/...).
  * No hardcoded production URLs. No fake fallback data.
  *
  * Write/control endpoints optionally accept an API key sent as
@@ -43,9 +44,13 @@ import type {
 } from "./types";
 import { getStoredApiKey } from "./apiKey";
 
-const BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ??
-  "http://localhost:8000";
+// When NEXT_PUBLIC_API_BASE_URL is blank or absent, use same-origin relative paths
+// ("/api/..."). This is the correct mode for a single Vercel project where frontend
+// and backend are served from the same domain.
+// When a URL is provided (e.g. local dev http://localhost:8000), use it as prefix.
+const BASE = process.env.NEXT_PUBLIC_API_BASE_URL
+  ? process.env.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "")
+  : "";
 
 // ---------------------------------------------------------------------------
 // Internal fetch helpers

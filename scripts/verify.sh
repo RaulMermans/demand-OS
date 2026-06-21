@@ -305,6 +305,84 @@ fi
 echo ""
 
 # -------------------------------------------------------------------
+# 8. Sprint 10B — check single Vercel project deployment files
+# -------------------------------------------------------------------
+echo "8. Checking Sprint 10B Vercel deployment adapter..."
+
+VERCEL_FILES=(
+  "vercel.json"
+  "requirements.txt"
+  "api/index.py"
+  "api/__init__.py"
+)
+for f in "${VERCEL_FILES[@]}"; do
+  if [ -f "$f" ]; then
+    echo "   ✅ $f"
+    ((PASS += 1))
+  else
+    echo "   ❌ $f — MISSING (required for single Vercel project mode)"
+    ((FAIL += 1))
+  fi
+done
+
+# vercel.json must contain /api route
+if grep -q '"api/index.py"' vercel.json 2>/dev/null; then
+  echo "   ✅ vercel.json routes /api/* to api/index.py"
+  ((PASS += 1))
+else
+  echo "   ❌ vercel.json does not route to api/index.py"
+  ((FAIL += 1))
+fi
+
+# api/index.py must import from app.main
+if grep -q "from app.main import app" api/index.py 2>/dev/null; then
+  echo "   ✅ api/index.py imports FastAPI app from app.main"
+  ((PASS += 1))
+else
+  echo "   ❌ api/index.py does not import from app.main"
+  ((FAIL += 1))
+fi
+
+# requirements.txt must list fastapi and psycopg2-binary
+if grep -q "fastapi" requirements.txt 2>/dev/null && grep -q "psycopg2" requirements.txt 2>/dev/null; then
+  echo "   ✅ requirements.txt contains fastapi and psycopg2 runtime dependencies"
+  ((PASS += 1))
+else
+  echo "   ❌ requirements.txt missing required runtime dependencies"
+  ((FAIL += 1))
+fi
+
+# config.py must define runtime_mode and demo_scale
+if grep -q "demandos_runtime_mode" apps/api/app/config.py 2>/dev/null && \
+   grep -q "demandos_demo_scale" apps/api/app/config.py 2>/dev/null; then
+  echo "   ✅ config.py defines DEMANDOS_RUNTIME_MODE and DEMANDOS_DEMO_SCALE"
+  ((PASS += 1))
+else
+  echo "   ❌ config.py missing DEMANDOS_RUNTIME_MODE or DEMANDOS_DEMO_SCALE"
+  ((FAIL += 1))
+fi
+
+# Check test_vercel_deployment.py exists
+if [ -f "apps/api/tests/test_vercel_deployment.py" ]; then
+  echo "   ✅ tests/test_vercel_deployment.py exists"
+  ((PASS += 1))
+else
+  echo "   ❌ tests/test_vercel_deployment.py MISSING"
+  ((FAIL += 1))
+fi
+
+# Check docs/deployment.md documents Vercel single project mode
+if grep -q "single Vercel project\|vercel_ephemeral\|Neon" docs/deployment.md 2>/dev/null; then
+  echo "   ✅ docs/deployment.md documents single Vercel project mode"
+  ((PASS += 1))
+else
+  echo "   ❌ docs/deployment.md does not document single Vercel project mode"
+  ((FAIL += 1))
+fi
+
+echo ""
+
+# -------------------------------------------------------------------
 # Summary
 # -------------------------------------------------------------------
 echo "========================"

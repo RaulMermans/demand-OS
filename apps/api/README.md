@@ -114,4 +114,17 @@ No stateful in-memory chains. No automatic purchase orders.
 | 6 | Stockout risk engine | ✅ Done |
 | 7 | Reorder recommendations | ✅ Done |
 | 8 | API contracts + Alembic | ✅ Done |
-| 9 | Dashboard UX + pipeline controls | 🔜 Next |
+| 9 | Dashboard UX + pipeline controls | ✅ Done |
+| 10 | Demo orchestration + product drilldown | ✅ Done |
+| 10B | Single Vercel project adapter | ✅ Done |
+
+## Vercel Deployment
+
+`api/index.py` at the repo root wraps this FastAPI app for Vercel Python Functions.
+It adds `apps/api` to `sys.path` and imports `app.main.app`.
+
+Required env vars for Vercel mode:
+- `DATABASE_URL` — Neon Postgres (injected by Marketplace integration)
+- `DEMANDOS_API_KEY` — write-endpoint guard
+- `DEMANDOS_RUNTIME_MODE=vercel` — disables SQLite fallback, uses `/tmp` for artifacts
+- `DEMANDOS_DEMO_SCALE=small` — 10 products, 2 stores, 180 days (avoids timeouts)

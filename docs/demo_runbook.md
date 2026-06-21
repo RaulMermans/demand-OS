@@ -174,3 +174,21 @@ Set `NEXT_PUBLIC_API_BASE_URL` to your deployed backend URL in the Vercel projec
 - No external API calls are made during the demo.
 - No purchase orders are created — recommendations are suggestions only.
 - The API key guard is disabled by default (empty `DEMANDOS_API_KEY`).
+
+---
+
+## Running the Demo on Vercel (Single-Project Mode)
+
+1. Ensure the Vercel project has `DEMANDOS_API_KEY`, `DEMANDOS_RUNTIME_MODE=vercel`,
+   and `DEMANDOS_DEMO_SCALE=small` set in the Vercel environment variables panel.
+2. Confirm Neon Postgres is installed and `DATABASE_URL` is injected.
+3. Verify readiness: `GET https://<domain>/api/readiness` → `{"ready": true}`.
+4. Go to `https://<domain>/pipeline` and enter your API key.
+5. Click **Run Full Demo Pipeline**.
+   - Small mode: 10 products, 2 stores, 180 days — finishes in ~30–45 seconds.
+6. Navigate to `/overview`, `/forecasts`, `/risks`, `/recommendations` to see results.
+
+**Note on model artifacts:** In Vercel mode, model artifacts are written to `/tmp` and are
+ephemeral. The ModelVersion database row records `artifact_path = "vercel_ephemeral"`.
+This is an intentional limitation of the serverless prototype — all metrics and forecasts
+are stored durably in Postgres.
