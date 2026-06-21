@@ -818,3 +818,119 @@ class DemoPipelineRun(Base):
     steps_json = Column(JSON, default=list)
     error_message = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
+# Sprint 13 — CSV Upload Audit (Part A)
+# ---------------------------------------------------------------------------
+
+class CsvUploadRun(Base):
+    """Audit record for each CSV upload attempt."""
+    __tablename__ = "csv_upload_runs"
+
+    id = Column(String, primary_key=True)
+    entity_type = Column(String, nullable=False)   # products/stores/orders/etc.
+    filename = Column(String, nullable=False)
+    status = Column(String, nullable=False)         # pending/validating/uploading/completed/failed
+    row_count = Column(Integer, default=0)
+    valid_row_count = Column(Integer, default=0)
+    invalid_row_count = Column(Integer, default=0)
+    error_summary = Column(JSON, default=list)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime)
+
+
+# ---------------------------------------------------------------------------
+# Sprint 13 — Monitoring (Part B)
+# ---------------------------------------------------------------------------
+
+class MonitoringRun(Base):
+    """One monitoring execution."""
+    __tablename__ = "monitoring_runs"
+
+    id = Column(String, primary_key=True)
+    status = Column(String, nullable=False)         # running/completed/failed
+    started_at = Column(DateTime, nullable=False)
+    completed_at = Column(DateTime)
+    model_health_status = Column(String)            # green/yellow/red/unknown
+    data_health_status = Column(String)             # green/yellow/red/unknown
+    overall_status = Column(String)                 # green/yellow/red/unknown
+    summary = Column(JSON, default=dict)
+    error_message = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ModelDriftMetric(Base):
+    """Per-run model performance snapshot for drift detection."""
+    __tablename__ = "model_drift_metrics"
+
+    id = Column(String, primary_key=True)
+    monitoring_run_id = Column(String, ForeignKey("monitoring_runs.id"), nullable=False, index=True)
+    metric_name = Column(String, nullable=False)    # wape/mae/rmse/bias
+    current_value = Column(Float)
+    previous_value = Column(Float)
+    relative_change_pct = Column(Float)
+    threshold_status = Column(String)               # green/yellow/red/unknown
+    model_name = Column(String)
+    model_type = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class DataDriftMetric(Base):
+    """Per-run data distribution snapshot for drift detection."""
+    __tablename__ = "data_drift_metrics"
+
+    id = Column(String, primary_key=True)
+    monitoring_run_id = Column(String, ForeignKey("monitoring_runs.id"), nullable=False, index=True)
+    metric_name = Column(String, nullable=False)
+    current_value = Column(Float)
+    previous_value = Column(Float)
+    relative_change_pct = Column(Float)
+    threshold_status = Column(String)               # green/yellow/red/unknown
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
+# Sprint 13 — Scenario Planning (Part C)
+# ---------------------------------------------------------------------------
+
+class ScenarioRun(Base):
+    """One what-if scenario simulation."""
+    __tablename__ = "scenario_runs"
+
+    id = Column(String, primary_key=True)
+    status = Column(String, nullable=False)         # running/completed/failed
+    started_at = Column(DateTime, nullable=False)
+    completed_at = Column(DateTime)
+    inputs = Column(JSON, nullable=False, default=dict)
+    baseline_summary = Column(JSON, default=dict)
+    scenario_summary = Column(JSON, default=dict)
+    delta_lost_sales = Column(Float)
+    delta_order_cost = Column(Float)
+    delta_high_risk_count = Column(Integer)
+    delta_critical_risk_count = Column(Integer)
+    top_impacted = Column(JSON, default=list)
+    error_message = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ScenarioResult(Base):
+    """Per-product-store result row for a scenario run."""
+    __tablename__ = "scenario_results"
+
+    id = Column(String, primary_key=True)
+    scenario_run_id = Column(String, ForeignKey("scenario_runs.id"), nullable=False, index=True)
+    product_id = Column(String, nullable=False, index=True)
+    store_id = Column(String, nullable=False, index=True)
+    baseline_risk_tier = Column(String)
+    scenario_risk_tier = Column(String)
+    baseline_days_of_supply = Column(Float)
+    scenario_days_of_supply = Column(Float)
+    baseline_lost_sales = Column(Float)
+    scenario_lost_sales = Column(Float)
+    baseline_order_cost = Column(Float)
+    scenario_order_cost = Column(Float)
+    delta_days_of_supply = Column(Float)
+    delta_lost_sales = Column(Float)
+    delta_order_cost = Column(Float)
+    created_at = Column(DateTime, default=datetime.utcnow)

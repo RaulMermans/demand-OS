@@ -577,3 +577,59 @@ DemandOS MVP closed Sprint 12.
 - Production smoke: 18/18
 - Case study: docs/case_study.md
 - Screenshots: docs/screenshots/ (9 auto-captured, 3 pending manual)
+
+---
+
+## Sprint 13 — Optional Feature Consolidation (2026-06-21)
+
+**Goal:** Add post-MVP features without breaking deployed prototype.
+
+### Features Delivered
+
+**Part A — CSV Upload Mode**
+- POST /api/csv/validate — validate only, no DB mutation
+- POST /api/csv/upload — validate + ingest (API key required)
+- GET /api/csv/templates, /api/csv/templates/{entity}
+- GET /api/csv/uploads, /api/csv/uploads/latest
+- Supports: products, stores, suppliers, orders, inventory_snapshots, promotions, purchase_orders
+- 2 MB file size limit; raw operational data only; derived fields rejected
+
+**Part B — Model Monitoring**
+- POST /api/monitoring/run (API key required)
+- GET /api/monitoring/latest, /runs, /model, /data
+- Simple model performance drift (WAPE/MAE/RMSE/Bias vs. previous run)
+- Simple data drift (order volume, stockout rate)
+- Threshold: green ≤10%, yellow 10–25%, red >25%
+
+**Part C — Scenario Planning**
+- POST /api/scenarios/run (API key required) — what-if simulation
+- GET /api/scenarios/runs, /runs/latest, /{scenario_id}
+- Never mutates canonical tables; all outputs labelled simulated=true
+- Supported params: demand_multiplier, lead_time_multiplier, supplier_reliability_delta, promotion_lift_multiplier, inventory_adjustment_units, horizon_days
+
+**Part D — Connector Prep**
+- GET /api/connectors, /api/connectors/status
+- POST /api/connectors/validate-config, /api/connectors/dry-run
+- ShopifyConnector and WooCommerceConnector stubs (disabled, raise NotImplementedError)
+- No live API calls; no credentials stored
+
+**Part E — Frontend**
+- /csv-upload — entity selector, file upload, validate/upload buttons, history
+- /monitoring — drift status cards, metric tables, run history
+- /scenarios — what-if form with sliders, before/after comparison, history
+- /connectors — connector status cards, config validation tool
+- AppShell: "Advanced" section with CSV Upload, Monitoring, Scenarios, Connectors
+
+### Test Results
+- New tests: 63 (test_csv_upload + test_monitoring + test_scenarios + test_connector_prep)
+- All 63 pass
+- Full test suite: all passing
+
+### Architecture Notes
+- New tables: csv_upload_runs, monitoring_runs, model_drift_metrics, data_drift_metrics, scenario_runs, scenario_results
+- No external side effects introduced
+- No live connector calls
+- No fake precomputed metrics
+- Vercel deployment compatibility maintained
+
+**Sprint 13 Status: COMPLETE ✅**

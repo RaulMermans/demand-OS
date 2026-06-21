@@ -619,6 +619,101 @@ fi
 echo ""
 
 # -------------------------------------------------------------------
+# Sprint 13 — CSV upload, monitoring, scenarios, connector prep
+# -------------------------------------------------------------------
+echo "Sprint 13 backend files..."
+SPRINT13_BACKEND=(
+  "apps/api/app/api/csv_upload.py"
+  "apps/api/app/api/monitoring.py"
+  "apps/api/app/api/scenarios.py"
+  "apps/api/app/api/connectors.py"
+  "apps/api/app/services/csv_ingestion_service.py"
+  "apps/api/app/services/monitoring_service.py"
+  "apps/api/app/services/scenario_service.py"
+  "apps/api/app/schemas/csv_upload.py"
+  "apps/api/app/schemas/scenarios.py"
+  "apps/api/app/schemas/connectors.py"
+  "apps/api/app/validation/csv_validators.py"
+  "apps/api/app/connectors/shopify.py"
+  "apps/api/app/connectors/woocommerce.py"
+  "apps/api/tests/test_csv_upload.py"
+  "apps/api/tests/test_monitoring.py"
+  "apps/api/tests/test_scenarios.py"
+  "apps/api/tests/test_connector_prep.py"
+)
+for f in "${SPRINT13_BACKEND[@]}"; do
+  if [ -f "$f" ]; then
+    echo "   ✅ $f"
+    ((PASS += 1))
+  else
+    echo "   ❌ $f — MISSING"
+    ((FAIL += 1))
+  fi
+done
+
+echo ""
+echo "Sprint 13 frontend pages..."
+SPRINT13_FRONTEND=(
+  "apps/web/app/csv-upload/page.tsx"
+  "apps/web/app/monitoring/page.tsx"
+  "apps/web/app/scenarios/page.tsx"
+  "apps/web/app/connectors/page.tsx"
+)
+for f in "${SPRINT13_FRONTEND[@]}"; do
+  if [ -f "$f" ]; then
+    echo "   ✅ $f"
+    ((PASS += 1))
+  else
+    echo "   ❌ $f — MISSING"
+    ((FAIL += 1))
+  fi
+done
+
+echo ""
+echo "Sprint 13 — nav labels in AppShell..."
+for label in "CSV Upload" "Monitoring" "Scenarios" "Connectors"; do
+  if grep -q "$label" apps/web/components/AppShell.tsx 2>/dev/null; then
+    echo "   ✅ AppShell has '$label' nav item"
+    ((PASS += 1))
+  else
+    echo "   ❌ AppShell missing '$label' nav item"
+    ((FAIL += 1))
+  fi
+done
+
+echo ""
+echo "Sprint 13 — API routes registered in main.py..."
+for route in "csv_upload" "monitoring" "scenarios" "connector_api"; do
+  if grep -q "$route" apps/api/app/main.py 2>/dev/null; then
+    echo "   ✅ main.py includes $route router"
+    ((PASS += 1))
+  else
+    echo "   ❌ main.py missing $route router"
+    ((FAIL += 1))
+  fi
+done
+
+echo ""
+echo "Sprint 13 — security checks on new files..."
+if grep -rqE 'DEMANDOS_API_KEY=[a-zA-Z0-9]{16,}' apps/api/app/api/csv_upload.py apps/api/app/api/monitoring.py apps/api/app/api/scenarios.py apps/api/app/api/connectors.py 2>/dev/null; then
+  echo "   ❌ Possible API key value found in Sprint 13 API files"
+  ((FAIL += 1))
+else
+  echo "   ✅ No API key values in Sprint 13 API files"
+  ((PASS += 1))
+fi
+
+if grep -qE 'postgresql://|@neon\.tech' apps/api/app/connectors/shopify.py apps/api/app/connectors/woocommerce.py 2>/dev/null; then
+  echo "   ❌ Raw database URL found in connector stubs"
+  ((FAIL += 1))
+else
+  echo "   ✅ No raw database URLs in connector stubs"
+  ((PASS += 1))
+fi
+
+echo ""
+
+# -------------------------------------------------------------------
 # Summary
 # -------------------------------------------------------------------
 echo "========================"

@@ -318,6 +318,72 @@ def main() -> int:
     results.append(ok)
 
     # -----------------------------------------------------------------------
+    # Sprint 13 — read-only checks for new endpoints
+    # -----------------------------------------------------------------------
+    print()
+    print("[ S13-1 ] Connector status")
+    status, body = _request("GET", f"{base}/api/connectors/status", read_headers)
+    ok = check("GET /api/connectors/status returns 200", status == 200, f"HTTP {status}")
+    conn_data: dict[str, Any] = body if isinstance(body, dict) else {}
+    results.append(ok)
+    if ok:
+        ok2 = check("live_sync_enabled is False",
+                    conn_data.get("live_sync_enabled") is False,
+                    f"live_sync_enabled={conn_data.get('live_sync_enabled')!r}")
+        results.append(ok2)
+
+    print()
+    print("[ S13-2 ] Monitoring latest")
+    status, body = _request("GET", f"{base}/api/monitoring/latest", read_headers)
+    ok = check("GET /api/monitoring/latest returns 200", status == 200, f"HTTP {status}")
+    mon_data: dict[str, Any] = body if isinstance(body, dict) else {}
+    results.append(ok)
+    if ok:
+        ok2 = check("monitoring response has has_monitoring_run",
+                    "has_monitoring_run" in mon_data,
+                    str(mon_data)[:80])
+        results.append(ok2)
+
+    print()
+    print("[ S13-3 ] Scenario runs latest")
+    status, body = _request("GET", f"{base}/api/scenarios/runs/latest", read_headers)
+    ok = check("GET /api/scenarios/runs/latest returns 200", status == 200, f"HTTP {status}")
+    scen_data: dict[str, Any] = body if isinstance(body, dict) else {}
+    results.append(ok)
+    if ok:
+        ok2 = check("scenario response has has_scenario_run",
+                    "has_scenario_run" in scen_data,
+                    str(scen_data)[:80])
+        ok3 = check("simulated label present", scen_data.get("simulated") is True or
+                    (not scen_data.get("has_scenario_run")),
+                    f"simulated={scen_data.get('simulated')!r}")
+        results += [ok2, ok3]
+
+    print()
+    print("[ S13-4 ] CSV uploads latest")
+    status, body = _request("GET", f"{base}/api/csv/uploads/latest", read_headers)
+    ok = check("GET /api/csv/uploads/latest returns 200", status == 200, f"HTTP {status}")
+    csv_data: dict[str, Any] = body if isinstance(body, dict) else {}
+    results.append(ok)
+    if ok:
+        ok2 = check("csv response has has_uploads",
+                    "has_uploads" in csv_data,
+                    str(csv_data)[:80])
+        results.append(ok2)
+
+    print()
+    print("[ S13-5 ] CSV templates")
+    status, body = _request("GET", f"{base}/api/csv/templates", read_headers)
+    ok = check("GET /api/csv/templates returns 200", status == 200, f"HTTP {status}")
+    tmpl_data: dict[str, Any] = body if isinstance(body, dict) else {}
+    results.append(ok)
+    if ok:
+        ok2 = check("templates has products",
+                    "products" in tmpl_data.get("templates", {}),
+                    "")
+        results.append(ok2)
+
+    # -----------------------------------------------------------------------
     # Optional: run full pipeline (only with --run-pipeline)
     # -----------------------------------------------------------------------
     if run_pipeline:

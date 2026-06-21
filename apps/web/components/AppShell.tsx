@@ -15,6 +15,13 @@ const NAV_ITEMS = [
   { href: "/pipeline", label: "Pipeline Controls" },
 ];
 
+const ADVANCED_NAV_ITEMS = [
+  { href: "/csv-upload", label: "CSV Upload" },
+  { href: "/monitoring", label: "Monitoring" },
+  { href: "/scenarios", label: "Scenarios" },
+  { href: "/connectors", label: "Connectors" },
+];
+
 interface RuntimeInfo {
   runtime_mode?: string;
   demo_scale?: string;
@@ -70,6 +77,35 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
         <ul style={{ listStyle: "none", padding: "0 8px", flex: 1 }}>
           {NAV_ITEMS.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  style={{
+                    display: "block",
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    color: active ? "var(--text-primary)" : "var(--text-secondary)",
+                    background: active ? "var(--surface-2)" : "transparent",
+                    fontWeight: active ? 600 : 400,
+                    fontSize: "13px",
+                    marginBottom: "2px",
+                  }}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
+
+          <li style={{ marginTop: "12px", marginBottom: "4px", padding: "0 12px" }}>
+            <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              Advanced
+            </span>
+          </li>
+
+          {ADVANCED_NAV_ITEMS.map((item) => {
             const active = pathname === item.href;
             return (
               <li key={item.href}>
