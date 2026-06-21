@@ -171,3 +171,13 @@
 - Overview returns status ∈ {ok, no_data}
 - Alembic: upgrade head succeeds against SQLite test DB
 - Alembic: initial migration covers all Sprint 0–7 tables
+
+## 12. Sprint 12 — MVP Closeout (2026-06-21)
+
+- Production smoke: 18/18 checks passed
+- Backend tests: 709 passing
+- Frontend build: passing
+- Screenshots: 9 automated (Playwright), 3 pending manual
+- Case study: portfolio-ready (docs/case_study.md)
+- README: polished with Mermaid diagram and live demo URL
+- No secrets committed; no hardcoded metrics in any dashboard page

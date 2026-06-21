@@ -199,3 +199,41 @@ bash scripts/verify.sh
 This checks all required files (including Vercel deployment adapter files), runs pytest,
 verifies the frontend structure, and validates that no forbidden derived fields appear
 in raw schemas.
+
+---
+
+## Sprint 12 — Final Deployment Status (2026-06-21)
+
+**Deployed and validated:** `https://demand-os-three.vercel.app`
+
+### Smoke test results
+
+```
+python scripts/smoke_production.py --base-url https://demand-os-three.vercel.app
+
+Results: 18/18 checks PASSED
+- GET /api/readiness → ready=True, runtime_mode=vercel, demo_scale=small
+- Neon Postgres connected
+- All dashboard endpoints return 200
+- 10 products, 1,677 orders
+- 10 reorder recommendations
+- No secrets in any response
+```
+
+### Known limitations of single Vercel + Neon setup
+
+| Limitation | Impact | Migration path |
+|------------|--------|----------------|
+| 60s serverless timeout | Only `small` demo scale (10 products, 2 stores, 180 days) | Dedicated backend on Render/Railway/Fly.io |
+| Ephemeral `/tmp` for model artifacts | Must retrain after cold start if serialized model needed | Persist artifacts to S3 or mounted volume |
+| No background jobs | Pipeline runs on-demand (user-triggered) | Add Celery + Redis or Temporal for scheduling |
+| Cold starts | First request after inactivity: 3–8 seconds | Keep-alive ping or dedicated backend |
+| Single Postgres connection pool | Fine for prototype; needs PgBouncer at scale | Add connection pooling layer |
+
+### Future migration path
+
+1. Deploy `apps/api` to Render / Railway / Fly.io.
+2. Set `NEXT_PUBLIC_API_BASE_URL=https://<backend-domain>` in Vercel frontend env vars.
+3. Set `DEMANDOS_RUNTIME_MODE=local` on the backend host (enables full filesystem + larger scale).
+4. Remove the `api/` Python function from the Vercel project.
+5. Update `vercel.json` to remove the `/api/*` route to the Python function.

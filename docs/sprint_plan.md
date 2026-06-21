@@ -520,10 +520,60 @@ DEMANDOS_DEMO_SCALE   = small
 
 **No new ML formulas, no real purchase orders, no external side effects.**
 
-## Sprint 12 — Final Portfolio Case Study, Screenshots, and MVP Closeout
-- [ ] Capture all 12 portfolio screenshots
-- [ ] Finalize `docs/case_study.md` with real screenshot references
-- [ ] Polish public README with architecture diagram
-- [ ] Add architecture diagram (Mermaid or SVG)
-- [ ] Run final deployed smoke test with pipeline
-- [ ] Mark MVP complete
+## Sprint 12 — Final Portfolio Case Study, Screenshots, and MVP Closeout ✅
+
+**Sprint Goal:** Close the MVP — finalize portfolio presentation, validate deployment,
+capture screenshots, and mark DemandOS complete.
+
+- [x] **Part A — Frontend Build Fix:** reinstalled npm dependencies; frontend build passing; TypeScript clean
+- [x] **Part B — Production Smoke Validation:** 18/18 smoke checks passed against https://demand-os-three.vercel.app
+- [x] **Part C — Screenshot Capture:** 9 of 12 screenshots captured via Playwright CLI (`scripts/capture_screenshots.py`);
+      3 pending manual capture (Vercel dashboard, Neon panel, GitHub CI)
+- [x] **Part D — Case Study Finalization:** `docs/case_study.md` portfolio-ready with all 19 required sections,
+      validated pipeline counts, screenshot references, honest results section
+- [x] **Part E — README Polish:** `README.md` updated with live demo URL, Mermaid architecture diagram,
+      screenshot table, features, pipeline stages, deployment architecture, safety boundaries, MVP status
+- [x] **Part F — Architecture Diagram and Final Docs:** `docs/architecture.md`, `docs/deployment.md`,
+      `docs/operator_runbook.md`, `docs/demo_runbook.md`, `docs/evals.md` updated with Sprint 12 status
+- [x] **Part G — Final QA Checklist:** `docs/final_qa_checklist.md` updated with Sprint 12 execution section
+- [x] **Part H — Portfolio Landing Page Draft:** `docs/portfolio_landing_page_draft.md` created
+- [x] **Part I — Verify:** `scripts/verify.sh` updated with Sprint 12 checks; all checks passing
+- [x] **Screenshots README:** `docs/screenshots/README.md` updated with status for all 12 screenshots
+- [x] `scripts/capture_screenshots.py` — Playwright CLI screenshot capture script added
+
+**Sprint 12 production smoke results (2026-06-21):**
+```
+18/18 checks passed
+- readiness: ready=True, runtime_mode=vercel, demo_scale=small
+- Neon Postgres connected
+- 10 products, 1,677 orders
+- 10 reorder recommendations
+- No secrets in any response
+```
+
+**Sprint 12 validated pipeline counts (small mode, seed=42):**
+- Products: 10
+- Stores: 2
+- Orders: 1,677
+- Inventory snapshots: 1,156
+- Feature rows: 1,154
+- Baseline forecast rows: 946
+- Planning forecast rows: 560
+- Stockout risk rows: 20
+- Reorder recommendations: 10
+
+**No new ML formulas, no real purchase orders, no external side effects.**
+
+---
+
+## MVP Status: COMPLETE ✅
+
+DemandOS MVP closed Sprint 12.
+
+- Deployed: https://demand-os-three.vercel.app
+- Backend tests: 709 passing
+- Frontend build: passing
+- CI: green
+- Production smoke: 18/18
+- Case study: docs/case_study.md
+- Screenshots: docs/screenshots/ (9 auto-captured, 3 pending manual)

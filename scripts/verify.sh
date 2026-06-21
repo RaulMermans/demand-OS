@@ -511,6 +511,114 @@ fi
 echo ""
 
 # -------------------------------------------------------------------
+# 10. Sprint 12 — MVP Closeout checks
+# -------------------------------------------------------------------
+echo "10. Checking Sprint 12 MVP closeout..."
+
+# README has live demo section
+if grep -q "demand-os-three.vercel.app" README.md 2>/dev/null; then
+  echo "   ✅ README.md contains live demo URL"
+  ((PASS += 1))
+else
+  echo "   ❌ README.md missing live demo URL"
+  ((FAIL += 1))
+fi
+
+# README has architecture section
+if grep -q "mermaid\|Architecture" README.md 2>/dev/null; then
+  echo "   ✅ README.md has architecture section"
+  ((PASS += 1))
+else
+  echo "   ❌ README.md missing architecture section"
+  ((FAIL += 1))
+fi
+
+# README has safety boundaries section
+if grep -q "Safety Bound\|safety bound\|No real purchase" README.md 2>/dev/null; then
+  echo "   ✅ README.md has safety boundaries section"
+  ((PASS += 1))
+else
+  echo "   ❌ README.md missing safety boundaries section"
+  ((FAIL += 1))
+fi
+
+# Case study has final status section
+if grep -q "Final Status\|MVP: COMPLETE\|MVP is complete" docs/case_study.md 2>/dev/null; then
+  echo "   ✅ docs/case_study.md has final status section"
+  ((PASS += 1))
+else
+  echo "   ❌ docs/case_study.md missing final status section"
+  ((FAIL += 1))
+fi
+
+# Final QA checklist has Sprint 12 section
+if grep -q "Sprint 12" docs/final_qa_checklist.md 2>/dev/null; then
+  echo "   ✅ docs/final_qa_checklist.md has Sprint 12 execution section"
+  ((PASS += 1))
+else
+  echo "   ❌ docs/final_qa_checklist.md missing Sprint 12 section"
+  ((FAIL += 1))
+fi
+
+# Screenshots README lists all 12 screenshot filenames
+SCREENSHOT_COUNT=$(grep -c "\.png" docs/screenshots/README.md 2>/dev/null || echo 0)
+if [ "$SCREENSHOT_COUNT" -ge 12 ]; then
+  echo "   ✅ docs/screenshots/README.md lists $SCREENSHOT_COUNT screenshot entries"
+  ((PASS += 1))
+else
+  echo "   ❌ docs/screenshots/README.md lists only $SCREENSHOT_COUNT screenshot entries (expected ≥12)"
+  ((FAIL += 1))
+fi
+
+# Deployment doc has single Vercel + Neon documented
+if grep -q "Neon\|neon" docs/deployment.md 2>/dev/null; then
+  echo "   ✅ docs/deployment.md documents Neon Postgres integration"
+  ((PASS += 1))
+else
+  echo "   ❌ docs/deployment.md missing Neon Postgres documentation"
+  ((FAIL += 1))
+fi
+
+# No docs contain a known production API key pattern (basic guard)
+# We check for the literal string pattern of a high-entropy key, not real values
+if grep -rq "DEMANDOS_API_KEY=sk-\|DEMANDOS_API_KEY=[a-f0-9]\{32\}" docs/ README.md 2>/dev/null; then
+  echo "   ❌ docs/ may contain an exposed API key value"
+  ((FAIL += 1))
+else
+  echo "   ✅ No obvious API key values found in docs/"
+  ((PASS += 1))
+fi
+
+# No docs contain raw Neon database URL patterns
+if grep -rqE "postgresql://.*@.*neon\.tech|postgres://.*@.*neon\.tech" docs/ README.md 2>/dev/null; then
+  echo "   ❌ docs/ contains a raw Neon database URL"
+  ((FAIL += 1))
+else
+  echo "   ✅ No raw Neon database URLs found in docs/"
+  ((PASS += 1))
+fi
+
+# Portfolio landing page draft exists
+if [ -f "docs/portfolio_landing_page_draft.md" ]; then
+  echo "   ✅ docs/portfolio_landing_page_draft.md exists"
+  ((PASS += 1))
+else
+  echo "   ❌ docs/portfolio_landing_page_draft.md MISSING"
+  ((FAIL += 1))
+fi
+
+# Screenshot capture script exists
+if [ -f "scripts/capture_screenshots.py" ]; then
+  echo "   ✅ scripts/capture_screenshots.py exists"
+  ((PASS += 1))
+else
+  echo "   ❌ scripts/capture_screenshots.py MISSING"
+  ((FAIL += 1))
+fi
+
+echo ""
+
+# -------------------------------------------------------------------
 # Summary
 # -------------------------------------------------------------------
 echo "========================"

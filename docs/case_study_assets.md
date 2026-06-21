@@ -1,7 +1,11 @@
 # DemandOS — Case Study Assets
 
 Screenshots and supporting assets for the portfolio case study.
-Capture these after running a full demo pipeline against the deployed app.
+
+**Sprint 12 capture status:** 9 of 12 screenshots captured automatically via Playwright CLI.
+Remaining 3 require manual capture from third-party dashboards (Vercel, Neon, GitHub).
+
+To recapture: `python scripts/capture_screenshots.py --base-url https://demand-os-three.vercel.app`
 
 ---
 
@@ -217,3 +221,22 @@ Before capturing screenshots:
 
 Place screenshot files in `docs/screenshots/` with the filenames above.
 Do not commit generated data, model artifacts, or `.env` files alongside screenshots.
+
+---
+
+## Sprint 12 Capture Summary
+
+| # | Filename | Status | Captured |
+|---|----------|--------|---------|
+| 1 | `01-readiness.png` | ✅ Captured | 2026-06-21 via Playwright |
+| 2 | `02-home-dashboard.png` | ✅ Captured | 2026-06-21 via Playwright |
+| 3 | `03-pipeline-completed.png` | ✅ Captured | 2026-06-21 via Playwright |
+| 4 | `04-forecasts.png` | ✅ Captured | 2026-06-21 via Playwright |
+| 5 | `05-inventory-risk.png` | ✅ Captured | 2026-06-21 via Playwright |
+| 6 | `06-recommendations.png` | ✅ Captured | 2026-06-21 via Playwright |
+| 7 | `07-model-performance.png` | ✅ Captured | 2026-06-21 via Playwright |
+| 8 | `08-data-health.png` | ✅ Captured | 2026-06-21 via Playwright |
+| 9 | `09-product-drilldown.png` | ✅ Captured | 2026-06-21 via Playwright (prod_008) |
+| 10 | `10-vercel-deployment.png` | ⏳ Pending | Manual — Vercel dashboard |
+| 11 | `11-neon-connection.png` | ⏳ Pending | Manual — Vercel Storage panel |
+| 12 | `12-ci-passing.png` | ⏳ Pending | Manual — GitHub Actions |

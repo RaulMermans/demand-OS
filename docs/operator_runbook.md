@@ -254,3 +254,46 @@ Forecast results and metrics are fully stored in Postgres and are durable.
 
 To retrain a model, run the pipeline again — the new artifact is available for the
 duration of that function invocation.
+
+---
+
+## Sprint 12 — MVP Deployment Status
+
+**Deployed at:** https://demand-os-three.vercel.app  
+**Runtime:** Vercel serverless + Neon Postgres  
+**Scale:** `DEMANDOS_DEMO_SCALE=small` (10 products, 2 stores, 180 days)
+
+### Production validation commands
+
+```bash
+# Read-only smoke (18 checks, no data mutation)
+python scripts/smoke_production.py --base-url https://demand-os-three.vercel.app
+
+# Full check with pipeline run (requires API key)
+python scripts/smoke_production.py \
+  --base-url https://demand-os-three.vercel.app \
+  --api-key "$DEMANDOS_API_KEY" \
+  --run-pipeline
+```
+
+### Known operational limits
+
+| Limit | Value | Reason |
+|-------|-------|--------|
+| Max pipeline scale | `small` (10 products, 2 stores, 180 days) | Vercel 60s function timeout |
+| Model artifact persistence | None (ephemeral `/tmp`) | Vercel serverless filesystem |
+| Concurrent pipeline runs | 1 (no queuing) | Single serverless function |
+| Cold start time | 3–8 seconds | Lambda container warm-up |
+
+### Safety guarantees (unchanged from Sprint 9)
+
+- No real purchase orders are ever created
+- No emails, Slack messages, or external notifications are sent
+- No external HTTP calls are made by pipeline services
+- `approved_internal` status = internal-only, no external action
+- API key never logged or stored in database
+
+### MVP sign-off
+
+DemandOS MVP is complete as of Sprint 12 (2026-06-21).
+All pipeline stages are implemented, tested, deployed, and validated.

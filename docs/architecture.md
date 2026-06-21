@@ -102,6 +102,7 @@ It ingests raw operational commerce records and computes all derived insights in
 | Demo Orchestration | demo_pipeline_runs | DemoPipelineService | 10 |
 | Observability | /api/observability/runs-summary, /api/observability/failure-summary | ObservabilityRouter | 11 |
 | Readiness Polish | /api/readiness (checks), /api/runtime/check | HealthRouter | 11 |
+| MVP Closeout | Playwright screenshots, case study, portfolio docs | Sprint 12 | 12 |
 
 ## API Contract Standards (Sprint 8)
 
@@ -122,5 +123,7 @@ It ingests raw operational commerce records and computes all derived insights in
 - **No automatic purchases**: recommendations are suggestions only; human approval required.
 - **API key guard** (Sprint 9): write/control endpoints optionally require `X-DemandOS-API-Key` header. When `DEMANDOS_API_KEY` env var is empty (default), the guard is disabled for local development. The key is never logged or stored in the database.
 - **Pipeline controls** (Sprint 9): each pipeline stage can be triggered from the `/pipeline` dashboard page. The "Run Full Demo Pipeline" button runs all 8 stages sequentially, stops on failure, and requires confirmation before reset.
+- **Single Vercel project** (Sprint 10B): frontend + backend served from the same domain; same-origin API calls; Neon Postgres via Marketplace integration.
+- **MVP complete** (Sprint 12): full end-to-end validated; 709 tests; 18/18 smoke checks; all dashboard pages live from API.
 
 See `docs/decisions/` for formal architecture decision records.

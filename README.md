@@ -1,71 +1,132 @@
 # DemandOS
 
-**Demand forecasting and inventory risk platform.**
+**Demand forecasting and inventory risk platform — portfolio MVP.**
 
-DemandOS ingests raw operational commerce records and computes demand forecasts,
-stockout risk scores, and reorder recommendations — entirely from raw data.
+A deterministic ML pipeline that ingests raw synthetic commerce records and computes
+demand forecasts, stockout risk scores, and reorder recommendations — entirely from
+raw data, with no hardcoded metrics anywhere.
+
+**Live demo:** [https://demand-os-three.vercel.app](https://demand-os-three.vercel.app)  
+**Case study:** [docs/case_study.md](docs/case_study.md)
 
 ---
 
-## What is DemandOS?
+## What DemandOS Is
 
 DemandOS answers three questions for e-commerce and omnichannel retailers:
 
-1. **How much will I sell?** — 28-day demand forecasts per SKU per store
-2. **What will run out?** — Stockout risk scores with days-until-stockout
-3. **What should I order?** — Reorder recommendations using EOQ + safety stock
+1. **How much will I sell?** — 28-day demand forecasts per SKU per store (seasonal naive + HistGradientBoosting)
+2. **What will run out?** — Stockout risk scores with days-until-stockout and safety stock analysis
+3. **What should I order?** — Reorder recommendations using EOQ + safety stock + supplier lead time
 
----
-
-## Raw-Data-Only Principle
-
-> DemandOS never accepts precomputed ML features, forecasts, risk scores,
-> or reorder recommendations as input.
-
-The system ingests raw operational records:
-- Orders, inventory snapshots, products, stores, suppliers, promotions, purchase orders
-
-All derived values are computed internally:
-- Feature engineering → forecasting → stockout risk → reorder recommendations
-
-This makes the pipeline auditable, testable, and connector-agnostic.
+All values are computed by the pipeline from raw operational records.
+No hardcoded dashboard metrics. No fake outputs.
 
 ---
 
 ## Architecture
 
-```
-Connector → Ingestion → Validation → Aggregation → Features → Forecasting → Risk → Recommendations
-               ↓              ↓             ↓            ↓           ↓          ↓          ↓
-           raw_* tables   validation     sales_daily  feature_    forecasts  stockout_  reorder_
-                          errors         inv_daily    matrix                 risks      recs
-                                                                  FastAPI ← ← ← ← ← ← ← ↑
-                                                                  Next.js Dashboard
+```mermaid
+flowchart LR
+  User[Browser] --> Web[Vercel\nNext.js UI]
+  Web --> API[Vercel\nFastAPI Function]
+  API --> DB[(Neon Postgres)]
+  API --> Pipeline[Deterministic Pipeline]
+  Pipeline --> DB
+
+  subgraph Pipeline [Deterministic ML Pipeline]
+    direction TB
+    A[Ingest] --> B[Aggregate]
+    B --> C[Features]
+    C --> D[Forecast]
+    D --> E[Risk]
+    E --> F[Recommend]
+  end
 ```
 
-See [docs/architecture.md](docs/architecture.md) for full diagram.
+Full pipeline sequence:
+```
+Connector → Ingestion → Validation → Aggregation → Features
+         → Forecasting → Stockout Risk → Recommendations
+```
+
+Each stage reads from the database and writes to the database.
+No stateful in-memory chains. No LLM at inference time.
+
+See [docs/architecture.md](docs/architecture.md) for detailed diagrams.
 
 ---
 
-## Sprint Status
+## Screenshots
 
-| Sprint | Goal | Status |
-|--------|------|--------|
-| 0 | Scaffold | ✅ Done |
-| 1 | Mock data generator (50 SKUs × 5 stores × 2yr) | ✅ Done |
-| 2 | Aggregation pipeline (canonical daily tables) | ✅ Done |
-| 3 | Feature engineering (leakage-safe feature_matrix) | ✅ Done |
-| 4 | Baseline forecasting + backtesting (seasonal naive, moving average) | ✅ Done |
-| 5 | ML forecasting (HistGradientBoosting global model) + model registry + CI | ✅ Done |
-| 6 | Stockout risk engine (days-until-stockout, risk tiers, inventory coverage, lost sales) | ✅ Done |
-| 7 | Reorder recommendation engine (ROP, EOQ, approval flow) | ✅ Done |
-| 8 | Backend API hardening + dashboard data contracts | ✅ Done |
-| 9 | Dashboard UX + safe pipeline controls + API key guard | ✅ Done |
-| 10 | Demo orchestration + product drilldown + Vercel deployment | ✅ Done |
-| 10B | Single Vercel project adapter (frontend + backend same project) | ✅ Done |
-| 10C | Postgres FK insert order fix for Neon demo reset | ✅ Done |
-| 11 | Production smoke validation + observability + case study prep | ✅ Done |
-| 12 | Final screenshots, portfolio case study, MVP closeout | 🔜 Next |
+Captured via Playwright CLI against the live deployment (2026-06-21):
+
+| | | |
+|--|--|--|
+| ![Readiness](docs/screenshots/01-readiness.png) | ![Home](docs/screenshots/02-home-dashboard.png) | ![Pipeline](docs/screenshots/03-pipeline-completed.png) |
+| `/api/readiness` — Neon connected | Home dashboard — live KPIs | Pipeline Controls — all 8 steps |
+| ![Forecasts](docs/screenshots/04-forecasts.png) | ![Risk](docs/screenshots/05-inventory-risk.png) | ![Recs](docs/screenshots/06-recommendations.png) |
+| Forecasts — p10/p50/p90 chart | Inventory Risk — tier queue | Recommendations — urgency queue |
+| ![Model](docs/screenshots/07-model-performance.png) | ![Health](docs/screenshots/08-data-health.png) | ![Drilldown](docs/screenshots/09-product-drilldown.png) |
+| Model Performance — ML vs baseline | Data Health — table counts | Product Drilldown — per-SKU view |
+
+---
+
+## Features
+
+- **Full ML pipeline** — seasonal naive, moving average, and HistGradientBoosting global model
+- **36 leakage-safe features** — lag, rolling windows, calendar, promotions, inventory state, supplier info
+- **Honest backtesting** — WAPE/MAE/RMSE reported per model, per category, per store
+- **Stockout risk engine** — projected end inventory (p50/p90), days-until-stockout, safety stock, coverage ratio
+- **Reorder recommendations** — EOQ-adjacent formulas, urgency tiers, estimated order cost
+- **Approval workflow** — operators review/approve/ignore recommendations (no automatic purchasing)
+- **Interactive dashboard** — 9 pages, all data live from the API
+- **API key guard** — POST/PATCH endpoints require `X-DemandOS-API-Key` header
+- **Observability** — pipeline run summaries, failure tracking, readiness probe
+
+---
+
+## Pipeline Stages
+
+| Stage | Service | Tables Written |
+|-------|---------|----------------|
+| Ingestion | IngestionService + ValidationService | `raw_products`, `raw_orders`, `raw_inventory_snapshots`, `raw_promotions`, … |
+| Aggregation | AggregationService | `*_clean`, `sales_daily`, `inventory_daily`, `product_store_daily` |
+| Feature Engineering | FeatureService | `feature_matrix` (36 columns) |
+| Baseline Forecasting | ForecastingService | `forecast_runs`, `forecasts`, `model_metrics` |
+| ML Training | TrainingService | `model_versions`, `forecasts`, `model_metrics` |
+| Planning Forecast | ForecastingService | `forecasts` (forward_planning mode) |
+| Stockout Risk | StockoutService | `stockout_risk_runs`, `stockout_risks` |
+| Recommendations | RecommendationService | `recommendation_runs`, `reorder_recommendations` |
+
+---
+
+## Deployment Architecture
+
+```
+Vercel Project (repo root)
+├── / → apps/web (Next.js, @vercel/next)
+└── /api/* → api/index.py (FastAPI, @vercel/python)
+             └── Neon Postgres (DATABASE_URL via Marketplace)
+```
+
+**Required environment variables (Vercel panel):**
+
+| Variable | Value |
+|----------|-------|
+| `DEMANDOS_API_KEY` | A strong random string |
+| `DEMANDOS_RUNTIME_MODE` | `vercel` |
+| `DEMANDOS_DEMO_SCALE` | `small` |
+| `DATABASE_URL` | Injected automatically by Neon integration |
+
+`NEXT_PUBLIC_API_BASE_URL` must be **left unset** (same-origin calls).
+
+**Serverless limitations:**
+- Model artifacts are ephemeral (`/tmp`) — retrain after cold start if serialized model needed
+- No background jobs; pipeline runs synchronously within a single request
+- 60s function timeout limits data scale; use a dedicated backend for production volumes
+
+See [docs/deployment.md](docs/deployment.md) for full setup instructions.
 
 ---
 
@@ -74,14 +135,14 @@ See [docs/architecture.md](docs/architecture.md) for full diagram.
 ### Prerequisites
 - Python 3.11+
 - Node.js 18+
-- Docker (optional, for Postgres)
+- Docker (optional, for local Postgres)
 
 ### Backend
 
 ```bash
 cd apps/api
 python -m venv .venv
-source .venv/bin/activate     # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -e ".[dev]"
 cp .env.example .env
 uvicorn app.main:app --reload --port 8000
@@ -100,7 +161,7 @@ npm run dev
 
 Dashboard: http://localhost:3000
 
-### Database (Postgres via Docker)
+### Database (local Postgres via Docker)
 
 ```bash
 docker-compose up -d db
@@ -108,12 +169,16 @@ docker-compose up -d db
 
 ---
 
-## Run Tests
+## Running Tests
 
 ```bash
 cd apps/api
 pytest
 ```
+
+709 tests across 15 files. Uses SQLite in-memory — no external DB required.
+
+---
 
 ## Verify Everything
 
@@ -121,73 +186,15 @@ pytest
 bash scripts/verify.sh
 ```
 
-## Train the ML Model
+100+ structural checks: required files, schema purity, migration count, Vercel adapter,
+no forbidden derived fields in raw schemas, Sprint 10/11/12 additions.
 
-```bash
-# Seed data + run pipeline first
-curl -X POST http://localhost:8000/api/demo/reset
-curl -X POST http://localhost:8000/api/aggregation/run -H 'Content-Type: application/json' -d '{}'
-curl -X POST http://localhost:8000/api/features/build -H 'Content-Type: application/json' -d '{}'
-
-# Then train
-python scripts/train_model.py --algorithm hist_gradient_boosting --horizon-days 28 --backtest-days 56
-
-# Or via API
-curl -X POST http://localhost:8000/api/models/train \
-  -H 'Content-Type: application/json' \
-  -d '{"algorithm": "hist_gradient_boosting", "horizon_days": 28, "backtest_days": 56}'
-```
-
-## Run Stockout Risk (Sprint 6)
-
-```bash
-# Full pipeline + risk scoring
-curl -X POST http://localhost:8000/api/demo/reset
-curl -X POST http://localhost:8000/api/aggregation/run -H 'Content-Type: application/json' -d '{}'
-curl -X POST http://localhost:8000/api/features/build -H 'Content-Type: application/json' -d '{}'
-curl -X POST http://localhost:8000/api/forecasts/baseline/run -H 'Content-Type: application/json' -d '{"model_type":"seasonal_naive"}'
-
-# Generate forward-looking forecast rows (preferred for risk scoring)
-curl -X POST http://localhost:8000/api/forecasts/planning/run \
-  -H 'Content-Type: application/json' \
-  -d '{"model_type": "seasonal_naive", "horizon_days": 28}'
-
-# Run risk engine
-curl -X POST http://localhost:8000/api/risks/run \
-  -H 'Content-Type: application/json' \
-  -d '{"horizon_days": 28, "mode": "forward_planning"}'
-
-# View results
-curl http://localhost:8000/api/risks/latest
-curl http://localhost:8000/api/risks?risk_tier=critical
-
-# Or via scripts
-python scripts/run_planning_forecast.py --model seasonal_naive --horizon-days 28
-python scripts/run_stockout_risk.py --horizon-days 28
-```
-
-## Vercel Deployment (Single Project)
-
-Deploy the entire prototype as one Vercel project:
-
-1. Import this repo in Vercel. Set **Root Directory** to `.` (repo root).
-2. Add Neon Postgres via **Storage → Connect Store → Neon**.
-3. Set environment variables in Vercel panel:
-   ```
-   DEMANDOS_API_KEY      = <strong-random-string>
-   DEMANDOS_RUNTIME_MODE = vercel
-   DEMANDOS_DEMO_SCALE   = small
-   ```
-   Leave `NEXT_PUBLIC_API_BASE_URL` **unset** (same-origin mode).
-4. Deploy. Run migrations: `DATABASE_URL=<neon-url> alembic upgrade head`
-5. Check readiness: `GET https://<domain>/api/readiness`
-
-See [docs/deployment.md](docs/deployment.md) for full instructions and serverless limitations.
+---
 
 ## Production Smoke Validation
 
 ```bash
-# Read-only check against deployed app (no data mutation)
+# Read-only check (no data mutation)
 python scripts/smoke_production.py --base-url https://demand-os-three.vercel.app
 
 # Full check including pipeline run (requires API key)
@@ -197,39 +204,97 @@ python scripts/smoke_production.py \
   --run-pipeline
 ```
 
-Checks 15 conditions: readiness, all dashboard endpoints, runtime mode, demo scale,
-core counts, recommendations, and no secrets leaked in any response.
+18 checks: readiness, all dashboard endpoints, runtime mode, demo scale,
+core data counts, recommendations, no secrets leaked in any response.
 
-## CI
-
-GitHub Actions runs on every push and PR:
-- **backend**: Python 3.11, pytest, verify.sh
-- **frontend**: Node LTS, `npm run build`
-- **repo-hygiene**: no .env, no artifacts, no secrets committed
-
-Local CI-equivalent:
-```bash
-cd apps/api && python3 -m pytest && cd ../.. && bash scripts/verify.sh
-cd apps/web && npm ci && npm run build
-```
+**Latest result (2026-06-21): 18/18 passed.**
 
 ---
 
-## Connector Roadmap
+## Safety Boundaries
 
-| Connector | Status |
-|-----------|--------|
-| MockCommerceConnector | ✅ Implemented (Sprint 1) |
-| CsvCommerceConnector | Stub — Sprint 12+ |
-| ShopifyConnector | Stub — Sprint 12+ |
-| WooCommerceConnector | Planned |
-| ERPConnector | Planned |
+DemandOS is an **internal prototype with explicit safety boundaries**:
+
+- No real purchase orders are created
+- No emails or Slack messages are sent
+- No supplier webhooks are triggered
+- No external API calls are made by the pipeline services
+- `approved_internal` status means approved inside DemandOS only — no external action
+
+This is enforced by design: `RecommendationService` has no HTTP client and no
+external call sites. Tests verify this.
+
+---
+
+## What Is Intentionally Not Implemented
+
+| Feature | Reason |
+|---------|--------|
+| Real Shopify/WooCommerce/ERP connectors | Requires API credentials; out of MVP scope |
+| Real purchase order creation | Safety boundary — internal suggestions only |
+| Email/Slack notifications | External side effects; excluded by design |
+| User accounts / JWT auth | Overkill for single-operator demo |
+| Calibrated probabilistic intervals | p10/p90 are ±1σ heuristics, documented as such |
+| Background schedulers | Serverless constraint |
+| CSV upload connector | Stub ready; implementation deferred |
+| Model monitoring / drift detection | Post-MVP roadmap |
+
+---
+
+## Roadmap
+
+**Next (Sprint 13+):**
+- `CsvCommerceConnector` — real file parsing with column mapping
+- `ShopifyConnector` — Admin API ingestion
+- Calibrated prediction intervals (conformal prediction)
+- Model monitoring and drift detection
+
+**Infrastructure (if moving beyond prototype):**
+- Dedicated FastAPI backend on Render/Railway/Fly.io (removes 60s limit)
+- Scheduled pipeline runs
+- User accounts with scoped permissions
+
+---
+
+## Sprint Status
+
+| Sprint | Goal | Status |
+|--------|------|--------|
+| 0 | Scaffold | ✅ Done |
+| 1 | Mock data generator (50 SKUs × 5 stores × 2yr) | ✅ Done |
+| 2 | Aggregation pipeline | ✅ Done |
+| 3 | Feature engineering (leakage-safe, 36 columns) | ✅ Done |
+| 4 | Baseline forecasting + backtesting | ✅ Done |
+| 5 | ML forecasting (HistGradientBoosting) + model registry | ✅ Done |
+| 6 | Stockout risk engine | ✅ Done |
+| 7 | Reorder recommendation engine | ✅ Done |
+| 8 | Backend API hardening + dashboard data contracts | ✅ Done |
+| 9 | Dashboard UX + safe pipeline controls + API key guard | ✅ Done |
+| 10 | Demo orchestration + product drilldown + Vercel deployment | ✅ Done |
+| 10B | Single Vercel project adapter | ✅ Done |
+| 10C | Postgres FK insert order fix for Neon | ✅ Done |
+| 11 | Production smoke validation + observability + case study prep | ✅ Done |
+| **12** | **Final screenshots, case study, MVP closeout** | **✅ Done** |
+
+---
+
+## MVP Status
+
+**DemandOS MVP: COMPLETE**
+
+- Deployed at [https://demand-os-three.vercel.app](https://demand-os-three.vercel.app)
+- 709 backend tests passing
+- Frontend build passing
+- CI green
+- Production smoke: 18/18 checks passed
+- All dashboard pages show live computed data
+- Case study: [docs/case_study.md](docs/case_study.md)
+- Screenshots: [docs/screenshots/](docs/screenshots/)
 
 ---
 
 ## References
 
-Architecture and algorithm inspiration:
 - [Nixtla/mlforecast](https://github.com/Nixtla/mlforecast) — global ML forecasting patterns
 - [M5 Competition methods](https://github.com/Mcompetitions/M5-methods) — retail forecasting discipline
 - [ecom_sales_data_generator](https://github.com/G-Schumacher44/ecom_sales_data_generator) — synthetic data patterns

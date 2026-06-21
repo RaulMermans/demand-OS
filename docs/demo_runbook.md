@@ -192,3 +192,30 @@ Set `NEXT_PUBLIC_API_BASE_URL` to your deployed backend URL in the Vercel projec
 ephemeral. The ModelVersion database row records `artifact_path = "vercel_ephemeral"`.
 This is an intentional limitation of the serverless prototype — all metrics and forecasts
 are stored durably in Postgres.
+
+---
+
+## Sprint 12 — Production Demo (Deployed Vercel App)
+
+**Live URL:** https://demand-os-three.vercel.app
+
+The dashboard is pre-populated with small-mode pipeline results (seed=42).
+All dashboard pages are publicly accessible (read-only).
+
+**To run the full pipeline from the deployed app:**
+1. Go to https://demand-os-three.vercel.app/pipeline
+2. Enter your `DEMANDOS_API_KEY` in the API Key field.
+3. Click **Run Full Demo Pipeline** and confirm.
+4. Wait ~35 seconds for all 8 steps to complete.
+
+**To validate the deployment without pipeline run:**
+```bash
+python scripts/smoke_production.py --base-url https://demand-os-three.vercel.app
+# Expected: 18/18 checks PASSED
+```
+
+**Screenshot capture:**
+```bash
+python scripts/capture_screenshots.py --base-url https://demand-os-three.vercel.app
+# Captures 01–09 automatically; 10–12 require Vercel/GitHub dashboard access
+```
