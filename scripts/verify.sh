@@ -350,12 +350,14 @@ else
   ((FAIL += 1))
 fi
 
-# requirements.txt must list fastapi and psycopg2-binary
-if grep -q "fastapi" requirements.txt 2>/dev/null && grep -q "psycopg2" requirements.txt 2>/dev/null; then
-  echo "   ✅ requirements.txt contains fastapi and psycopg2 runtime dependencies"
+# requirements.txt must list FastAPI, multipart upload, and Postgres runtime packages
+if grep -q "fastapi" requirements.txt 2>/dev/null && \
+   grep -q "python-multipart" requirements.txt 2>/dev/null && \
+   grep -q "psycopg2" requirements.txt 2>/dev/null; then
+  echo "   ✅ requirements.txt contains FastAPI, multipart, and Postgres runtime dependencies"
   ((PASS += 1))
 else
-  echo "   ❌ requirements.txt missing required runtime dependencies"
+  echo "   ❌ requirements.txt missing FastAPI, multipart, or Postgres runtime dependencies"
   ((FAIL += 1))
 fi
 

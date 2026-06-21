@@ -303,6 +303,11 @@ Tool: `python scripts/capture_screenshots.py --base-url https://demand-os-three.
 - [ ] Refreshed deployment is visible at `https://demand-os-three.vercel.app`
 - [ ] Protected pipeline smoke skipped unless an API key and explicit mutation are intended
 
+Initial Sprint 14 deployment diagnosis: Vercel installs Python packages from root
+`requirements.txt`; the existing `python-multipart` dependency had only been added
+to `apps/api/pyproject.toml`. The release follow-up adds it to the root runtime
+manifest so CSV `Form`/`UploadFile` routes can register at function startup.
+
 ### Safety sign-off
 
 - [x] No real purchase orders
