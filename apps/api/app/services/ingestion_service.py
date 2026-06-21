@@ -97,12 +97,17 @@ class IngestionService:
             )
             validation_issues = v_result.get("issues", [])
 
-            # --- Persist ---
+            # --- Persist (FK-safe order: parents before children) ---
+            # raw_suppliers has no FK deps → must precede raw_products (supplier_id FK)
+            # raw_stores    has no FK deps → must precede raw_orders / raw_inventory_snapshots / raw_purchase_orders
+            # raw_promotions has no FK deps → must precede raw_orders (promotion_id FK)
+            # raw_products → raw_suppliers
+            # raw_orders / raw_inventory_snapshots / raw_purchase_orders → stores + products (+ suppliers for POs)
             if not dry_run:
-                counts["products"]            = self._persist_products(products)
-                counts["stores"]              = self._persist_stores(stores)
                 counts["suppliers"]           = self._persist_suppliers(suppliers)
+                counts["stores"]              = self._persist_stores(stores)
                 counts["promotions"]          = self._persist_promotions(promotions)
+                counts["products"]            = self._persist_products(products)
                 counts["orders"]              = self._persist_orders(orders)
                 counts["inventory_snapshots"] = self._persist_inventory(snapshots)
                 counts["purchase_orders"]     = self._persist_pos(pos)
