@@ -10,6 +10,7 @@ import StatusBadge from "@/components/StatusBadge";
 import KpiCard from "@/components/KpiCard";
 import ChartCard from "@/components/ChartCard";
 import BarChartPanel from "@/components/BarChartPanel";
+import PageHeader from "@/components/PageHeader";
 
 export default function OverviewPage() {
   const [data, setData] = useState<OverviewResponse | null>(null);
@@ -57,10 +58,10 @@ export default function OverviewPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "4px" }}>Overview</h1>
-      <p style={{ color: "var(--text-secondary)", marginBottom: "24px" }}>
-        Pipeline status and computed metric totals
-      </p>
+      <PageHeader
+        title="Operational overview"
+        subtitle="Computed pipeline totals, model readiness, inventory exposure, and internal reorder guidance."
+      />
 
       {loading && <LoadingState />}
       {error && <ErrorState message={error} onRetry={load} />}

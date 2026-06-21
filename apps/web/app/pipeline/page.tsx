@@ -25,6 +25,7 @@ import ErrorState from "@/components/ErrorState";
 import PipelineControlButton from "@/components/PipelineControlButton";
 import ApiKeyInput from "@/components/ApiKeyInput";
 import StatusBadge from "@/components/StatusBadge";
+import PageHeader from "@/components/PageHeader";
 
 type RunFn = () => Promise<unknown>;
 
@@ -260,13 +261,11 @@ export default function PipelinePage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "4px" }}>
-        Pipeline Controls
-      </h1>
-      <p style={{ color: "var(--text-secondary)", marginBottom: "24px" }}>
-        Manually trigger each pipeline stage. All actions are safe and internal — no
-        purchase orders or external calls are made.
-      </p>
+      <PageHeader
+        title="Pipeline controls"
+        subtitle="Run the deterministic demo workflow end to end or execute individual stages with durable status tracking."
+        badge="Protected writes · no external side effects"
+      />
 
       <ApiKeyInput />
 

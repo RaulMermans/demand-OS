@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import PageHeader from "@/components/PageHeader";
+import ApiKeyInput from "@/components/ApiKeyInput";
+import StatusBadge from "@/components/StatusBadge";
+import { getStoredApiKey } from "@/lib/apiKey";
 
 interface MetricRow {
   metric_name: string;
@@ -17,43 +21,20 @@ interface MonitoringRun {
   model_health_status: string | null;
   data_health_status: string | null;
   overall_status: string | null;
-  summary: Record<string, any>;
+  summary: Record<string, unknown>;
   started_at: string;
   completed_at: string | null;
 }
 
-const STATUS_COLOR: Record<string, string> = {
-  green: "#2a7a2a",
-  yellow: "#8a6a00",
-  red: "#8b2222",
-  unknown: "#555",
-};
-
 const STATUS_BG: Record<string, string> = {
-  green: "#1a3a1a",
-  yellow: "#2a2500",
-  red: "#2a1a1a",
-  unknown: "#1e1e1e",
+  green: "var(--success-soft)",
+  yellow: "var(--warning-soft)",
+  red: "var(--danger-soft)",
+  unknown: "var(--surface-2)",
 };
 
 function StatusPill({ status }: { status: string | null }) {
-  const s = status || "unknown";
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "2px 10px",
-        borderRadius: "10px",
-        fontSize: "11px",
-        fontWeight: 700,
-        background: STATUS_COLOR[s] || "#555",
-        color: "#fff",
-        textTransform: "uppercase",
-      }}
-    >
-      {s}
-    </span>
-  );
+  return <StatusBadge value={status || "unknown"} />;
 }
 
 function MetricTable({ metrics, title }: { metrics: MetricRow[]; title: string }) {
@@ -86,7 +67,8 @@ function MetricTable({ metrics, title }: { metrics: MetricRow[]; title: string }
       }}
     >
       <div style={{ fontWeight: 600, fontSize: "14px", marginBottom: "12px" }}>{title}</div>
-      <table style={{ width: "100%", fontSize: "12px", borderCollapse: "collapse" }}>
+      <div className="table-shell">
+      <table className="data-table">
         <thead>
           <tr style={{ borderBottom: "1px solid var(--border)" }}>
             <th style={{ textAlign: "left", padding: "6px 8px" }}>Metric</th>
@@ -120,10 +102,10 @@ function MetricTable({ metrics, title }: { metrics: MetricRow[]; title: string }
                     m.relative_change_pct == null
                       ? "var(--text-secondary)"
                       : m.threshold_status === "green"
-                      ? "#4caf50"
+                      ? "var(--success)"
                       : m.threshold_status === "yellow"
-                      ? "#ffc107"
-                      : "#f44336",
+                      ? "var(--warning)"
+                      : "var(--danger)",
                 }}
               >
                 {m.relative_change_pct != null
@@ -137,6 +119,7 @@ function MetricTable({ metrics, title }: { metrics: MetricRow[]; title: string }
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -149,7 +132,6 @@ export default function MonitoringPage() {
   const [runs, setRuns] = useState<MonitoringRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
-  const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState("");
 
   async function load() {
@@ -173,6 +155,7 @@ export default function MonitoringPage() {
     setRunning(true);
     setError("");
     const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const apiKey = getStoredApiKey();
     if (apiKey) headers["X-DemandOS-API-Key"] = apiKey;
     try {
       const r = await fetch(`${base}/api/monitoring/run`, { method: "POST", headers });
@@ -182,19 +165,25 @@ export default function MonitoringPage() {
       } else {
         await load();
       }
-    } catch (e: any) {
-      setError(e.message || "Network error");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Network error");
     } finally {
       setRunning(false);
     }
   }
 
   return (
-    <div style={{ maxWidth: "900px" }}>
-      <h1 style={{ fontSize: "22px", fontWeight: 700, marginBottom: "6px" }}>Model Monitoring</h1>
-      <p style={{ color: "var(--text-secondary)", marginBottom: "24px", fontSize: "13px" }}>
-        Track model performance drift and data distribution changes over time.
-      </p>
+    <div>
+      <PageHeader
+        title="Model monitoring"
+        subtitle="Compare the latest model and data-health signals with the previous completed monitoring run."
+        badge="Computed comparisons · no alerts sent"
+      />
+      <div className="notice notice-info" style={{ marginBottom: "20px" }}>
+        Green means change is within 10%; yellow is 10–25%; red is above 25%.
+        Unknown means there is no prior run available for comparison.
+      </div>
+      <ApiKeyInput />
 
       {/* Latest run summary */}
       <div
@@ -236,35 +225,10 @@ export default function MonitoringPage() {
           </div>
 
           <div>
-            <div style={{ marginBottom: "8px" }}>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="API Key"
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: "6px",
-                  border: "1px solid var(--border)",
-                  background: "var(--surface-2)",
-                  color: "var(--text-primary)",
-                  fontSize: "12px",
-                  width: "180px",
-                }}
-              />
-            </div>
             <button
               onClick={runMonitoring}
               disabled={running}
-              style={{
-                padding: "8px 16px",
-                borderRadius: "6px",
-                background: "var(--accent)",
-                border: "none",
-                color: "#fff",
-                fontSize: "13px",
-                cursor: running ? "not-allowed" : "pointer",
-              }}
+              className="button-primary"
             >
               {running ? "Running…" : "Run Monitoring"}
             </button>
@@ -272,7 +236,7 @@ export default function MonitoringPage() {
         </div>
 
         {error && (
-          <div style={{ marginTop: "12px", fontSize: "13px", color: "#ff9999" }}>{error}</div>
+          <div className="notice notice-danger" style={{ marginTop: "12px" }}>{error}</div>
         )}
       </div>
 
@@ -290,9 +254,9 @@ export default function MonitoringPage() {
           flexWrap: "wrap",
         }}
       >
-        <span style={{ color: "#4caf50" }}>● Green: change ≤ 10%</span>
-        <span style={{ color: "#ffc107" }}>● Yellow: 10–25%</span>
-        <span style={{ color: "#f44336" }}>● Red: &gt; 25%</span>
+        <span style={{ color: "var(--success)" }}>● Green: change ≤ 10%</span>
+        <span style={{ color: "var(--warning)" }}>● Yellow: 10–25%</span>
+        <span style={{ color: "var(--danger)" }}>● Red: &gt; 25%</span>
         <span style={{ color: "var(--text-secondary)" }}>○ Unknown: no baseline</span>
       </div>
 
@@ -312,7 +276,8 @@ export default function MonitoringPage() {
         {runs.length === 0 ? (
           <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>No runs yet.</p>
         ) : (
-          <table style={{ width: "100%", fontSize: "12px", borderCollapse: "collapse" }}>
+          <div className="table-shell">
+          <table className="data-table">
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)" }}>
                 <th style={{ textAlign: "left", padding: "6px 8px" }}>Run ID</th>
@@ -338,6 +303,7 @@ export default function MonitoringPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

@@ -263,3 +263,56 @@ Tool: `python scripts/capture_screenshots.py --base-url https://demand-os-three.
 - [x] No external side effects
 
 **DemandOS MVP: COMPLETE ✅**
+
+---
+
+## Final Public Release QA — Sprint 14
+
+**Execution date:** 2026-06-21
+
+### Local verification
+
+- [x] Backend pytest suite passes — 451 unique tests
+- [x] Frontend type check passes
+- [x] Frontend production build passes (15 pages)
+- [x] `bash scripts/verify.sh` passes — 201 checks, 0 failures
+- [x] `python scripts/public_readiness_check.py` passes — 199 files checked
+
+### Public repository hygiene
+
+- [x] Stale duplicate source/test files removed
+- [x] `.gitignore` covers environment files, model artifacts, generated data,
+  local agent memory, and duplicate editor copies
+- [x] Public docs contain no raw database connection string
+- [x] No known API key value is present in docs or source
+- [x] No generated CSV dump or model artifact is version controlled
+- [x] Release notes exist
+
+### UI and portfolio
+
+- [x] Shared visual system, sidebar, page headers, KPI cards, tables, charts,
+  badges, forms, loading, empty, and error states refreshed
+- [x] CSV upload, monitoring, scenarios, and connectors pages polished
+- [x] README, case study, portfolio landing draft, screenshot guide, and assets updated
+- [ ] Screenshots 1–9 and 13–16 recaptured after deployment
+- [ ] Screenshots 10–12 captured manually and redacted
+
+### Production validation
+
+- [ ] Read-only production smoke passes after Sprint 14 deployment
+- [ ] Refreshed deployment is visible at `https://demand-os-three.vercel.app`
+- [ ] Protected pipeline smoke skipped unless an API key and explicit mutation are intended
+
+### Safety sign-off
+
+- [x] No real purchase orders
+- [x] No supplier communication
+- [x] No email, Slack, webhook, or autonomous action
+- [x] No live Shopify/WooCommerce calls
+- [x] Scenario planning remains simulated and non-mutating
+- [x] Synthetic raw operational data only
+
+### Release sign-off
+
+- [ ] Public repo readiness approved
+- [ ] Portfolio readiness approved

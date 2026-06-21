@@ -7,6 +7,7 @@ import type { DashboardOverviewResponse } from "@/lib/types";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 import StatusBadge from "@/components/StatusBadge";
+import PageHeader from "@/components/PageHeader";
 
 export default function HomePage() {
   const [data, setData] = useState<DashboardOverviewResponse | null>(null);
@@ -25,12 +26,12 @@ export default function HomePage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "4px" }}>
-        DemandOS
-      </h1>
-      <p style={{ color: "var(--text-secondary)", marginBottom: "24px" }}>
-        Demand forecasting and inventory risk platform
-      </p>
+      <PageHeader
+        title="Inventory decisions, from raw data"
+        subtitle="A deterministic demand forecasting and stockout-risk workspace. Every value below is computed from synthetic raw commerce records."
+        kicker="Public portfolio prototype"
+        badge="Live demo · synthetic dataset"
+      />
 
       {loading && <LoadingState message="Loading dashboard overview..." />}
       {error && <ErrorState message={error} onRetry={() => { setLoading(true); setError(null); getDashboardOverview().then(setData).catch((e) => setError(e.message)).finally(() => setLoading(false)); }} />}

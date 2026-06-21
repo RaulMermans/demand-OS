@@ -80,6 +80,34 @@ SCREENSHOTS = [
         "desc": "Data Health page with table counts and checks",
         "viewport": {"width": 1440, "height": 900},
     },
+    {
+        "filename": "13-csv-upload.png",
+        "url": "/csv-upload",
+        "wait": "networkidle",
+        "desc": "CSV upload page with raw-data constraints and validation workflow",
+        "viewport": {"width": 1440, "height": 900},
+    },
+    {
+        "filename": "14-monitoring.png",
+        "url": "/monitoring",
+        "wait": "networkidle",
+        "desc": "Monitoring page with latest-vs-previous health comparisons",
+        "viewport": {"width": 1440, "height": 900},
+    },
+    {
+        "filename": "15-scenarios.png",
+        "url": "/scenarios",
+        "wait": "networkidle",
+        "desc": "Scenario planning page with simulated before/after comparison",
+        "viewport": {"width": 1440, "height": 900},
+    },
+    {
+        "filename": "16-connectors.png",
+        "url": "/connectors",
+        "wait": "networkidle",
+        "desc": "Disabled connector readiness and no-network dry-run controls",
+        "viewport": {"width": 1440, "height": 900},
+    },
 ]
 
 
@@ -192,7 +220,7 @@ def main():
     print("=" * 60)
     print("Screenshots 10-12 require manual capture:")
     print("  10-vercel-deployment.png  — Vercel project dashboard (redact secrets)")
-    print("  11-neon-connection.png    — Neon integration panel (redact connection string)")
+    print("  11-neon-connection-redacted.png — Neon integration panel (redact connection string)")
     print("  12-ci-passing.png         — GitHub Actions latest run (all jobs green)")
     print()
 

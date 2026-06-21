@@ -58,3 +58,10 @@ data/sample_uploads/*
 
 # Logs
 *.log
+
+# Finder/editor duplicate copies and local agent memory
+* 2.py
+* 3.py
+page 2.tsx
+.claude/
+CLAUDE.local.md

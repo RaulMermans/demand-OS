@@ -7,7 +7,7 @@ _Ready-to-adapt draft for a personal portfolio site. Paste into your preferred C
 ## Hero
 
 **DemandOS**  
-*Demand forecasting and inventory risk — built from scratch in 12 sprints.*
+*Demand forecasting and inventory risk — built from scratch in 14 sprints.*
 
 [View Live Demo](https://demand-os-three.vercel.app) · [Read Case Study](https://github.com/RaulMermans/demand-OS/blob/main/docs/case_study.md) · [GitHub](https://github.com/RaulMermans/demand-OS)
 
@@ -95,6 +95,12 @@ pandas, Next.js 14, TypeScript, recharts, Vercel, Neon Postgres.
   computed from supplier lead times, demand variability, and forecast — not heuristics.
 - **API key guard:** Write endpoints require `X-DemandOS-API-Key` when the env var is set.
   The key is stored in sessionStorage only (not localStorage, not cookies).
+- **Raw CSV mode:** Bounded files are validated against raw operational schemas;
+  derived forecasts, risks, and recommendations are rejected.
+- **Scenario planning:** What-if results are simulated and stored separately, with
+  no mutation of canonical pipeline outputs.
+- **Connector safety:** Shopify and WooCommerce remain disabled stubs with no-network
+  config validation and dry-run preparation.
 
 ---
 
@@ -102,7 +108,7 @@ pandas, Next.js 14, TypeScript, recharts, Vercel, Neon Postgres.
 
 | Aspect | Detail |
 |--------|--------|
-| Backend tests | 709 passing (pytest, SQLite in-memory — no external DB needed for CI) |
+| Backend tests | Complete pytest suite passing with isolated test databases |
 | Structural checks | 100+ via `scripts/verify.sh` |
 | Production smoke | 18-check script validates the live deployment |
 | Raw-data enforcement | `test_raw_data_rule.py` runs on every CI push |
@@ -132,11 +138,20 @@ The live demo is pre-populated with synthetic retail data (seed=42, reproducible
 
 1. **Calibrated prediction intervals** — replace the ±1σ heuristic p10/p90 with
    conformal prediction for statistically valid coverage guarantees.
-2. **Real connectors** — `CsvCommerceConnector` for file uploads, `ShopifyConnector`
-   for Admin API ingestion of real order and inventory data.
-3. **Model monitoring** — drift detection on input feature distributions and output
-   forecast error trends, surfaced in the Data Health page.
+2. **Live connectors** — only after credential management, privacy review, retries,
+   rate limits, and explicit operator controls are designed.
+3. **Monitoring automation** — scheduled runs and optional alerts behind explicit
+   external-side-effect controls.
 4. **Dedicated backend** — move off Vercel's 60s function timeout to Render/Railway/Fly.io
    to support full-scale data (50 products × 5 stores × 730 days).
 5. **Scheduled pipeline** — Celery + Redis (or Temporal) to run the pipeline nightly
    on fresh data without manual triggering.
+
+---
+
+## Public Release Notes
+
+The public version is intentionally described as a **portfolio MVP** and
+**internal-tool-style prototype**. It uses synthetic raw operational data, includes
+no customer deployment claims, performs no autonomous purchasing, and makes no live
+Shopify or WooCommerce calls.

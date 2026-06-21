@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import PageHeader from "@/components/PageHeader";
+import StatusBadge from "@/components/StatusBadge";
+import { getStoredApiKey } from "@/lib/apiKey";
 
 interface ConnectorInfo {
   connector_id: string;
@@ -14,20 +17,32 @@ interface ConnectorInfo {
 }
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  active: { bg: "#1a3a1a", color: "#4caf50" },
-  disabled: { bg: "#2a2a2a", color: "#888" },
-  config_ready: { bg: "#1a3a4a", color: "#7ac8ff" },
+  active: { bg: "var(--success-soft)", color: "var(--success)" },
+  disabled: { bg: "var(--surface-3)", color: "var(--text-secondary)" },
+  config_ready: { bg: "var(--info-soft)", color: "var(--info)" },
 };
+
+interface ConnectorActionResult {
+  is_valid?: boolean;
+  status?: string;
+  message?: string;
+  connector_id?: string;
+  missing_fields?: string[];
+  notes?: string[];
+  warning?: string;
+  would_fetch?: string[];
+  error?: string;
+}
 
 export default function ConnectorsPage() {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   const [connectors, setConnectors] = useState<ConnectorInfo[]>([]);
-  const [status, setStatus] = useState<any>(null);
+  const [status, setStatus] = useState<{ total_active?: number; total_disabled?: number; note?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [validateId, setValidateId] = useState("shopify");
   const [validateConfig, setValidateConfig] = useState('{\n  "SHOPIFY_STORE_URL": "",\n  "SHOPIFY_ACCESS_TOKEN": ""\n}');
-  const [validateResult, setValidateResult] = useState<any>(null);
-  const [dryRunResult, setDryRunResult] = useState<any>(null);
+  const [validateResult, setValidateResult] = useState<ConnectorActionResult | null>(null);
+  const [dryRunResult, setDryRunResult] = useState<ConnectorActionResult | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -41,7 +56,7 @@ export default function ConnectorsPage() {
   }, []);
 
   async function runValidate() {
-    let cfg: any;
+    let cfg: Record<string, string>;
     try {
       cfg = JSON.parse(validateConfig);
     } catch {
@@ -50,7 +65,10 @@ export default function ConnectorsPage() {
     }
     const r = await fetch(`${base}/api/connectors/validate-config`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(getStoredApiKey() ? { "X-DemandOS-API-Key": getStoredApiKey() } : {}),
+      },
       body: JSON.stringify({ connector_id: validateId, config: cfg }),
     });
     setValidateResult(await r.json());
@@ -58,7 +76,7 @@ export default function ConnectorsPage() {
   }
 
   async function runDryRun() {
-    let cfg: any;
+    let cfg: Record<string, string>;
     try {
       cfg = JSON.parse(validateConfig);
     } catch {
@@ -67,7 +85,10 @@ export default function ConnectorsPage() {
     }
     const r = await fetch(`${base}/api/connectors/dry-run`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(getStoredApiKey() ? { "X-DemandOS-API-Key": getStoredApiKey() } : {}),
+      },
       body: JSON.stringify({ connector_id: validateId, config: cfg }),
     });
     setDryRunResult(await r.json());
@@ -75,12 +96,16 @@ export default function ConnectorsPage() {
   }
 
   return (
-    <div style={{ maxWidth: "900px" }}>
-      <h1 style={{ fontSize: "22px", fontWeight: 700, marginBottom: "6px" }}>Connectors</h1>
-      <p style={{ color: "var(--text-secondary)", marginBottom: "24px", fontSize: "13px" }}>
-        Manage data source connectors. Real connectors (Shopify, WooCommerce) are disabled —
-        no live API calls are made in this deployment.
-      </p>
+    <div>
+      <PageHeader
+        title="Connector readiness"
+        subtitle="Review disabled Shopify and WooCommerce scaffolds, validate configuration shape, and inspect dry-run safety behavior."
+        badge="No live connector calls"
+      />
+      <div className="notice notice-warning" style={{ marginBottom: "20px" }}>
+        Shopify and WooCommerce are disabled stubs. Validation checks required keys
+        only; dry runs never contact an external API or store credentials.
+      </div>
 
       {/* Status summary */}
       {status && (
@@ -106,7 +131,7 @@ export default function ConnectorsPage() {
           </div>
           <div>
             <span style={{ color: "var(--text-secondary)" }}>Live sync: </span>
-            <strong style={{ color: "#f44336" }}>Off</strong>
+            <strong style={{ color: "var(--danger)" }}>Off</strong>
           </div>
           <div style={{ color: "var(--text-secondary)", fontSize: "12px", marginLeft: "auto" }}>
             {status.note}
@@ -196,6 +221,27 @@ export default function ConnectorsPage() {
           })}
         </div>
       )}
+
+      <div className="two-column-grid" style={{ marginBottom: "24px" }}>
+        <div className="card" style={{ padding: "18px" }}>
+          <div style={{ fontWeight: 700, marginBottom: "10px" }}>Before any live Shopify integration</div>
+          <ul style={{ paddingLeft: "18px", color: "var(--text-secondary)", fontSize: "12px", lineHeight: 1.9 }}>
+            <li>OAuth and scoped credential storage</li>
+            <li>Rate limiting, retries, and pagination</li>
+            <li>PII exclusion and retention review</li>
+            <li>Explicit operator activation and rollback</li>
+          </ul>
+        </div>
+        <div className="card" style={{ padding: "18px" }}>
+          <div style={{ fontWeight: 700, marginBottom: "10px" }}>Before any live WooCommerce integration</div>
+          <ul style={{ paddingLeft: "18px", color: "var(--text-secondary)", fontSize: "12px", lineHeight: 1.9 }}>
+            <li>Read-only API credentials and secret rotation</li>
+            <li>Schema mapping and raw-data contract tests</li>
+            <li>Timeout, retry, and failure observability</li>
+            <li>No write actions without a separate approval design</li>
+          </ul>
+        </div>
+      </div>
 
       {/* Config validation tool */}
       <div
@@ -298,21 +344,38 @@ export default function ConnectorsPage() {
           </button>
         </div>
 
-        {(validateResult || dryRunResult) && (
-          <div
-            style={{
-              marginTop: "14px",
-              padding: "12px",
-              background: "var(--surface-2)",
-              borderRadius: "6px",
-              fontSize: "12px",
-              fontFamily: "monospace",
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {JSON.stringify(validateResult || dryRunResult, null, 2)}
-          </div>
-        )}
+        {(validateResult || dryRunResult) && (() => {
+          const result = validateResult || dryRunResult;
+          if (!result) return null;
+          const resultStatus = result.error
+            ? "failed"
+            : result.is_valid === false
+            ? "warning"
+            : "completed";
+          const summary =
+            result.message ||
+            result.notes?.[0] ||
+            result.status ||
+            result.error ||
+            "Check complete";
+          return (
+            <div className="notice notice-info" style={{ marginTop: "14px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                <StatusBadge value={resultStatus} label={dryRunResult ? "Dry run" : "Validation"} />
+                <strong>{summary}</strong>
+              </div>
+              {result.missing_fields && result.missing_fields.length > 0 && (
+                <div>Missing required keys: {result.missing_fields.join(", ")}</div>
+              )}
+              {result.would_fetch && result.would_fetch.length > 0 && (
+                <div>Would fetch: {result.would_fetch.join(", ")}</div>
+              )}
+              <div style={{ marginTop: "5px", color: "var(--text-secondary)" }}>
+                {result.warning || "No credentials were stored and no external request was made."}
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

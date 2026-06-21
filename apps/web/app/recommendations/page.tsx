@@ -17,6 +17,7 @@ import StatusBadge from "@/components/StatusBadge";
 import DataTable from "@/components/DataTable";
 import ChartCard from "@/components/ChartCard";
 import BarChartPanel from "@/components/BarChartPanel";
+import PageHeader from "@/components/PageHeader";
 
 const URGENCY_COLORS: Record<string, string> = {
   critical: "#dc2626",
@@ -76,13 +77,14 @@ export default function RecommendationsPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "4px" }}>Recommendations</h1>
-      <p style={{ color: "var(--text-secondary)", marginBottom: "8px" }}>
-        Reorder recommendations computed from the latest stockout risk run
-      </p>
-      <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "24px" }}>
-        <strong>Note:</strong> Approving a recommendation is recorded inside DemandOS only.
-        No purchase orders are created and no external systems are called.
+      <PageHeader
+        title="Reorder recommendations"
+        subtitle="Review deterministic reorder quantities, cost estimates, and urgency from the latest stockout-risk run."
+        badge="Internal approval only · no purchasing"
+      />
+      <div className="notice notice-info" style={{ marginBottom: "24px" }}>
+        Approving a recommendation changes its internal review status only. DemandOS
+        does not create purchase orders or contact suppliers.
       </div>
 
       {loading && <LoadingState />}

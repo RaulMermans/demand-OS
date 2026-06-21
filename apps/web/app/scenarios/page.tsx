@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import PageHeader from "@/components/PageHeader";
+import ApiKeyInput from "@/components/ApiKeyInput";
+import StatusBadge from "@/components/StatusBadge";
+import { getStoredApiKey } from "@/lib/apiKey";
 
 interface ScenarioInputs {
   demand_multiplier: number;
@@ -29,16 +33,23 @@ interface ScenarioRun {
   delta_order_cost: number | null;
   delta_high_risk_count: number | null;
   delta_critical_risk_count: number | null;
-  top_impacted_product_stores: any[];
+  top_impacted_product_stores: ScenarioImpact[];
   created_at: string | null;
   simulated: boolean;
+}
+
+interface ScenarioImpact {
+  product_id?: string;
+  store_id?: string;
+  baseline_risk_tier?: string;
+  scenario_risk_tier?: string;
 }
 
 const HORIZON_OPTIONS = [7, 14, 28, 56, 90];
 
 function DeltaCell({ value }: { value: number | null }) {
   if (value == null) return <td style={{ padding: "6px 8px" }}>—</td>;
-  const color = value > 0 ? "#f44336" : value < 0 ? "#4caf50" : "var(--text-secondary)";
+  const color = value > 0 ? "var(--danger)" : value < 0 ? "var(--success)" : "var(--text-secondary)";
   const prefix = value > 0 ? "+" : "";
   return (
     <td style={{ padding: "6px 8px", color, fontWeight: 600 }}>
@@ -64,7 +75,6 @@ export default function ScenariosPage() {
     horizon_days: 28,
   });
 
-  const [apiKey, setApiKey] = useState("");
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
   const [latest, setLatest] = useState<ScenarioRun | null>(null);
@@ -85,6 +95,7 @@ export default function ScenariosPage() {
     setRunning(true);
     setError("");
     const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const apiKey = getStoredApiKey();
     if (apiKey) headers["X-DemandOS-API-Key"] = apiKey;
     try {
       const r = await fetch(`${base}/api/scenarios/run`, {
@@ -99,8 +110,8 @@ export default function ScenariosPage() {
         setLatest(d);
         await load();
       }
-    } catch (e: any) {
-      setError(e.message || "Network error");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Network error");
     } finally {
       setRunning(false);
     }
@@ -157,28 +168,19 @@ export default function ScenariosPage() {
   }
 
   return (
-    <div style={{ maxWidth: "920px" }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: "12px", marginBottom: "6px" }}>
-        <h1 style={{ fontSize: "22px", fontWeight: 700 }}>Scenario Planning</h1>
-        <span
-          style={{
-            fontSize: "11px",
-            padding: "2px 8px",
-            borderRadius: "10px",
-            background: "#1a4a6a",
-            color: "#7ac8ff",
-            fontWeight: 700,
-          }}
-        >
-          SIMULATED — does not affect production data
-        </span>
+    <div>
+      <PageHeader
+        title="Scenario planning"
+        subtitle="Test bounded what-if assumptions against the current baseline without changing canonical forecasts, risks, or recommendations."
+        badge="Simulated · non-mutating"
+      />
+      <div className="notice notice-warning" style={{ marginBottom: "20px" }}>
+        Scenario outputs are stored separately for comparison only. They never mutate
+        operational tables or trigger purchasing actions.
       </div>
-      <p style={{ color: "var(--text-secondary)", marginBottom: "24px", fontSize: "13px" }}>
-        Run what-if simulations against the current baseline. Results are stored separately
-        and never overwrite forecast, risk, or recommendation tables.
-      </p>
+      <ApiKeyInput />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
+      <div className="two-column-grid" style={{ marginBottom: "20px" }}>
         {/* Scenario inputs */}
         <div
           style={{
@@ -243,43 +245,16 @@ export default function ScenariosPage() {
             </select>
           </div>
 
-          <div style={{ marginBottom: "12px" }}>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="API Key"
-              style={{
-                padding: "6px 10px",
-                borderRadius: "4px",
-                border: "1px solid var(--border)",
-                background: "var(--surface-2)",
-                color: "var(--text-primary)",
-                fontSize: "12px",
-                width: "180px",
-              }}
-            />
-          </div>
-
           <button
             onClick={runScenario}
             disabled={running}
-            style={{
-              padding: "10px 20px",
-              borderRadius: "6px",
-              background: "var(--accent)",
-              border: "none",
-              color: "#fff",
-              fontSize: "13px",
-              fontWeight: 600,
-              cursor: running ? "not-allowed" : "pointer",
-            }}
+            className="button-primary"
           >
             {running ? "Running…" : "Run Scenario"}
           </button>
 
           {error && (
-            <div style={{ marginTop: "12px", fontSize: "13px", color: "#ff9999" }}>{error}</div>
+            <div className="notice notice-danger" style={{ marginTop: "12px" }}>{error}</div>
           )}
         </div>
 
@@ -302,15 +277,8 @@ export default function ScenariosPage() {
             </p>
           ) : (
             <>
-              <div
-                style={{
-                  fontSize: "11px",
-                  color: "#7ac8ff",
-                  marginBottom: "12px",
-                  fontWeight: 600,
-                }}
-              >
-                SIMULATED — not production data
+              <div className="simulated-label" style={{ marginBottom: "12px" }}>
+                Simulated output
               </div>
 
               <table style={{ width: "100%", fontSize: "12px", borderCollapse: "collapse" }}>
@@ -371,7 +339,7 @@ export default function ScenariosPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {latest.top_impacted_product_stores.slice(0, 5).map((row: any, i: number) => (
+                      {latest.top_impacted_product_stores.slice(0, 5).map((row, i) => (
                         <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
                           <td style={{ padding: "3px 6px", fontFamily: "monospace" }}>
                             {row.product_id?.slice(0, 12)}…
@@ -379,8 +347,8 @@ export default function ScenariosPage() {
                           <td style={{ padding: "3px 6px", fontFamily: "monospace" }}>
                             {row.store_id?.slice(0, 10)}…
                           </td>
-                          <td style={{ padding: "3px 6px" }}>{row.baseline_risk_tier}</td>
-                          <td style={{ padding: "3px 6px" }}>{row.scenario_risk_tier}</td>
+                          <td style={{ padding: "3px 6px" }}><StatusBadge value={row.baseline_risk_tier} /></td>
+                          <td style={{ padding: "3px 6px" }}><StatusBadge value={row.scenario_risk_tier} /></td>
                         </tr>
                       ))}
                     </tbody>

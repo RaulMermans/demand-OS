@@ -1,5 +1,53 @@
 # DemandOS — Design Document
 
+## Public Release Visual System (Sprint 14)
+
+### Visual Theme and Atmosphere
+
+DemandOS uses a calm, precise data-product aesthetic: warm off-white canvas,
+clean white analytical surfaces, restrained indigo actions, and muted semantic
+status colors. The interface should feel operational and trustworthy rather than
+flashy. Dense data remains readable through generous card spacing, compact tables,
+and a clear hierarchy.
+
+### Color Palette and Roles
+
+- **Warm Cloud Canvas (`#F5F7FB`)** — application background; reduces harsh contrast.
+- **Paper White (`#FFFFFF`)** — cards, tables, and form surfaces.
+- **Midnight Slate (`#172033`)** — primary headings and high-emphasis values.
+- **Measured Slate (`#64748B`)** — supporting copy, metadata, and table labels.
+- **Operational Indigo (`#4F46E5`)** — primary actions, active navigation, and links.
+- **Signal Emerald (`#059669`)** — healthy states and successful runs.
+- **Measured Amber (`#D97706`)** — warnings and monitoring thresholds.
+- **Risk Rose (`#E11D48`)** — failed states and critical risk.
+- **Soft Border Slate (`#DFE5ED`)** — low-contrast surface boundaries.
+
+### Typography Rules
+
+Use the native Inter-style system sans stack. Page titles are compact and
+confident with slightly tightened letter spacing. Section labels are small,
+uppercase, and widely tracked. Numeric KPIs use heavier weight and tabular-feeling
+spacing without decorative display fonts.
+
+### Component Styling
+
+- **Buttons:** gently rounded rectangles, indigo primary fill, quiet outlined
+  secondary actions, and clear disabled states.
+- **Cards:** white surfaces with 12-pixel corners, soft slate borders, and
+  whisper-light shadows.
+- **Tables:** pale header bands, compact uppercase labels, subtle row dividers,
+  and a low-contrast hover state.
+- **Forms:** white fields with slate borders and a soft indigo focus ring.
+- **Badges:** pill-shaped, semantically colored, and consistent across pipeline,
+  risk, monitoring, and recommendation states.
+
+### Layout Principles
+
+The sidebar remains visually stable while the main canvas uses a wide but bounded
+reading area. Pages start with a consistent purpose-led header and a restrained
+synthetic-data/safety badge. Above-the-fold content should explain the operational
+question first, then show computed KPIs or the primary control.
+
 ## System Architecture
 
 DemandOS is a deterministic ML pipeline split into six layers:

@@ -1,73 +1,66 @@
-# DemandOS — Screenshots
+# DemandOS — Public Portfolio Screenshots
 
-This directory stores portfolio case study screenshots for Sprint 12 MVP closeout.
-Captured via Playwright CLI against the deployed Vercel app (`https://demand-os-three.vercel.app`).
+Application screenshots are captured against the deployed demo with:
 
-To recapture: `python scripts/capture_screenshots.py --base-url https://demand-os-three.vercel.app`
-
----
+```bash
+python scripts/capture_screenshots.py \
+  --base-url https://demand-os-three.vercel.app
+```
 
 ## Screenshot Status
 
-| # | Filename | Page / Source | What it proves | Status |
-|---|----------|---------------|----------------|--------|
-| 1 | `01-readiness.png` | `/api/readiness` | Vercel deployed, Neon connected (`"ready": true`), no secrets in response | ✅ Captured |
-| 2 | `02-home-dashboard.png` | `/` | Live KPI cards from pipeline — 10 products, 1,677 orders, risk/rec counts | ✅ Captured |
-| 3 | `03-pipeline-completed.png` | `/pipeline` | All 8 pipeline steps completed with timestamps in durable run log | ✅ Captured |
-| 4 | `04-forecasts.png` | `/forecasts` | Forecast line chart with p10/p50/p90 bands from real computed forecasts | ✅ Captured |
-| 5 | `05-inventory-risk.png` | `/risks` | Risk queue with Critical/High/Medium/Low tier badges, days-until-stockout | ✅ Captured |
-| 6 | `06-recommendations.png` | `/recommendations` | Reorder queue with urgency labels, recommended units, and estimated costs | ✅ Captured |
-| 7 | `07-model-performance.png` | `/model-performance` | Honest ML vs baseline WAPE/MAE/RMSE comparison | ✅ Captured |
-| 8 | `08-data-health.png` | `/data-health` | Table counts for all pipeline stages and health check list | ✅ Captured |
-| 9 | `09-product-drilldown.png` | `/products/prod_008` | Per-product forecast chart + risk per store + recommendations | ✅ Captured |
-| 10 | `10-vercel-deployment.png` | Vercel dashboard | Single-project deployment overview showing frontend + backend | ⏳ Manual capture required |
-| 11 | `11-neon-connection.png` | Vercel Storage panel | Neon Postgres integration panel (connection string must be blurred) | ⏳ Manual capture required |
-| 12 | `12-ci-passing.png` | GitHub Actions | Backend + frontend + hygiene CI jobs all green | ⏳ Manual capture required |
+| # | Filename | Page / source | Status |
+|---|---|---|---|
+| 1 | `01-readiness.png` | `/api/readiness` | ✅ Captured |
+| 2 | `02-home-dashboard.png` | `/` | ✅ Captured |
+| 3 | `03-pipeline-completed.png` | `/pipeline` | ✅ Captured |
+| 4 | `04-forecasts.png` | `/forecasts` | ✅ Captured |
+| 5 | `05-inventory-risk.png` | `/risks` | ✅ Captured |
+| 6 | `06-recommendations.png` | `/recommendations` | ✅ Captured |
+| 7 | `07-model-performance.png` | `/model-performance` | ✅ Captured |
+| 8 | `08-data-health.png` | `/data-health` | ✅ Captured |
+| 9 | `09-product-drilldown.png` | `/products/{productId}` | ✅ Captured |
+| 10 | `10-vercel-deployment.png` | Vercel dashboard | ⏳ Manual |
+| 11 | `11-neon-connection-redacted.png` | Neon/Vercel integration | ⏳ Manual |
+| 12 | `12-ci-passing.png` | GitHub Actions | ⏳ Manual |
+| 13 | `13-csv-upload.png` | `/csv-upload` | ⏳ Recapture after Sprint 14 deploy |
+| 14 | `14-monitoring.png` | `/monitoring` | ⏳ Recapture after Sprint 14 deploy |
+| 15 | `15-scenarios.png` | `/scenarios` | ⏳ Recapture after Sprint 14 deploy |
+| 16 | `16-connectors.png` | `/connectors` | ⏳ Recapture after Sprint 14 deploy |
 
----
+The application captures should show computed backend data where available. Empty
+states are acceptable only when they clearly explain the next action.
 
-## Automated Capture (Screenshots 1–9)
+## Manual Capture Instructions
 
-Screenshots 1–9 were captured automatically using Playwright CLI:
+### 10 — Vercel deployment
 
-```bash
-python scripts/capture_screenshots.py --base-url https://demand-os-three.vercel.app
-```
+Capture the production deployment status and public domain. Crop out personal
+account details and never expose environment-variable values.
 
-Captured: **2026-06-21** against `https://demand-os-three.vercel.app`.  
-Pipeline state: full demo pipeline completed (small mode, seed=42).
+### 11 — Neon connection
 
----
+Capture only the integration/connection status. Blur or crop the complete database
+connection string, host, username, password, and pooled URL. Save the redacted file
+as `11-neon-connection-redacted.png`.
 
-## Manual Capture Instructions (Screenshots 10–12)
+### 12 — CI passing
 
-### 10 — Vercel Deployment Overview
+Capture the latest GitHub Actions run with backend, frontend, and repository-hygiene
+jobs visible and green.
 
-1. Log in to vercel.com and open the DemandOS project.
-2. Go to the **Deployments** tab.
-3. Capture the deployment list showing the latest production deployment (green).
-4. **Crop out** any personal API tokens or secret env var values.
-5. Save as `10-vercel-deployment.png`.
+## Safety Rules
 
-### 11 — Neon Connection Panel
+- Never show API keys, tokens, cookies, environment-variable values, or database URLs.
+- Use synthetic data only; no personal or customer data may appear.
+- Keep screenshots under roughly 250 KB where practical.
+- Verify the browser address bar and visible console output before capture.
+- Do not commit unredacted Vercel or Neon screenshots.
 
-1. In the Vercel project, go to **Storage**.
-2. Open the Neon Postgres integration.
-3. Capture the panel showing the database is connected.
-4. **Blur or crop** the full connection string (DATABASE_URL value).
-5. Save as `11-neon-connection.png`.
+## Sprint 14 Capture Checklist
 
-### 12 — GitHub Actions CI Passing
-
-1. Open the GitHub repository → **Actions** tab.
-2. Open the latest workflow run.
-3. Capture the run overview showing `backend`, `frontend`, and `repo-hygiene` jobs all green.
-4. Save as `12-ci-passing.png`.
-
----
-
-## Safety Notes
-
-- **Never include API keys, database URLs, or personal tokens in screenshots.**
-- The mock connector uses `seed=42` — results are deterministic and reproducible.
-- File sizes: 20KB–120KB each (Playwright default quality). Compress with `pngquant` if needed.
+- [ ] Refreshed visual system is deployed.
+- [ ] Read-only production smoke passes.
+- [ ] Screenshots 1–9 and 13–16 are recaptured from the refreshed deployment.
+- [ ] Manual screenshots 10–12 are redacted and reviewed.
+- [ ] No secret values or connection strings are visible.

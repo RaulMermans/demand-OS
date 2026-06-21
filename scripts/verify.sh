@@ -51,6 +51,7 @@ DOC_FILES=(
   "docs/final_qa_checklist.md"
   "docs/case_study_assets.md"
   "docs/screenshots/README.md"
+  "docs/release_notes.md"
 )
 for f in "${DOC_FILES[@]}"; do
   if [ -f "$f" ]; then
@@ -190,6 +191,7 @@ FRONTEND_FILES=(
   "apps/web/components/LineChartPanel.tsx"
   "apps/web/components/PipelineControlButton.tsx"
   "apps/web/components/ApiKeyInput.tsx"
+  "apps/web/components/PageHeader.tsx"
   "apps/web/lib/api.ts"
   "apps/web/lib/types.ts"
   "apps/web/lib/apiKey.ts"
@@ -708,6 +710,67 @@ if grep -qE 'postgresql://|@neon\.tech' apps/api/app/connectors/shopify.py apps/
   ((FAIL += 1))
 else
   echo "   ✅ No raw database URLs in connector stubs"
+  ((PASS += 1))
+fi
+
+echo ""
+
+# -------------------------------------------------------------------
+# Sprint 14 — public release readiness
+# -------------------------------------------------------------------
+echo "Sprint 14 — public release readiness..."
+
+if python3 scripts/public_readiness_check.py; then
+  echo "   ✅ Public readiness audit passed"
+  ((PASS += 1))
+else
+  echo "   ❌ Public readiness audit failed"
+  ((FAIL += 1))
+fi
+
+for section in "Live demo" "Advanced Features" "Safety Boundaries" "Public portfolio prototype"; do
+  if grep -qi "$section" README.md 2>/dev/null; then
+    echo "   ✅ README includes '$section'"
+    ((PASS += 1))
+  else
+    echo "   ❌ README missing '$section'"
+    ((FAIL += 1))
+  fi
+done
+
+for feature in "CSV upload" "monitoring" "scenario planning" "disabled connector"; do
+  if grep -qi "$feature" docs/case_study.md 2>/dev/null; then
+    echo "   ✅ Case study includes '$feature'"
+    ((PASS += 1))
+  else
+    echo "   ❌ Case study missing '$feature'"
+    ((FAIL += 1))
+  fi
+done
+
+for screenshot in "13-csv-upload.png" "14-monitoring.png" "15-scenarios.png" "16-connectors.png"; do
+  if grep -q "$screenshot" docs/screenshots/README.md 2>/dev/null; then
+    echo "   ✅ Screenshot docs include $screenshot"
+    ((PASS += 1))
+  else
+    echo "   ❌ Screenshot docs missing $screenshot"
+    ((FAIL += 1))
+  fi
+done
+
+if grep -q "Deployed MVP · public portfolio" apps/web/components/AppShell.tsx 2>/dev/null; then
+  echo "   ✅ Sidebar uses public-release label"
+  ((PASS += 1))
+else
+  echo "   ❌ Sidebar label is stale"
+  ((FAIL += 1))
+fi
+
+if find . -path './.git' -prune -o -name '.env.local' -print | grep -q .; then
+  echo "   ❌ .env.local found in repository tree"
+  ((FAIL += 1))
+else
+  echo "   ✅ No .env.local file found"
   ((PASS += 1))
 fi
 

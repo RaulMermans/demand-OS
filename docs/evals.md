@@ -175,7 +175,7 @@
 ## 12. Sprint 12 — MVP Closeout (2026-06-21)
 
 - Production smoke: 18/18 checks passed
-- Backend tests: 709 passing
+- Backend tests: full Sprint 12 suite passing
 - Frontend build: passing
 - Screenshots: 9 automated (Playwright), 3 pending manual
 - Case study: portfolio-ready (docs/case_study.md)

@@ -14,11 +14,14 @@ export default function EmptyState({ title, message, action, showPipelineLink }:
     <div
       style={{
         textAlign: "center",
-        padding: "60px 24px",
+        padding: "54px 24px",
         color: "var(--text-secondary)",
+        background: "var(--surface)",
+        border: "1px dashed var(--border-strong)",
+        borderRadius: "12px",
       }}
     >
-      <div style={{ fontSize: "32px", marginBottom: "12px", opacity: 0.4 }}>○</div>
+      <div style={{ width: "42px", height: "42px", display: "grid", placeItems: "center", margin: "0 auto 13px", borderRadius: "12px", background: "var(--accent-soft)", color: "var(--accent)", fontSize: "21px" }}>○</div>
       <div style={{ fontWeight: 600, fontSize: "16px", color: "var(--text-primary)", marginBottom: "8px" }}>
         {title}
       </div>

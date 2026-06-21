@@ -65,7 +65,7 @@ Migrations must be run once after the first deployment (and after each schema ch
 
 ```bash
 # Option 1 — from local machine using the Neon connection string
-DATABASE_URL="<neon-connection-string>" cd apps/api && alembic upgrade head
+DATABASE_URL="<managed-postgres-connection-string>" cd apps/api && alembic upgrade head
 
 # Option 2 — via Vercel Build Command (add to vercel.json if desired)
 # "buildCommand": "cd apps/web && npm ci && npm run build && cd ../../apps/api && alembic upgrade head"

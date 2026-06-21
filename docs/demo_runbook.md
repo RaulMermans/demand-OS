@@ -132,6 +132,10 @@ After the pipeline completes:
 | `/model-performance` | ML vs baseline comparison, WAPE/MAE/RMSE |
 | `/data-health` | Raw + canonical table counts, pipeline checks |
 | `/products/{id}` | Per-product drilldown — forecast + risk + recommendations |
+| `/csv-upload` | Raw CSV template, validation, rejection, and upload-history UX |
+| `/monitoring` | Previous-vs-latest model and data-health comparisons |
+| `/scenarios` | Simulated, non-mutating before/after planning comparison |
+| `/connectors` | Disabled Shopify/WooCommerce readiness and dry-run safety |
 
 ---
 
@@ -217,5 +221,5 @@ python scripts/smoke_production.py --base-url https://demand-os-three.vercel.app
 **Screenshot capture:**
 ```bash
 python scripts/capture_screenshots.py --base-url https://demand-os-three.vercel.app
-# Captures 01–09 automatically; 10–12 require Vercel/GitHub dashboard access
+# Captures application screenshots automatically; deployment/Neon/CI views remain manual
 ```

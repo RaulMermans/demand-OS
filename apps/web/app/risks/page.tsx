@@ -11,6 +11,7 @@ import DataTable from "@/components/DataTable";
 import ChartCard from "@/components/ChartCard";
 import BarChartPanel from "@/components/BarChartPanel";
 import KpiCard from "@/components/KpiCard";
+import PageHeader from "@/components/PageHeader";
 
 const TIER_COLORS: Record<string, string> = {
   critical: "#dc2626",
@@ -56,10 +57,10 @@ export default function RisksPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "4px" }}>Inventory Risk</h1>
-      <p style={{ color: "var(--text-secondary)", marginBottom: "24px" }}>
-        Stockout risk scores from the latest completed risk run
-      </p>
+      <PageHeader
+        title="Inventory risk"
+        subtitle="Prioritize product and store combinations using projected demand, inventory coverage, and supplier lead times."
+      />
 
       {loading && <LoadingState />}
       {error && <ErrorState message={error} onRetry={() => load()} />}

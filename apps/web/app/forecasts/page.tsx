@@ -22,6 +22,7 @@ import ChartCard from "@/components/ChartCard";
 import LineChartPanel from "@/components/LineChartPanel";
 import BarChartPanel from "@/components/BarChartPanel";
 import KpiCard from "@/components/KpiCard";
+import PageHeader from "@/components/PageHeader";
 
 export default function ForecastsPage() {
   const [summary, setSummary] = useState<DashboardForecastSummaryResponse | null>(null);
@@ -86,10 +87,10 @@ export default function ForecastsPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "4px" }}>Forecasts</h1>
-      <p style={{ color: "var(--text-secondary)", marginBottom: "24px" }}>
-        Demand forecast runs and model accuracy metrics
-      </p>
+      <PageHeader
+        title="Demand forecasts"
+        subtitle="Inspect backtest accuracy, compare model performance, and explore product-level prediction intervals."
+      />
 
       {loading && <LoadingState />}
       {error && <ErrorState message={error} onRetry={load} />}

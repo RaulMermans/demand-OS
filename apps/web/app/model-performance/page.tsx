@@ -15,6 +15,7 @@ import DataTable from "@/components/DataTable";
 import ChartCard from "@/components/ChartCard";
 import BarChartPanel from "@/components/BarChartPanel";
 import KpiCard from "@/components/KpiCard";
+import PageHeader from "@/components/PageHeader";
 
 export default function ModelPerformancePage() {
   const [summary, setSummary] = useState<DashboardModelSummaryResponse | null>(null);
@@ -58,10 +59,10 @@ export default function ModelPerformancePage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "4px" }}>Model Performance</h1>
-      <p style={{ color: "var(--text-secondary)", marginBottom: "24px" }}>
-        ML model registry, accuracy metrics, and baseline comparison
-      </p>
+      <PageHeader
+        title="Model performance"
+        subtitle="Compare the global ML forecaster with transparent baselines using persisted backtest metrics."
+      />
 
       {loading && <LoadingState />}
       {error && <ErrorState message={error} onRetry={load} />}

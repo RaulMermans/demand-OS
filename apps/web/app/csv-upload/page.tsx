@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useRef } from "react";
+import PageHeader from "@/components/PageHeader";
+import ApiKeyInput from "@/components/ApiKeyInput";
+import StatusBadge from "@/components/StatusBadge";
+import { getStoredApiKey } from "@/lib/apiKey";
 
 const ENTITY_TYPES = [
   "products",
@@ -40,15 +44,19 @@ interface UploadRun {
   created_at: string;
 }
 
+interface UploadResult {
+  records_inserted: number;
+  upload_id: string;
+}
+
 export default function CsvUploadPage() {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   const [entityType, setEntityType] = useState("products");
   const [file, setFile] = useState<File | null>(null);
-  const [apiKey, setApiKey] = useState("");
   const [validating, setValidating] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
-  const [uploadResult, setUploadResult] = useState<any>(null);
+  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const [history, setHistory] = useState<UploadRun[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [error, setError] = useState("");
@@ -80,8 +88,8 @@ export default function CsvUploadPage() {
       } else {
         setValidation(d);
       }
-    } catch (e: any) {
-      setError(e.message || "Network error");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Network error");
     } finally {
       setValidating(false);
     }
@@ -95,6 +103,7 @@ export default function CsvUploadPage() {
     fd.append("entity_type", entityType);
     fd.append("file", file);
     const headers: Record<string, string> = {};
+    const apiKey = getStoredApiKey();
     if (apiKey) headers["X-DemandOS-API-Key"] = apiKey;
     try {
       const r = await fetch(`${base}/api/csv/upload`, {
@@ -113,8 +122,8 @@ export default function CsvUploadPage() {
         setUploadResult(d);
         loadHistory();
       }
-    } catch (e: any) {
-      setError(e.message || "Network error");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Network error");
     } finally {
       setUploading(false);
     }
@@ -137,12 +146,17 @@ export default function CsvUploadPage() {
   );
 
   return (
-    <div style={{ maxWidth: "860px" }}>
-      <h1 style={{ fontSize: "22px", fontWeight: 700, marginBottom: "6px" }}>CSV Upload</h1>
-      <p style={{ color: "var(--text-secondary)", marginBottom: "24px", fontSize: "13px" }}>
-        Import raw operational records from CSV files. DemandOS accepts raw data only —
-        no derived features, forecasts, or risk scores.
-      </p>
+    <div>
+      <PageHeader
+        title="CSV upload"
+        subtitle="Validate and ingest bounded raw operational files using the same raw-data contracts as the synthetic connector."
+        badge="Raw records only · 2 MB prototype limit"
+      />
+      <div className="notice notice-warning" style={{ marginBottom: "20px" }}>
+        Derived or precomputed fields—features, forecasts, risk scores, safety stock,
+        or reorder quantities—are rejected. Download the selected entity template first.
+      </div>
+      <ApiKeyInput />
 
       {/* Entity selector */}
       <div
@@ -250,38 +264,18 @@ export default function CsvUploadPage() {
           </button>
         </div>
 
-        <div style={{ marginTop: "12px" }}>
-          <label style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>
-            API Key (required in production)
-          </label>
-          <input
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="X-DemandOS-API-Key"
-            style={{
-              padding: "6px 10px",
-              borderRadius: "6px",
-              border: "1px solid var(--border)",
-              background: "var(--surface-2)",
-              color: "var(--text-primary)",
-              fontSize: "12px",
-              width: "240px",
-            }}
-          />
-        </div>
       </div>
 
       {error && (
         <div
           style={{
-            background: "#2d1a1a",
-            border: "1px solid #8b2222",
+            background: "var(--danger-soft)",
+            border: "1px solid #fecdd3",
             borderRadius: "6px",
             padding: "12px 16px",
             marginBottom: "16px",
             fontSize: "13px",
-            color: "#ff9999",
+            color: "var(--danger)",
           }}
         >
           {error}
@@ -302,14 +296,14 @@ export default function CsvUploadPage() {
           <div style={{ fontWeight: 600, fontSize: "14px", marginBottom: "10px" }}>
             Validation Result{" "}
             {validation.is_valid
-              ? pill("VALID", "#2a7a2a")
-              : pill("INVALID", "#8b2222")}
+              ? <StatusBadge value="completed" label="Valid" />
+              : <StatusBadge value="failed" label="Invalid" />}
           </div>
           <div style={{ display: "flex", gap: "24px", fontSize: "13px", marginBottom: "10px" }}>
             <span>Rows: <strong>{validation.row_count}</strong></span>
-            <span style={{ color: "#4caf50" }}>Valid: <strong>{validation.valid_row_count}</strong></span>
+            <span style={{ color: "var(--success)" }}>Valid: <strong>{validation.valid_row_count}</strong></span>
             {validation.invalid_row_count > 0 && (
-              <span style={{ color: "#f44336" }}>Invalid: <strong>{validation.invalid_row_count}</strong></span>
+              <span style={{ color: "var(--danger)" }}>Invalid: <strong>{validation.invalid_row_count}</strong></span>
             )}
           </div>
           {validation.errors.length > 0 && (
@@ -330,7 +324,7 @@ export default function CsvUploadPage() {
                     <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
                       <td style={{ padding: "4px 8px", color: "var(--text-secondary)" }}>{e.row}</td>
                       <td style={{ padding: "4px 8px" }}>{e.field}</td>
-                      <td style={{ padding: "4px 8px", color: "#ff9999" }}>{e.message}</td>
+                      <td style={{ padding: "4px 8px", color: "var(--danger)" }}>{e.message}</td>
                     </tr>
                   ))}
                 </tbody>

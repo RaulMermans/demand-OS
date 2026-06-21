@@ -9,7 +9,7 @@
 ## Summary
 
 DemandOS is a portfolio MVP demonstrating a deterministic machine learning pipeline
-for demand forecasting and inventory risk management in retail. Built in 12 sprints
+for demand forecasting and inventory risk management in retail. Built in 14 sprints
 over a single-developer project, it ingests raw synthetic commerce records, runs a
 full feature engineering and backtesting pipeline, trains a gradient boosting
 forecasting model, scores each product/store pair for stockout risk, and generates
@@ -58,7 +58,7 @@ as a reference implementation for this class of system.
 | No real purchase orders | Recommendations are internal suggestions — no external actions |
 | No real supplier communication | No emails, webhooks, or ERP write calls |
 | Serverless budget | Demo pipeline must complete within Vercel's 60s function timeout in small mode |
-| Single developer, 12 sprints | One capability per sprint, sequentially layered |
+| Single developer, 14 sprints | Capabilities layered sequentially, followed by public-release polish |
 | No precomputed metrics | Every number the dashboard shows must be computed by the pipeline |
 
 ---
@@ -265,6 +265,10 @@ DemandOS only. No external action is taken.
 | Data Health | `/data-health` | Raw + canonical table counts, check list, run history |
 | Pipeline Controls | `/pipeline` | Step-by-step controls; full pipeline run with durable log |
 | Product Drilldown | `/products/{id}` | Per-product forecast chart + risk per store + recommendations |
+| CSV Upload | `/csv-upload` | Raw-data template guidance, validation summary, errors, and upload history |
+| Monitoring | `/monitoring` | Previous-vs-latest model and data-health comparisons |
+| Scenarios | `/scenarios` | Simulated, non-mutating before/after risk comparisons |
+| Connectors | `/connectors` | Disabled connector status, config validation, and no-network dry runs |
 
 All values on all pages are fetched live from the API. No hardcoded metrics.
 
@@ -303,7 +307,8 @@ All values on all pages are fetched live from the API. No hardcoded metrics.
 
 ## Reliability, Testing, and Observability
 
-**Backend tests: 709 passing** across 15 test files (pytest, SQLite in-memory, no external DB needed for CI)
+**Backend verification:** the complete pytest suite passes using isolated test
+databases, with no external API dependency required for CI.
 
 | Test file | Coverage |
 |-----------|----------|
@@ -340,7 +345,10 @@ all dashboard endpoints, runtime mode, demo scale, core data counts, no secret l
 
 ## Screenshots
 
-All screenshots captured via Playwright CLI on 2026-06-21 against the deployed app.
+Core screenshots 1–9 were captured via Playwright against the deployed app before
+the Sprint 14 visual refresh. They are scheduled for recapture after the refreshed
+deployment. Advanced screenshots 13–16 are also pending that deployment; Vercel,
+Neon, and GitHub Actions views remain manual and require redaction.
 
 | File | Page | What it proves |
 |------|------|----------------|
@@ -354,8 +362,12 @@ All screenshots captured via Playwright CLI on 2026-06-21 against the deployed a
 | [`08-data-health.png`](screenshots/08-data-health.png) | `/data-health` | Table counts and health checks |
 | [`09-product-drilldown.png`](screenshots/09-product-drilldown.png) | `/products/prod_008` | Per-product forecast + risk + recs |
 | `10-vercel-deployment.png` | Vercel dashboard | Single-project deployment (**pending manual capture**) |
-| `11-neon-connection.png` | Vercel Storage | Neon integration panel (**pending manual capture**) |
+| `11-neon-connection-redacted.png` | Vercel Storage | Neon integration panel (**pending manual capture**) |
 | `12-ci-passing.png` | GitHub Actions | All CI jobs green (**pending manual capture**) |
+| `13-csv-upload.png` | `/csv-upload` | Raw-data validation/upload workflow (**pending refreshed deploy**) |
+| `14-monitoring.png` | `/monitoring` | Model/data comparison dashboard (**pending refreshed deploy**) |
+| `15-scenarios.png` | `/scenarios` | Simulated before/after comparison (**pending refreshed deploy**) |
+| `16-connectors.png` | `/connectors` | Disabled connector readiness (**pending refreshed deploy**) |
 
 ---
 
@@ -369,7 +381,7 @@ The deployed prototype at `https://demand-os-three.vercel.app` demonstrates:
    business figures anywhere in the frontend.
 3. Serverless deployability on a free Vercel + Neon tier with ~35-second full pipeline
    runs in small mode.
-4. 709 backend tests covering every pipeline stage; `verify.sh` with 100+ structural
+4. A comprehensive backend suite covering every pipeline stage; `verify.sh` with structural
    checks; and a production smoke script that validates 18 conditions against the
    live deployment.
 
@@ -385,21 +397,20 @@ The deployed prototype at `https://demand-os-three.vercel.app` demonstrates:
 | Real purchase order creation | Safety boundary — recommendations are internal only |
 | Email/Slack notifications | External side effects; excluded by design |
 | User accounts / JWT auth | Overkill for single-operator demo |
-| Model monitoring / drift detection | Sprint 13+ roadmap |
+| Automated monitoring alerts | Monitoring is visible in-app; no email/Slack side effects |
 | Calibrated probabilistic intervals | p10/p90 are ±1σ heuristics, documented as such |
 | Background schedulers (cron) | Serverless constraint; out of scope |
 | Multi-tenant support | Single-operator demo |
-| CSV upload connector | Stub ready; implementation deferred |
+| Large-file ingestion | CSV upload is intentionally limited to 2 MB |
 
 ---
 
 ## Future Roadmap
 
-**Immediate (Sprint 13+):**
-- `CsvCommerceConnector` — real file parsing with column mapping
-- `ShopifyConnector` — Admin API ingestion of real order/inventory data
+**Future work:**
+- Live connectors only after credential, privacy, retry, and rate-limit design
 - Calibrated prediction intervals (conformal prediction)
-- Model monitoring and drift detection
+- Scheduled monitoring and alert delivery behind explicit operator controls
 
 **Infrastructure (if moving beyond prototype):**
 - Dedicated FastAPI backend on Render/Railway/Fly.io (removes Vercel 60s limit)
@@ -409,6 +420,31 @@ The deployed prototype at `https://demand-os-three.vercel.app` demonstrates:
 
 ---
 
+## Sprint 13 — Optional Feature Consolidation
+
+Sprint 13 added four bounded, portfolio-oriented capabilities:
+
+- **CSV upload mode** validates raw operational records before ingestion, enforces
+  a 2 MB limit, and rejects derived fields.
+- **Monitoring dashboard** compares the latest model and data-health signals with
+  the previous completed run using documented thresholds.
+- **Scenario planning** stores simulated what-if results separately and never
+  mutates canonical forecasts, risks, recommendations, or inventory.
+- **Connector preparation** keeps Shopify and WooCommerce as disabled connector
+  stubs. Configuration validation and dry runs make no live API calls.
+
+## Sprint 14 — Public Release Polish
+
+Sprint 14 focused on presentation and trust rather than new product behavior:
+
+- Refreshed the dashboard with a calm off-white, indigo, slate, emerald, amber,
+  and rose visual system.
+- Standardized navigation, page headers, KPI cards, tables, badges, forms, charts,
+  loading states, empty states, and error states.
+- Added a public-readiness audit for secrets, database URLs, generated data,
+  model artifacts, duplicate files, and forbidden environment files.
+- Updated the README, portfolio draft, screenshot plan, QA checklist, and release notes.
+
 ## Final Status
 
 **DemandOS is a portfolio prototype. MVP is complete.**
@@ -416,11 +452,13 @@ The deployed prototype at `https://demand-os-three.vercel.app` demonstrates:
 - All pipeline stages implemented and working end-to-end.
 - Deployed and reachable at `https://demand-os-three.vercel.app`.
 - All dashboard pages show real computed data — no hardcoded metrics.
-- 709 backend tests passing; frontend build passing; CI green.
+- Backend tests, frontend build, structural verification, and public-readiness scan pass.
 - Production smoke script passes: 18/18 checks against the live deployment.
-- 9 of 12 portfolio screenshots captured automatically; 3 require manual capture
-  from the Vercel dashboard and GitHub Actions.
+- 9 core application screenshots exist from Sprint 12; refreshed captures and four
+  advanced-page screenshots are pending the Sprint 14 deployment. Three infrastructure
+  screenshots require manual authenticated capture and redaction.
 
-This is not a production inventory management system. It is an honest, well-engineered
-demonstration of what a demand forecasting pipeline looks like under the hood —
+This is not a production inventory management system or a customer deployment. It
+is an honest, internal-tool-style portfolio MVP demonstrating what a demand
+forecasting pipeline looks like under the hood —
 from raw data ingestion to actionable reorder recommendations.

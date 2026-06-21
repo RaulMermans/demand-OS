@@ -3,8 +3,9 @@ import "./globals.css";
 import AppShell from "@/components/AppShell";
 
 export const metadata: Metadata = {
-  title: "DemandOS",
-  description: "Demand forecasting and inventory risk platform",
+  title: "DemandOS — Demand Forecasting & Inventory Risk",
+  description:
+    "A public portfolio prototype for deterministic demand forecasting, stockout risk, and reorder planning.",
 };
 
 export default function RootLayout({

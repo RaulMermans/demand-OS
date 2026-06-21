@@ -194,7 +194,7 @@ The following are intentionally out of scope and will not be added:
 - Automatic background scheduling (cron-based pipeline runs)
 - Shopify/WooCommerce live API calls in the current connectors
 - User accounts or JWT authentication
-- Model monitoring or drift detection
+- Automated monitoring alerts or external notification delivery
 - Multi-tenant support
 
 ---
@@ -297,3 +297,13 @@ python scripts/smoke_production.py \
 
 DemandOS MVP is complete as of Sprint 12 (2026-06-21).
 All pipeline stages are implemented, tested, deployed, and validated.
+
+---
+
+## Sprint 14 — Public Demo Operations
+
+- `/csv-upload` accepts raw operational files only and enforces a 2 MB prototype limit.
+- `/monitoring` computes internal comparisons; it does not send alerts.
+- `/scenarios` stores simulated outputs separately and does not mutate canonical data.
+- `/connectors` exposes disabled stubs and no-network validation/dry-run behavior only.
+- Run `python scripts/public_readiness_check.py` before any public release.

@@ -78,6 +78,10 @@ export default function ProductDrilldownPage() {
       <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginBottom: "24px" }}>
         {product.sku} · {product.category ?? "—"} · {product.brand ?? "—"}
       </p>
+      <div className="notice notice-info" style={{ marginBottom: "24px" }}>
+        Product-level forecasts, risks, and internal reorder guidance are computed
+        from the latest completed pipeline runs.
+      </div>
 
       {/* Product metadata */}
       <section style={{ marginBottom: "32px" }}>
@@ -104,8 +108,9 @@ export default function ProductDrilldownPage() {
               style={{
                 background: "var(--surface)",
                 border: "1px solid var(--border)",
-                borderRadius: "8px",
-                padding: "14px",
+                borderRadius: "12px",
+                padding: "16px",
+                boxShadow: "var(--shadow-sm)",
               }}
             >
               <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginBottom: "4px" }}>{label}</div>

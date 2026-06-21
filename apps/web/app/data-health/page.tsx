@@ -7,6 +7,7 @@ import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
 import StatusBadge from "@/components/StatusBadge";
+import PageHeader from "@/components/PageHeader";
 
 export default function DataHealthPage() {
   const [data, setData] = useState<DataHealthResponse | null>(null);
@@ -29,10 +30,10 @@ export default function DataHealthPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "4px" }}>Data Health</h1>
-      <p style={{ color: "var(--text-secondary)", marginBottom: "24px" }}>
-        Record counts and validation status for every pipeline layer
-      </p>
+      <PageHeader
+        title="Data health"
+        subtitle="Validate pipeline integrity and inspect record volumes from raw ingestion through recommendations."
+      />
 
       {loading && <LoadingState />}
       {error && <ErrorState message={error} onRetry={load} />}

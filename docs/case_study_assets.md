@@ -2,8 +2,9 @@
 
 Screenshots and supporting assets for the portfolio case study.
 
-**Sprint 12 capture status:** 9 of 12 screenshots captured automatically via Playwright CLI.
-Remaining 3 require manual capture from third-party dashboards (Vercel, Neon, GitHub).
+**Sprint 14 capture status:** core application screenshots exist from Sprint 12.
+Screenshots 1–9 and 13–16 should be recaptured after the refreshed UI deploys.
+Vercel, Neon, and GitHub views remain manual and must be redacted.
 
 To recapture: `python scripts/capture_screenshots.py --base-url https://demand-os-three.vercel.app`
 
@@ -197,6 +198,44 @@ repo-hygiene jobs all green.
 - No secrets or forbidden files are committed.
 
 **Filename:** `screenshots/12_ci_passing.png`
+
+---
+
+### 13. CSV Upload
+
+**URL:** `https://demand-os-three.vercel.app/csv-upload`
+
+Capture the entity template guidance, raw-data-only notice, 2 MB limit, validation
+summary, and upload-history area. Do not upload real data for the screenshot.
+
+**Filename:** `screenshots/13-csv-upload.png`
+
+### 14. Monitoring
+
+**URL:** `https://demand-os-three.vercel.app/monitoring`
+
+Capture green/yellow/red explanations, latest-vs-previous columns, and the
+Run Monitoring control. No notification or external alert should be implied.
+
+**Filename:** `screenshots/14-monitoring.png`
+
+### 15. Scenario Planning
+
+**URL:** `https://demand-os-three.vercel.app/scenarios`
+
+Capture bounded inputs, the simulated/non-mutating label, before/after metrics,
+and the top impacted product/store comparison.
+
+**Filename:** `screenshots/15-scenarios.png`
+
+### 16. Connectors
+
+**URL:** `https://demand-os-three.vercel.app/connectors`
+
+Capture Shopify/WooCommerce disabled status, credential requirements, dry-run
+explanation, and the explicit no-live-API-call notice.
+
+**Filename:** `screenshots/16-connectors.png`
 
 ---
 

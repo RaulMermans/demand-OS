@@ -11,9 +11,12 @@ export default function LoadingState({ message = "Loading..." }: LoadingStatePro
         display: "flex",
         alignItems: "center",
         gap: "12px",
-        padding: "40px 0",
+        padding: "42px 20px",
         color: "var(--text-secondary)",
         fontSize: "14px",
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "12px",
       }}
     >
       <div
@@ -27,7 +30,6 @@ export default function LoadingState({ message = "Loading..." }: LoadingStatePro
         }}
       />
       {message}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

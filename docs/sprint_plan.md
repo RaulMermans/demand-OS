@@ -403,7 +403,7 @@ cd apps/web && npm run dev  # port 3000
 **API Key Guard usage:**
 ```bash
 # Set key in .env (never commit):
-DEMANDOS_API_KEY=your-secret-key
+DEMANDOS_API_KEY=<local-development-key>
 
 # Call with key:
 curl -X POST http://localhost:8000/api/aggregation/run \
@@ -571,7 +571,7 @@ capture screenshots, and mark DemandOS complete.
 DemandOS MVP closed Sprint 12.
 
 - Deployed: https://demand-os-three.vercel.app
-- Backend tests: 709 passing
+- Backend tests: full Sprint 12 suite passing
 - Frontend build: passing
 - CI: green
 - Production smoke: 18/18
@@ -633,3 +633,23 @@ DemandOS MVP closed Sprint 12.
 - Vercel deployment compatibility maintained
 
 **Sprint 13 Status: COMPLETE ✅**
+
+## Sprint 14 — Public Release Polish (2026-06-21)
+
+**Goal:** Make DemandOS safe and polished for a public portfolio release without
+adding new forecasting, risk, recommendation, connector, or automation behavior.
+
+### Delivered
+
+- [x] Calm light visual system with consistent semantic colors
+- [x] Refreshed global layout, sidebar, headers, cards, tables, charts, badges, and forms
+- [x] Screenshot-ready subtitles and explicit synthetic-data/safety context
+- [x] CSV upload, monitoring, scenarios, connectors, and product drilldown polish
+- [x] `scripts/public_readiness_check.py`
+- [x] `scripts/verify.sh` Sprint 14 checks
+- [x] Public README, case study, portfolio draft, screenshot docs, QA, and release notes
+- [x] Duplicate-file and public-repository hygiene cleanup
+- [ ] Post-deploy production smoke and refreshed screenshot capture
+
+**Safety boundaries unchanged:** no external connector calls, purchase orders,
+supplier communication, alerts, real customer data, or autonomous actions.

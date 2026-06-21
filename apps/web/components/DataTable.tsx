@@ -37,31 +37,15 @@ export default function DataTable<T extends Record<string, unknown>>({
   }
 
   return (
-    <div
-      style={{
-        overflowX: "auto",
-        border: "1px solid var(--border)",
-        borderRadius: "8px",
-      }}
-    >
-      <table
-        style={{
-          width: "100%",
-          borderCollapse: "collapse",
-          fontSize: "13px",
-        }}
-      >
+    <div className="table-shell">
+      <table className="data-table">
         <thead>
-          <tr style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+          <tr>
             {columns.map((col) => (
               <th
                 key={col.key}
                 style={{
-                  padding: "10px 14px",
                   textAlign: col.align ?? "left",
-                  fontWeight: 600,
-                  color: "var(--text-secondary)",
-                  whiteSpace: "nowrap",
                 }}
               >
                 {col.header}
@@ -73,18 +57,12 @@ export default function DataTable<T extends Record<string, unknown>>({
           {rows.map((row, i) => (
             <tr
               key={i}
-              style={{
-                borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none",
-                background: i % 2 === 0 ? "var(--surface)" : "transparent",
-              }}
             >
               {columns.map((col) => (
                 <td
                   key={col.key}
                   style={{
-                    padding: "10px 14px",
                     textAlign: col.align ?? "left",
-                    color: "var(--text-primary)",
                   }}
                 >
                   {col.render
