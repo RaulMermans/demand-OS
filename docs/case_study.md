@@ -345,10 +345,9 @@ all dashboard endpoints, runtime mode, demo scale, core data counts, no secret l
 
 ## Screenshots
 
-Core screenshots 1–9 were captured via Playwright against the deployed app before
-the Sprint 14 visual refresh. They are scheduled for recapture after the refreshed
-deployment. Advanced screenshots 13–16 are also pending that deployment; Vercel,
-Neon, and GitHub Actions views remain manual and require redaction.
+Application screenshots 1–9 and 13–16 were recaptured via Playwright against the
+Sprint 14 production deployment. Vercel, Neon, and GitHub Actions views remain
+manual and require redaction.
 
 | File | Page | What it proves |
 |------|------|----------------|
@@ -364,10 +363,10 @@ Neon, and GitHub Actions views remain manual and require redaction.
 | `10-vercel-deployment.png` | Vercel dashboard | Single-project deployment (**pending manual capture**) |
 | `11-neon-connection-redacted.png` | Vercel Storage | Neon integration panel (**pending manual capture**) |
 | `12-ci-passing.png` | GitHub Actions | All CI jobs green (**pending manual capture**) |
-| `13-csv-upload.png` | `/csv-upload` | Raw-data validation/upload workflow (**pending refreshed deploy**) |
-| `14-monitoring.png` | `/monitoring` | Model/data comparison dashboard (**pending refreshed deploy**) |
-| `15-scenarios.png` | `/scenarios` | Simulated before/after comparison (**pending refreshed deploy**) |
-| `16-connectors.png` | `/connectors` | Disabled connector readiness (**pending refreshed deploy**) |
+| [`13-csv-upload.png`](screenshots/13-csv-upload.png) | `/csv-upload` | Raw-data validation/upload workflow |
+| [`14-monitoring.png`](screenshots/14-monitoring.png) | `/monitoring` | Model/data comparison dashboard |
+| [`15-scenarios.png`](screenshots/15-scenarios.png) | `/scenarios` | Simulated before/after comparison |
+| [`16-connectors.png`](screenshots/16-connectors.png) | `/connectors` | Disabled connector readiness |
 
 ---
 
@@ -454,9 +453,8 @@ Sprint 14 focused on presentation and trust rather than new product behavior:
 - All dashboard pages show real computed data — no hardcoded metrics.
 - Backend tests, frontend build, structural verification, and public-readiness scan pass.
 - Production smoke script passes: 18/18 checks against the live deployment.
-- 9 core application screenshots exist from Sprint 12; refreshed captures and four
-  advanced-page screenshots are pending the Sprint 14 deployment. Three infrastructure
-  screenshots require manual authenticated capture and redaction.
+- 13 application screenshots were captured from the Sprint 14 production deployment.
+  Three infrastructure screenshots require manual authenticated capture and redaction.
 
 This is not a production inventory management system or a customer deployment. It
 is an honest, internal-tool-style portfolio MVP demonstrating what a demand

@@ -294,14 +294,14 @@ Tool: `python scripts/capture_screenshots.py --base-url https://demand-os-three.
   badges, forms, loading, empty, and error states refreshed
 - [x] CSV upload, monitoring, scenarios, and connectors pages polished
 - [x] README, case study, portfolio landing draft, screenshot guide, and assets updated
-- [ ] Screenshots 1–9 and 13–16 recaptured after deployment
+- [x] Screenshots 1–9 and 13–16 recaptured after deployment
 - [ ] Screenshots 10–12 captured manually and redacted
 
 ### Production validation
 
-- [ ] Read-only production smoke passes after Sprint 14 deployment
-- [ ] Refreshed deployment is visible at `https://demand-os-three.vercel.app`
-- [ ] Protected pipeline smoke skipped unless an API key and explicit mutation are intended
+- [x] Read-only production smoke passes after Sprint 14 deployment — 29/29
+- [x] Refreshed deployment is visible at `https://demand-os-three.vercel.app`
+- [x] Protected pipeline smoke skipped; no API key was provided and no mutation was intended
 
 Initial Sprint 14 deployment diagnosis: Vercel installs Python packages from root
 `requirements.txt`; the existing `python-multipart` dependency had only been added
@@ -319,5 +319,5 @@ manifest so CSV `Form`/`UploadFile` routes can register at function startup.
 
 ### Release sign-off
 
-- [ ] Public repo readiness approved
-- [ ] Portfolio readiness approved
+- [x] Public repo readiness approved
+- [x] Portfolio readiness approved, with manual infrastructure screenshots still pending

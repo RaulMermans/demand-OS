@@ -70,7 +70,7 @@ Final command results are recorded in [final_qa_checklist.md](final_qa_checklist
 - [x] Sprint 14 visual refresh implemented
 - [x] Public-readiness audit added
 - [x] Safety boundaries retained
-- [ ] Refreshed deployment validated
-- [ ] Updated automated screenshots captured
+- [x] Refreshed deployment validated
+- [x] Updated automated screenshots captured
 - [ ] Manual deployment/Neon/CI screenshots captured and redacted
 - [ ] Maintainer selects a repository license if reuse is intended

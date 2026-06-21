@@ -649,7 +649,7 @@ adding new forecasting, risk, recommendation, connector, or automation behavior.
 - [x] `scripts/verify.sh` Sprint 14 checks
 - [x] Public README, case study, portfolio draft, screenshot docs, QA, and release notes
 - [x] Duplicate-file and public-repository hygiene cleanup
-- [ ] Post-deploy production smoke and refreshed screenshot capture
+- [x] Post-deploy production smoke (29/29) and refreshed screenshot capture
 
 **Safety boundaries unchanged:** no external connector calls, purchase orders,
 supplier communication, alerts, real customer data, or autonomous actions.

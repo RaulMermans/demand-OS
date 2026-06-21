@@ -2,9 +2,8 @@
 
 Screenshots and supporting assets for the portfolio case study.
 
-**Sprint 14 capture status:** core application screenshots exist from Sprint 12.
-Screenshots 1–9 and 13–16 should be recaptured after the refreshed UI deploys.
-Vercel, Neon, and GitHub views remain manual and must be redacted.
+**Sprint 14 capture status:** 13 application screenshots were recaptured from the
+production deployment. Vercel, Neon, and GitHub views remain manual and must be redacted.
 
 To recapture: `python scripts/capture_screenshots.py --base-url https://demand-os-three.vercel.app`
 
@@ -277,5 +276,9 @@ Do not commit generated data, model artifacts, or `.env` files alongside screens
 | 8 | `08-data-health.png` | ✅ Captured | 2026-06-21 via Playwright |
 | 9 | `09-product-drilldown.png` | ✅ Captured | 2026-06-21 via Playwright (prod_008) |
 | 10 | `10-vercel-deployment.png` | ⏳ Pending | Manual — Vercel dashboard |
-| 11 | `11-neon-connection.png` | ⏳ Pending | Manual — Vercel Storage panel |
+| 11 | `11-neon-connection-redacted.png` | ⏳ Pending | Manual — Vercel Storage panel |
 | 12 | `12-ci-passing.png` | ⏳ Pending | Manual — GitHub Actions |
+| 13 | `13-csv-upload.png` | ✅ Captured | 2026-06-21 via Playwright |
+| 14 | `14-monitoring.png` | ✅ Captured | 2026-06-21 via Playwright |
+| 15 | `15-scenarios.png` | ✅ Captured | 2026-06-21 via Playwright |
+| 16 | `16-connectors.png` | ✅ Captured | 2026-06-21 via Playwright |

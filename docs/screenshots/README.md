@@ -23,10 +23,10 @@ python scripts/capture_screenshots.py \
 | 10 | `10-vercel-deployment.png` | Vercel dashboard | ⏳ Manual |
 | 11 | `11-neon-connection-redacted.png` | Neon/Vercel integration | ⏳ Manual |
 | 12 | `12-ci-passing.png` | GitHub Actions | ⏳ Manual |
-| 13 | `13-csv-upload.png` | `/csv-upload` | ⏳ Recapture after Sprint 14 deploy |
-| 14 | `14-monitoring.png` | `/monitoring` | ⏳ Recapture after Sprint 14 deploy |
-| 15 | `15-scenarios.png` | `/scenarios` | ⏳ Recapture after Sprint 14 deploy |
-| 16 | `16-connectors.png` | `/connectors` | ⏳ Recapture after Sprint 14 deploy |
+| 13 | `13-csv-upload.png` | `/csv-upload` | ✅ Captured |
+| 14 | `14-monitoring.png` | `/monitoring` | ✅ Captured |
+| 15 | `15-scenarios.png` | `/scenarios` | ✅ Captured |
+| 16 | `16-connectors.png` | `/connectors` | ✅ Captured |
 
 The application captures should show computed backend data where available. Empty
 states are acceptable only when they clearly explain the next action.
@@ -59,8 +59,8 @@ jobs visible and green.
 
 ## Sprint 14 Capture Checklist
 
-- [ ] Refreshed visual system is deployed.
-- [ ] Read-only production smoke passes.
-- [ ] Screenshots 1–9 and 13–16 are recaptured from the refreshed deployment.
+- [x] Refreshed visual system is deployed.
+- [x] Read-only production smoke passes.
+- [x] Screenshots 1–9 and 13–16 are recaptured from the refreshed deployment.
 - [ ] Manual screenshots 10–12 are redacted and reviewed.
-- [ ] No secret values or connection strings are visible.
+- [x] No secret values or connection strings are visible in automated captures.
