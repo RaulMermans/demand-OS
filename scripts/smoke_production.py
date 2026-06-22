@@ -384,6 +384,77 @@ def main() -> int:
         results.append(ok2)
 
     # -----------------------------------------------------------------------
+    # Sprint 15 — data science summary endpoints (read-only)
+    # -----------------------------------------------------------------------
+    print()
+    print("[ S15-1 ] Data science summary")
+    status, body = _request("GET", f"{base}/api/data-science/summary", read_headers)
+    ok = check("GET /api/data-science/summary returns 200", status == 200, f"HTTP {status}")
+    ds_data: dict[str, Any] = body if isinstance(body, dict) else {}
+    results.append(ok)
+    if ok:
+        ok2 = check("summary has status field",
+                    "status" in ds_data,
+                    str(ds_data)[:80])
+        results.append(ok2)
+        ok3 = check("summary has pipeline_story",
+                    "pipeline_story" in ds_data and isinstance(ds_data.get("pipeline_story"), list),
+                    "")
+        results.append(ok3)
+
+    print()
+    print("[ S15-2 ] Forecast diagnostics")
+    status, body = _request("GET", f"{base}/api/data-science/forecast-diagnostics", read_headers)
+    ok = check("GET /api/data-science/forecast-diagnostics returns 200", status == 200, f"HTTP {status}")
+    results.append(ok)
+    if ok:
+        fd_data: dict[str, Any] = body if isinstance(body, dict) else {}
+        ok2 = check("diagnostics has has_model",
+                    "has_model" in fd_data,
+                    str(fd_data)[:80])
+        results.append(ok2)
+
+    print()
+    print("[ S15-3 ] Model comparison")
+    status, body = _request("GET", f"{base}/api/data-science/model-comparison", read_headers)
+    ok = check("GET /api/data-science/model-comparison returns 200", status == 200, f"HTTP {status}")
+    results.append(ok)
+    if ok:
+        mc_data: dict[str, Any] = body if isinstance(body, dict) else {}
+        ok2 = check("comparison has models list",
+                    "models" in mc_data and isinstance(mc_data.get("models"), list),
+                    "")
+        results.append(ok2)
+
+    print()
+    print("[ S15-4 ] Feature signals")
+    status, body = _request("GET", f"{base}/api/data-science/feature-signals", read_headers)
+    ok = check("GET /api/data-science/feature-signals returns 200", status == 200, f"HTTP {status}")
+    results.append(ok)
+    if ok:
+        fs_data: dict[str, Any] = body if isinstance(body, dict) else {}
+        ok2 = check("feature signals has signals list",
+                    "signals" in fs_data and isinstance(fs_data.get("signals"), list),
+                    "")
+        results.append(ok2)
+        ok3 = check("feature signals has positive total_features",
+                    isinstance(fs_data.get("total_features"), int) and (fs_data.get("total_features") or 0) > 0,
+                    "")
+        results.append(ok3)
+
+    print()
+    print("[ S15-5 ] Business impact")
+    status, body = _request("GET", f"{base}/api/data-science/business-impact", read_headers)
+    ok = check("GET /api/data-science/business-impact returns 200", status == 200, f"HTTP {status}")
+    results.append(ok)
+    if ok:
+        bi_data: dict[str, Any] = body if isinstance(body, dict) else {}
+        ok2 = check("business impact has automation_note",
+                    "automation_note" in bi_data,
+                    str(bi_data)[:80])
+        results.append(ok2)
+
+    # -----------------------------------------------------------------------
     # Optional: run full pipeline (only with --run-pipeline)
     # -----------------------------------------------------------------------
     if run_pipeline:

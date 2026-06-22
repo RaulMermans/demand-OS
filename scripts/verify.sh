@@ -779,6 +779,158 @@ fi
 echo ""
 
 # -------------------------------------------------------------------
+# Sprint 15 — Data science explainability + ML Insights polish
+# -------------------------------------------------------------------
+echo "Sprint 15 backend files..."
+SPRINT15_BACKEND=(
+  "apps/api/app/schemas/data_science.py"
+  "apps/api/app/services/data_science_summary_service.py"
+  "apps/api/app/api/data_science.py"
+  "apps/api/tests/test_data_science.py"
+)
+for f in "${SPRINT15_BACKEND[@]}"; do
+  if [ -f "$f" ]; then
+    echo "   ✅ $f"
+    ((PASS += 1))
+  else
+    echo "   ❌ $f — MISSING"
+    ((FAIL += 1))
+  fi
+done
+
+echo ""
+echo "Sprint 15 frontend pages..."
+SPRINT15_FRONTEND=(
+  "apps/web/app/data-science/page.tsx"
+)
+for f in "${SPRINT15_FRONTEND[@]}"; do
+  if [ -f "$f" ]; then
+    echo "   ✅ $f"
+    ((PASS += 1))
+  else
+    echo "   ❌ $f — MISSING"
+    ((FAIL += 1))
+  fi
+done
+
+echo ""
+echo "Sprint 15 — nav and content checks..."
+
+if grep -q "ML Insights" apps/web/components/AppShell.tsx 2>/dev/null; then
+  echo "   ✅ AppShell has 'ML Insights' nav item"
+  ((PASS += 1))
+else
+  echo "   ❌ AppShell missing 'ML Insights' nav item"
+  ((FAIL += 1))
+fi
+
+if grep -q "How to read this dashboard" apps/web/app/page.tsx 2>/dev/null; then
+  echo "   ✅ Home page has 'How to read this dashboard' card"
+  ((PASS += 1))
+else
+  echo "   ❌ Home page missing 'How to read this dashboard'"
+  ((FAIL += 1))
+fi
+
+if grep -q "What to review first" apps/web/app/page.tsx 2>/dev/null; then
+  echo "   ✅ Home page has 'What to review first' card"
+  ((PASS += 1))
+else
+  echo "   ❌ Home page missing 'What to review first'"
+  ((FAIL += 1))
+fi
+
+if grep -q "Model confidence" apps/web/app/page.tsx 2>/dev/null; then
+  echo "   ✅ Home page has 'Model confidence' card"
+  ((PASS += 1))
+else
+  echo "   ❌ Home page missing 'Model confidence' card"
+  ((FAIL += 1))
+fi
+
+if grep -q "About these forecasts" apps/web/app/forecasts/page.tsx 2>/dev/null; then
+  echo "   ✅ Forecast page has explainer"
+  ((PASS += 1))
+else
+  echo "   ❌ Forecast page missing explainer"
+  ((FAIL += 1))
+fi
+
+if grep -q "Model Leaderboard" apps/web/app/model-performance/page.tsx 2>/dev/null; then
+  echo "   ✅ Model performance page has leaderboard"
+  ((PASS += 1))
+else
+  echo "   ❌ Model performance page missing leaderboard"
+  ((FAIL += 1))
+fi
+
+if grep -q "How risk scores are computed" apps/web/app/risks/page.tsx 2>/dev/null; then
+  echo "   ✅ Risk page has decision guidance"
+  ((PASS += 1))
+else
+  echo "   ❌ Risk page missing decision guidance"
+  ((FAIL += 1))
+fi
+
+if grep -q "Why these recommendations exist" apps/web/app/recommendations/page.tsx 2>/dev/null; then
+  echo "   ✅ Recommendations page has context"
+  ((PASS += 1))
+else
+  echo "   ❌ Recommendations page missing context"
+  ((FAIL += 1))
+fi
+
+if grep -q "No purchase order is created" apps/web/app/recommendations/page.tsx 2>/dev/null; then
+  echo "   ✅ Recommendations page has safety note"
+  ((PASS += 1))
+else
+  echo "   ❌ Recommendations page missing safety note"
+  ((FAIL += 1))
+fi
+
+if grep -q "Data Lineage" apps/web/app/data-health/page.tsx 2>/dev/null; then
+  echo "   ✅ Data health page has lineage section"
+  ((PASS += 1))
+else
+  echo "   ❌ Data health page missing lineage section"
+  ((FAIL += 1))
+fi
+
+echo ""
+echo "Sprint 15 — API routes registered..."
+if grep -q "data_science" apps/api/app/main.py 2>/dev/null; then
+  echo "   ✅ main.py includes data_science router"
+  ((PASS += 1))
+else
+  echo "   ❌ main.py missing data_science router"
+  ((FAIL += 1))
+fi
+
+echo ""
+echo "Sprint 15 — no secrets in new files..."
+if grep -rqE 'DEMANDOS_API_KEY=[a-zA-Z0-9]{16,}' \
+  apps/api/app/api/data_science.py \
+  apps/api/app/services/data_science_summary_service.py 2>/dev/null; then
+  echo "   ❌ Possible API key value in Sprint 15 files"
+  ((FAIL += 1))
+else
+  echo "   ✅ No API key values in Sprint 15 files"
+  ((PASS += 1))
+fi
+
+echo ""
+echo "Sprint 15 — screenshot docs..."
+if grep -q "17-ml-insights" docs/screenshots/README.md 2>/dev/null; then
+  echo "   ✅ Screenshot docs include 17-ml-insights"
+  ((PASS += 1))
+else
+  echo "   ⚠️  Screenshot docs missing 17-ml-insights (SKIP — manual capture pending)"
+  ((SKIP += 1))
+fi
+
+echo ""
+
+# -------------------------------------------------------------------
 # Summary
 # -------------------------------------------------------------------
 echo "========================"

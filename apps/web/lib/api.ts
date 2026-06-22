@@ -41,6 +41,11 @@ import type {
   FullPipelineResponse,
   PipelineRunsResponse,
   LatestPipelineRunResponse,
+  DataScienceSummaryResponse,
+  ForecastDiagnosticsResponse,
+  ModelComparisonResponse,
+  FeatureSignalsResponse,
+  BusinessImpactResponse,
 } from "./types";
 import { getStoredApiKey } from "./apiKey";
 
@@ -390,4 +395,28 @@ export function getDemoPipelineRuns(limit = 20): Promise<PipelineRunsResponse> {
 
 export function getLatestDemoPipelineRun(): Promise<LatestPipelineRunResponse> {
   return apiFetch<LatestPipelineRunResponse>("/api/demo/pipeline-runs/latest");
+}
+
+// ---------------------------------------------------------------------------
+// Data Science Summary Layer — Sprint 15
+// ---------------------------------------------------------------------------
+
+export function getDataScienceSummary(): Promise<DataScienceSummaryResponse> {
+  return apiFetch<DataScienceSummaryResponse>("/api/data-science/summary");
+}
+
+export function getForecastDiagnostics(): Promise<ForecastDiagnosticsResponse> {
+  return apiFetch<ForecastDiagnosticsResponse>("/api/data-science/forecast-diagnostics");
+}
+
+export function getDSModelComparison(): Promise<ModelComparisonResponse> {
+  return apiFetch<ModelComparisonResponse>("/api/data-science/model-comparison");
+}
+
+export function getFeatureSignals(): Promise<FeatureSignalsResponse> {
+  return apiFetch<FeatureSignalsResponse>("/api/data-science/feature-signals");
+}
+
+export function getBusinessImpact(): Promise<BusinessImpactResponse> {
+  return apiFetch<BusinessImpactResponse>("/api/data-science/business-impact");
 }

@@ -653,3 +653,86 @@ adding new forecasting, risk, recommendation, connector, or automation behavior.
 
 **Safety boundaries unchanged:** no external connector calls, purchase orders,
 supplier communication, alerts, real customer data, or autonomous actions.
+
+## Sprint 15 — Data Science Explainability & Decision UX Polish (2026-06-22)
+
+**Goal:** Make DemandOS feel like a professional machine-learning product through
+data science explainability, forecast interpretation, and decision-oriented UX.
+No new product features, live connectors, or external actions.
+
+### Delivered
+
+**Backend — Data Science Summary Layer:**
+- [x] `apps/api/app/schemas/data_science.py` — Pydantic response schemas for 5 DS endpoints
+- [x] `apps/api/app/services/data_science_summary_service.py` — Read-only service computing ML/DS summaries
+- [x] `apps/api/app/api/data_science.py` — FastAPI router with 5 GET endpoints
+- [x] `GET /api/data-science/summary` — Pipeline story, data volumes, model status, decision summary
+- [x] `GET /api/data-science/forecast-diagnostics` — WAPE, MAE, RMSE, Bias with interpretation
+- [x] `GET /api/data-science/model-comparison` — Ranked model leaderboard
+- [x] `GET /api/data-science/feature-signals` — Grouped feature explanations (8 groups)
+- [x] `GET /api/data-science/business-impact` — Top risks, top recommendations, review guidance
+- [x] WAPE interpretation thresholds: Strong (<30%), Directional (30–60%), Weak (>60%)
+
+**Frontend — ML Insights Page:**
+- [x] `apps/web/app/data-science/page.tsx` — New ML Insights page with 7 sections
+- [x] Added "ML Insights" to navigation in AppShell
+- [x] Sections: ML workflow overview, data volume, model leaderboard, forecast diagnostics, feature signals, business impact, limitations
+
+**Frontend — Home Page Storytelling:**
+- [x] New title: "Inventory decisions, from raw data to forecasted risk"
+- [x] "How to read this dashboard" card with 5-step pipeline explanation
+- [x] "What to review first" card using live business impact API
+- [x] "Model confidence" card showing latest model WAPE and interpretation
+
+**Frontend — Forecast Page Explainability:**
+- [x] Explainer card explaining leakage-safe features and forecast purpose
+- [x] Model quality cards: WAPE, MAE, RMSE, Bias with visual quality indicator
+- [x] Model comparison bar chart
+- [x] Improved run details (model name instead of raw run ID above fold)
+- [x] Expandable metric glossary: WAPE, MAE, RMSE, Bias, Backtest, Planning forecast, Prediction interval
+
+**Frontend — Model Performance Page:**
+- [x] Model leaderboard table with rank, quality label, strengths, best-for
+- [x] Error interpretation guide (Strong/Directional/Weak thresholds)
+- [x] Feature signal groups preview (links to ML Insights)
+- [x] Limitations section
+- [x] Quality badge with colour-coded indicators
+
+**Frontend — Inventory Risk Page:**
+- [x] "How risk scores are computed" explainer
+- [x] "Prioritize these first" alert for critical/high items
+- [x] Clearer table labels (Days to stockout, Available units, Est. lost sales)
+- [x] Safety note linking to Recommendations page
+
+**Frontend — Recommendations Page:**
+- [x] "Why these recommendations exist" context card
+- [x] Prominent "No purchase order is created" safety boundary note
+- [x] Review status guide explaining all 5 status values
+- [x] Risk tier column added
+
+**Frontend — Data Health Page:**
+- [x] Data lineage visual (Raw → Cleaned → Features → Forecasts → Risk → Recommendations)
+- [x] Section descriptions explaining each pipeline layer
+- [x] Data integrity note
+- [x] Renamed sections for clarity
+
+**Tests:**
+- [x] `apps/api/tests/test_data_science.py` — 40 tests covering all 5 endpoints
+- [x] WAPE threshold unit tests
+- [x] Read-only verification (POST not allowed)
+- [x] No-secrets checks
+- [x] No-data state handling
+
+**Scripts:**
+- [x] `scripts/verify.sh` Sprint 15 checks (15 new checks)
+- [x] `scripts/smoke_production.py` Sprint 15 checks (S15-1 through S15-5)
+
+**Architecture:**
+- Deterministic, read-only interpretation layer on top of existing pipeline
+- No agents, no autonomy, no external services introduced
+- All values computed from existing DB tables — no hardcoded metrics
+
+**Safety boundaries unchanged:** no external connector calls, purchase orders,
+supplier communication, email/Slack alerts, real customer data, or autonomous actions.
+
+**Sprint 15 Status: COMPLETE ✅**

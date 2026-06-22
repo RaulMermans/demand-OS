@@ -1,11 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getDashboardModelSummary, getModelVersions, getModelMetrics } from "@/lib/api";
+import {
+  getDashboardModelSummary,
+  getModelVersions,
+  getModelMetrics,
+  getForecastDiagnostics,
+  getFeatureSignals,
+  getDSModelComparison,
+} from "@/lib/api";
 import type {
   DashboardModelSummaryResponse,
   ModelVersionsResponse,
   ModelMetricsResponse,
+  ForecastDiagnosticsResponse,
+  FeatureSignalsResponse,
+  ModelComparisonResponse,
 } from "@/lib/types";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
@@ -16,11 +26,29 @@ import ChartCard from "@/components/ChartCard";
 import BarChartPanel from "@/components/BarChartPanel";
 import KpiCard from "@/components/KpiCard";
 import PageHeader from "@/components/PageHeader";
+import Link from "next/link";
+
+const QUALITY_COLORS: Record<string, string> = {
+  strong: "#15803d",
+  directional: "#a16207",
+  weak: "#dc2626",
+  unknown: "#6b7280",
+};
+
+const QUALITY_LABELS: Record<string, string> = {
+  strong: "Strong",
+  directional: "Directional",
+  weak: "Weak",
+  unknown: "Unknown",
+};
 
 export default function ModelPerformancePage() {
   const [summary, setSummary] = useState<DashboardModelSummaryResponse | null>(null);
   const [versions, setVersions] = useState<ModelVersionsResponse | null>(null);
   const [metrics, setMetrics] = useState<ModelMetricsResponse | null>(null);
+  const [diagnostics, setDiagnostics] = useState<ForecastDiagnosticsResponse | null>(null);
+  const [signals, setSignals] = useState<FeatureSignalsResponse | null>(null);
+  const [comparison, setComparison] = useState<ModelComparisonResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -31,8 +59,18 @@ export default function ModelPerformancePage() {
       getDashboardModelSummary(),
       getModelVersions(10),
       getModelMetrics({ limit: 50 }),
+      getForecastDiagnostics().catch(() => null),
+      getFeatureSignals().catch(() => null),
+      getDSModelComparison().catch(() => null),
     ])
-      .then(([s, v, m]) => { setSummary(s); setVersions(v); setMetrics(m); })
+      .then(([s, v, m, d, f, c]) => {
+        setSummary(s);
+        setVersions(v);
+        setMetrics(m);
+        setDiagnostics(d);
+        setSignals(f);
+        setComparison(c);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   };
@@ -40,111 +78,341 @@ export default function ModelPerformancePage() {
   useEffect(() => { load(); }, []);
 
   const fmtPct = (n: number | null | undefined) =>
-    n == null ? "—" : `${(n * 100).toFixed(2)}%`;
+    n == null ? "—" : `${(n * 100).toFixed(1)}%`;
 
-  // Comparison bar chart: baseline vs ML WAPE
-  const compChartData = summary?.baseline_comparison
-    ? [
-        {
-          name: "Baseline",
-          value: Math.round((summary.baseline_comparison.best_baseline_wape as number ?? 0) * 1000) / 10,
-        },
-        {
-          name: "ML Model",
-          value: Math.round((summary.baseline_comparison.ml_wape as number ?? 0) * 1000) / 10,
-          color: "#1d4ed8",
-        },
-      ].filter((d) => d.value > 0)
-    : [];
+  const latestDiag = diagnostics?.ml_model ?? diagnostics?.baseline ?? null;
+  const qualityLabel = latestDiag?.quality_label ?? "unknown";
+
+  const compChartData = comparison?.models
+    .filter((m) => m.wape != null)
+    .map((m) => ({
+      name: m.model_name,
+      value: Math.round((m.wape ?? 0) * 1000) / 10,
+    })) ?? [];
 
   return (
     <div>
       <PageHeader
-        title="Model performance"
-        subtitle="Compare the global ML forecaster with transparent baselines using persisted backtest metrics."
+        title="Model Performance"
+        subtitle="Evaluation metrics, baseline vs ML comparison, and feature signal explanation."
+        kicker="ML evaluation"
+        badge="Backtest results · synthetic data"
       />
 
       {loading && <LoadingState />}
       {error && <ErrorState message={error} onRetry={load} />}
 
       {!loading && !error && summary && !summary.has_ml_model && (
-        <EmptyState
-          title="No ML model has been trained yet."
-          message="Go to Pipeline Controls and run Train ML Model, or run POST /api/models/train."
-        />
+        <>
+          {/* Show baseline info even without ML model */}
+          {diagnostics?.baseline && (
+            <div
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "8px",
+                padding: "20px",
+                marginBottom: "24px",
+              }}
+            >
+              <h2 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "8px" }}>
+                Best Baseline — {diagnostics.baseline.model_name}
+              </h2>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "10px" }}>
+                {[
+                  { label: "WAPE", value: fmtPct(diagnostics.baseline.wape) },
+                  { label: "MAE", value: diagnostics.baseline.mae?.toFixed(2) ?? "—" },
+                  { label: "RMSE", value: diagnostics.baseline.rmse?.toFixed(2) ?? "—" },
+                  { label: "Bias", value: diagnostics.baseline.bias?.toFixed(3) ?? "—" },
+                ].map((m) => (
+                  <KpiCard key={m.label} label={m.label} value={m.value} />
+                ))}
+              </div>
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "12px" }}>
+                {diagnostics.baseline.interpretation}
+              </p>
+            </div>
+          )}
+          <EmptyState
+            title="No ML model trained yet."
+            message="Go to Pipeline Controls and run Train ML Model, or run POST /api/models/train. Baseline metrics are shown above."
+          />
+        </>
       )}
 
-      {summary?.has_ml_model && (
+      {(summary?.has_ml_model || diagnostics?.baseline) && (
         <>
-          {/* ML model KPI summary */}
-          <section style={{ marginBottom: "24px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "12px" }}>
-              {[
-                { label: "Algorithm", value: summary.latest_model_version?.algorithm as string ?? "—" },
-                { label: "ML WAPE", value: summary.latest_model_version?.ml_wape != null ? fmtPct(summary.latest_model_version.ml_wape as number) : "—" },
-                { label: "Baseline WAPE", value: summary.baseline_comparison?.best_baseline_wape != null ? fmtPct(summary.baseline_comparison.best_baseline_wape as number) : "—" },
-                { label: "ML won", value: summary.baseline_comparison?.ml_won != null ? (summary.baseline_comparison.ml_won ? "Yes" : "No") : "—" },
-                { label: "Artifact", value: summary.latest_model_version?.artifact_exists ? "Present" : "Missing" },
-              ].map((m) => (
-                <KpiCard key={m.label} label={m.label} value={m.value} />
-              ))}
-            </div>
-          </section>
-
-          {/* WAPE comparison chart */}
-          {compChartData.length > 0 && (
-            <ChartCard
-              title="WAPE: Baseline vs ML"
-              subtitle="Lower WAPE is better — overall level (all products/stores)"
+          {/* Quality summary */}
+          {latestDiag && (
+            <div
+              style={{
+                background: "var(--surface)",
+                border: `1px solid ${QUALITY_COLORS[qualityLabel] ?? "var(--border)"}44`,
+                borderRadius: "8px",
+                padding: "18px 22px",
+                marginBottom: "24px",
+              }}
             >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "4px" }}>
+                    Latest model
+                  </div>
+                  <div style={{ fontSize: "16px", fontWeight: 700 }}>{latestDiag.model_name}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      padding: "4px 12px",
+                      borderRadius: "4px",
+                      fontWeight: 700,
+                      fontSize: "13px",
+                      background: `${QUALITY_COLORS[qualityLabel]}22`,
+                      color: QUALITY_COLORS[qualityLabel] ?? "#6b7280",
+                      border: `1px solid ${QUALITY_COLORS[qualityLabel]}44`,
+                    }}
+                  >
+                    {QUALITY_LABELS[qualityLabel] ?? qualityLabel}
+                  </span>
+                  <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "4px" }}>
+                    WAPE {fmtPct(latestDiag.wape)}
+                  </div>
+                </div>
+              </div>
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "10px", marginBottom: 0 }}>
+                {latestDiag.interpretation}
+              </p>
+              {latestDiag.warning && (
+                <div
+                  style={{
+                    marginTop: "10px",
+                    padding: "8px 12px",
+                    background: "#fef3c7",
+                    borderRadius: "4px",
+                    fontSize: "12px",
+                    color: "#92400e",
+                  }}
+                >
+                  {latestDiag.warning}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Model leaderboard */}
+          {compChartData.length > 0 && (
+            <div style={{ marginBottom: "24px" }}>
+              <h2 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "8px" }}>
+                Model Leaderboard
+              </h2>
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "12px" }}>
+                WAPE comparison across all completed model runs. Lower WAPE = better forecast accuracy.
+              </p>
               <BarChartPanel
                 data={compChartData}
                 height={160}
-                emptyMessage="No comparison data."
+                emptyMessage="No model metrics available."
                 valueFormatter={(v) => `${v}%`}
               />
-            </ChartCard>
+              {comparison && (
+                <div style={{ overflowX: "auto", marginTop: "16px" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                    <thead>
+                      <tr>
+                        {["Rank", "Model", "WAPE", "MAE", "Bias", "Quality", "Best for"].map((h) => (
+                          <th
+                            key={h}
+                            style={{
+                              textAlign: "left",
+                              padding: "6px 10px",
+                              borderBottom: "2px solid var(--border)",
+                              color: "var(--text-secondary)",
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {comparison.models.map((m) => (
+                        <tr key={m.model_type} style={{ borderBottom: "1px solid var(--border)" }}>
+                          <td style={{ padding: "7px 10px", fontWeight: 700 }}>#{m.rank}</td>
+                          <td style={{ padding: "7px 10px", fontWeight: 600 }}>{m.model_name}</td>
+                          <td style={{ padding: "7px 10px" }}>{fmtPct(m.wape)}</td>
+                          <td style={{ padding: "7px 10px" }}>{m.mae?.toFixed(3) ?? "—"}</td>
+                          <td style={{ padding: "7px 10px" }}>{m.bias?.toFixed(3) ?? "—"}</td>
+                          <td style={{ padding: "7px 10px" }}>
+                            <span
+                              style={{
+                                color: QUALITY_COLORS[m.quality_label] ?? "#6b7280",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {QUALITY_LABELS[m.quality_label] ?? m.quality_label}
+                            </span>
+                          </td>
+                          <td style={{ padding: "7px 10px", color: "var(--text-secondary)", maxWidth: "160px" }}>
+                            {m.best_for}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           )}
 
-          {/* Latest model detail */}
-          <section style={{ marginBottom: "32px" }}>
-            <h2 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
-              Latest ML Model
+          {/* Error interpretation */}
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "8px",
+              padding: "18px 22px",
+              marginBottom: "24px",
+            }}
+          >
+            <h2 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "12px" }}>
+              Error Interpretation Guide
             </h2>
-            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px" }}>
               {[
-                { label: "Algorithm", value: summary.latest_model_version?.algorithm as string },
-                { label: "Status", value: <StatusBadge value={summary.latest_model_version?.status as string} /> },
-                { label: "Trained at", value: (summary.latest_model_version?.trained_at as string)?.slice(0, 19) ?? "—" },
-                { label: "ML WAPE", value: summary.latest_model_version?.ml_wape != null ? fmtPct(summary.latest_model_version.ml_wape as number) : "—" },
-                { label: "Artifact exists", value: summary.latest_model_version?.artifact_exists ? "Yes" : "No" },
-              ].map((row, i, arr) => (
-                <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px", borderBottom: i < arr.length - 1 ? "1px solid var(--border)" : "none" }}>
-                  <span style={{ color: "var(--text-secondary)", fontSize: "13px" }}>{row.label}</span>
-                  <span style={{ fontWeight: 500 }}>{row.value ?? "—"}</span>
+                {
+                  label: "WAPE < 30%",
+                  badge: "Strong",
+                  color: QUALITY_COLORS.strong,
+                  desc: "Strong demand signal. Reliable directional forecast for inventory planning on this synthetic dataset.",
+                },
+                {
+                  label: "WAPE 30–60%",
+                  badge: "Directional",
+                  color: QUALITY_COLORS.directional,
+                  desc: "Usable directional signal. Forecasts indicate demand direction but point estimates have meaningful uncertainty.",
+                },
+                {
+                  label: "WAPE > 60%",
+                  badge: "Weak",
+                  color: QUALITY_COLORS.weak,
+                  desc: "Weak signal. Treat with caution. The model captures some pattern but should not be relied on for precise quantities.",
+                },
+                {
+                  label: "Bias",
+                  badge: null,
+                  color: "#6b7280",
+                  desc: "Positive bias = over-forecasting. Negative bias = under-forecasting. Small bias is acceptable; large bias suggests a systematic problem.",
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  style={{
+                    background: "var(--border)",
+                    borderRadius: "6px",
+                    padding: "12px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                    <span style={{ fontWeight: 600, fontSize: "12px" }}>{item.label}</span>
+                    {item.badge && (
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: 600,
+                          color: item.color,
+                          background: `${item.color}22`,
+                          border: `1px solid ${item.color}44`,
+                          padding: "1px 6px",
+                          borderRadius: "3px",
+                        }}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>
+                    {item.desc}
+                  </p>
                 </div>
               ))}
             </div>
-          </section>
+          </div>
 
-          {/* Baseline comparison */}
-          {summary.baseline_comparison && (
-            <section style={{ marginBottom: "32px" }}>
-              <h2 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
-                Baseline vs ML Comparison
+          {/* Feature signal groups */}
+          {signals && signals.signals.length > 0 && (
+            <div style={{ marginBottom: "24px" }}>
+              <h2 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "4px" }}>
+                Feature Signal Groups
               </h2>
-              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px" }}>
-                {[
-                  { label: "Best baseline model", value: summary.baseline_comparison.best_baseline_model_type as string ?? "—" },
-                  { label: "Best baseline WAPE", value: fmtPct(summary.baseline_comparison.best_baseline_wape as number) },
-                  { label: "ML WAPE", value: fmtPct(summary.baseline_comparison.ml_wape as number) },
-                  { label: "WAPE delta (ML − baseline)", value: summary.baseline_comparison.wape_delta != null ? `${((summary.baseline_comparison.wape_delta as number) * 100).toFixed(2)}pp` : "—" },
-                  { label: "ML outperforms baseline", value: summary.baseline_comparison.ml_won != null ? (summary.baseline_comparison.ml_won ? "Yes" : "No") : "—" },
-                ].map((row, i, arr) => (
-                  <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px", borderBottom: i < arr.length - 1 ? "1px solid var(--border)" : "none" }}>
-                    <span style={{ color: "var(--text-secondary)", fontSize: "13px" }}>{row.label}</span>
-                    <span style={{ fontWeight: 500 }}>{row.value}</span>
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "12px" }}>
+                {signals.total_features} features across {signals.signals.filter((s) => s.available).length} active groups.
+              </p>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: "10px",
+                }}
+              >
+                {signals.signals.map((grp) => (
+                  <div
+                    key={grp.group}
+                    style={{
+                      background: grp.available ? "var(--surface)" : "var(--border)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "6px",
+                      padding: "12px",
+                      opacity: grp.available ? 1 : 0.6,
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: "12px", marginBottom: "4px" }}>{grp.group}</div>
+                    <p style={{ fontSize: "11px", color: "var(--text-secondary)", margin: 0, lineHeight: 1.4 }}>
+                      {grp.interpretation}
+                    </p>
                   </div>
+                ))}
+              </div>
+              <div style={{ marginTop: "8px" }}>
+                <Link href="/data-science" style={{ fontSize: "12px" }}>
+                  View detailed ML Insights →
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* ML model KPI summary */}
+          {summary?.has_ml_model && summary.latest_model_version && (
+            <section style={{ marginBottom: "24px" }}>
+              <h2 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "12px" }}>
+                Latest ML Model Details
+              </h2>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
+                {[
+                  { label: "Algorithm", value: summary.latest_model_version?.algorithm as string ?? "—" },
+                  {
+                    label: "ML WAPE",
+                    value: summary.latest_model_version?.ml_wape != null
+                      ? fmtPct(summary.latest_model_version.ml_wape as number)
+                      : "—",
+                  },
+                  {
+                    label: "Baseline WAPE",
+                    value: summary.baseline_comparison?.best_baseline_wape != null
+                      ? fmtPct(summary.baseline_comparison.best_baseline_wape as number)
+                      : "—",
+                  },
+                  {
+                    label: "ML outperforms",
+                    value: summary.baseline_comparison?.ml_won != null
+                      ? (summary.baseline_comparison.ml_won ? "Yes" : "No")
+                      : "—",
+                  },
+                ].map((m) => (
+                  <KpiCard key={m.label} label={m.label} value={m.value} />
                 ))}
               </div>
             </section>
@@ -152,17 +420,22 @@ export default function ModelPerformancePage() {
 
           {/* Metrics table */}
           {metrics && metrics.metrics.length > 0 && (
-            <section style={{ marginBottom: "32px" }}>
-              <h2 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
+            <section style={{ marginBottom: "24px" }}>
+              <h2 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "12px" }}>
                 Metrics by Model and Level
               </h2>
               <DataTable
                 columns={[
-                  { key: "model_type", header: "Model" },
+                  { key: "model_type", header: "Model", render: (r) => (r.model_type as string).replace(/_/g, " ") },
                   { key: "level", header: "Level" },
                   { key: "level_value", header: "Value" },
                   { key: "wape", header: "WAPE", align: "right", render: (r) => fmtPct(r.wape as number) },
-                  { key: "mae", header: "MAE", align: "right", render: (r) => r.mae != null ? (r.mae as number).toFixed(2) : "—" },
+                  {
+                    key: "mae",
+                    header: "MAE",
+                    align: "right",
+                    render: (r) => r.mae != null ? (r.mae as number).toFixed(2) : "—",
+                  },
                   { key: "smape", header: "SMAPE", align: "right", render: (r) => fmtPct(r.smape as number) },
                   { key: "rows_evaluated", header: "Rows", align: "right" },
                 ]}
@@ -171,10 +444,37 @@ export default function ModelPerformancePage() {
             </section>
           )}
 
+          {/* Limitations */}
+          <div
+            style={{
+              background: "var(--border)",
+              borderRadius: "8px",
+              padding: "18px 22px",
+              marginBottom: "24px",
+            }}
+          >
+            <h2 style={{ fontSize: "14px", fontWeight: 600, marginBottom: "10px" }}>
+              Limitations
+            </h2>
+            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+              {[
+                "All data is synthetic. Metrics reflect simulated retail patterns, not real demand.",
+                "The ML model is a HistGradientBoosting prototype on a small dataset. It is not production-calibrated.",
+                "WAPE thresholds (Strong / Directional / Weak) are for demo evaluation context only.",
+                "Prediction intervals are heuristic ±20% bands. They are not statistically rigorous confidence intervals.",
+                "Feature importances are not yet exposed in the UI. Use feature signal groups as an indication of input types.",
+              ].map((line, i) => (
+                <li key={i} style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "5px", lineHeight: 1.5 }}>
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </div>
+
           {/* Model versions registry */}
           {versions && versions.versions.length > 0 && (
             <section>
-              <h2 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
+              <h2 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "12px" }}>
                 Model Registry
               </h2>
               <DataTable

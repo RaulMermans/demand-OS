@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/risks", label: "Inventory Risk", icon: "△" },
   { href: "/recommendations", label: "Recommendations", icon: "→" },
   { href: "/model-performance", label: "Model Performance", icon: "◇" },
+  { href: "/data-science", label: "ML Insights", icon: "⬡" },
   { href: "/data-health", label: "Data Health", icon: "✓" },
   { href: "/pipeline", label: "Pipeline Controls", icon: "▷" },
 ];

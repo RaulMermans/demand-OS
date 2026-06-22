@@ -27,6 +27,7 @@ python scripts/capture_screenshots.py \
 | 14 | `14-monitoring.png` | `/monitoring` | ✅ Captured |
 | 15 | `15-scenarios.png` | `/scenarios` | ✅ Captured |
 | 16 | `16-connectors.png` | `/connectors` | ✅ Captured |
+| 17 | `17-ml-insights.png` | `/data-science` | ⏳ Pending Sprint 15 deploy |
 
 The application captures should show computed backend data where available. Empty
 states are acceptable only when they clearly explain the next action.
@@ -64,3 +65,17 @@ jobs visible and green.
 - [x] Screenshots 1–9 and 13–16 are recaptured from the refreshed deployment.
 - [ ] Manual screenshots 10–12 are redacted and reviewed.
 - [x] No secret values or connection strings are visible in automated captures.
+
+## Sprint 15 Capture Checklist
+
+- [ ] Deploy Sprint 15 to Vercel.
+- [ ] Run `python scripts/capture_screenshots.py --base-url https://demand-os-three.vercel.app` to refresh automated captures.
+- [ ] Manually capture `17-ml-insights.png` from `/data-science`.
+- [ ] Refresh `02-home-dashboard.png`, `04-forecasts.png`, `05-inventory-risk.png`, `06-recommendations.png`, `07-model-performance.png`, `08-data-health.png` to show Sprint 15 UX improvements.
+- [ ] Verify no secrets or connection strings are visible.
+
+### 17 — ML Insights
+
+Capture the `/data-science` page showing the ML workflow overview, model leaderboard,
+forecast diagnostics, and feature signal groups. The data volume and business impact
+cards should be visible. No secrets should appear.

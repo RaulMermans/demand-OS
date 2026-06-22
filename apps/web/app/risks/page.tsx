@@ -12,6 +12,7 @@ import ChartCard from "@/components/ChartCard";
 import BarChartPanel from "@/components/BarChartPanel";
 import KpiCard from "@/components/KpiCard";
 import PageHeader from "@/components/PageHeader";
+import Link from "next/link";
 
 const TIER_COLORS: Record<string, string> = {
   critical: "#dc2626",
@@ -55,11 +56,16 @@ export default function RisksPage() {
       }))
     : [];
 
+  const criticalCount = summary?.tier_counts?.critical ?? 0;
+  const highCount = summary?.tier_counts?.high ?? 0;
+
   return (
     <div>
       <PageHeader
-        title="Inventory risk"
-        subtitle="Prioritize product and store combinations using projected demand, inventory coverage, and supplier lead times."
+        title="Inventory Risk"
+        subtitle="Prioritize product/store combinations by projected stockout probability, days-of-supply, and lost-sales exposure."
+        kicker="Risk scoring"
+        badge="Planning guidance · not automated"
       />
 
       {loading && <LoadingState />}
@@ -74,6 +80,100 @@ export default function RisksPage() {
 
       {summary?.has_risk_run && (
         <>
+          {/* What this page means */}
+          <div
+            style={{
+              background: "#f0f9ff",
+              border: "1px solid #bae6fd",
+              borderRadius: "8px",
+              padding: "16px 20px",
+              marginBottom: "24px",
+            }}
+          >
+            <h2 style={{ fontSize: "13px", fontWeight: 600, color: "#0c4a6e", marginBottom: "8px" }}>
+              How risk scores are computed
+            </h2>
+            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+              <li style={{ fontSize: "13px", color: "#0c4a6e", marginBottom: "4px", lineHeight: 1.5 }}>
+                The demand forecast pipeline estimates daily expected demand for each product/store.
+              </li>
+              <li style={{ fontSize: "13px", color: "#0c4a6e", marginBottom: "4px", lineHeight: 1.5 }}>
+                Risk scoring compares available inventory + incoming POs against forecasted demand over the planning horizon.
+              </li>
+              <li style={{ fontSize: "13px", color: "#0c4a6e", marginBottom: "4px", lineHeight: 1.5 }}>
+                Combinations likely to exhaust stock before the next replenishment are scored as critical or high.
+              </li>
+              <li style={{ fontSize: "13px", color: "#0c4a6e", lineHeight: 1.5 }}>
+                Risk scores are planning guidance only. They do not trigger automatic reorders or supplier actions.
+              </li>
+            </ul>
+          </div>
+
+          {/* Prioritize these first */}
+          {(criticalCount > 0 || highCount > 0) && (
+            <div
+              style={{
+                background: criticalCount > 0 ? "#fef2f2" : "#fff7ed",
+                border: `1px solid ${criticalCount > 0 ? "#fecaca" : "#fed7aa"}`,
+                borderRadius: "8px",
+                padding: "16px 20px",
+                marginBottom: "24px",
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  color: criticalCount > 0 ? "#991b1b" : "#92400e",
+                  marginBottom: "8px",
+                }}
+              >
+                Prioritize these first
+              </h2>
+              <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                {criticalCount > 0 && (
+                  <li
+                    style={{
+                      fontSize: "13px",
+                      color: "#991b1b",
+                      marginBottom: "4px",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <strong>{criticalCount} critical risk{criticalCount > 1 ? "s" : ""}:</strong> These product/store combinations
+                    are likely to stock out within the planning horizon. Review immediately.
+                  </li>
+                )}
+                {highCount > 0 && (
+                  <li style={{ fontSize: "13px", color: "#92400e", lineHeight: 1.5 }}>
+                    <strong>{highCount} high risk{highCount > 1 ? "s" : ""}:</strong> Elevated stockout probability. Review after
+                    resolving critical items.
+                  </li>
+                )}
+              </ul>
+              <div style={{ marginTop: "8px" }}>
+                <button
+                  onClick={() => { setTierFilter("critical"); load("critical"); }}
+                  style={{
+                    padding: "4px 12px",
+                    borderRadius: "4px",
+                    fontSize: "11px",
+                    cursor: "pointer",
+                    border: "1px solid #fecaca",
+                    background: "#fee2e2",
+                    color: "#991b1b",
+                    marginRight: "8px",
+                  }}
+                >
+                  Show critical only
+                </button>
+                <Link href="/recommendations" style={{ fontSize: "12px" }}>
+                  View reorder recommendations →
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* KPI tier cards */}
           <section style={{ marginBottom: "24px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "12px" }}>
@@ -92,21 +192,41 @@ export default function RisksPage() {
               ))}
             </div>
             {summary.estimated_lost_sales_value != null && (
-              <div style={{ marginTop: "12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "16px", display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-secondary)", fontSize: "13px" }}>Estimated total lost sales value</span>
-                <span style={{ fontWeight: 700, fontSize: "16px" }}>€{fmt(summary.estimated_lost_sales_value, 0)}</span>
+              <div
+                style={{
+                  marginTop: "12px",
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "8px",
+                  padding: "14px 18px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <div style={{ color: "var(--text-secondary)", fontSize: "12px" }}>
+                    Estimated total lost sales exposure
+                  </div>
+                  <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                    Sum of per-item estimates across all risk tiers · planning guidance only
+                  </div>
+                </div>
+                <span style={{ fontWeight: 700, fontSize: "18px" }}>
+                  €{fmt(summary.estimated_lost_sales_value, 0)}
+                </span>
               </div>
             )}
           </section>
 
-          {/* Risk tier distribution chart */}
+          {/* Risk tier chart */}
           <ChartCard
             title="Risk Tier Distribution"
             subtitle="Number of product/store combinations per risk tier (latest run)"
           >
             <BarChartPanel
               data={tierChartData.filter((d) => d.value > 0)}
-              height={180}
+              height={160}
               emptyMessage="No risk data to display."
               valueFormatter={(v) => String(v)}
             />
@@ -114,15 +234,16 @@ export default function RisksPage() {
 
           {/* Run info */}
           {summary.latest_run && (
-            <div style={{ marginBottom: "16px", fontSize: "12px", color: "var(--text-secondary)" }}>
-              Run {String(summary.latest_run.run_id ?? "").slice(0, 16)}… · as of{" "}
-              {String(summary.latest_run.as_of_date ?? "")} · {String(summary.latest_run.risk_horizon_days ?? "?")}-day horizon
+            <div style={{ marginBottom: "12px", fontSize: "12px", color: "var(--text-secondary)" }}>
+              Risk run as of {String(summary.latest_run.as_of_date ?? "")} ·{" "}
+              {String(summary.latest_run.risk_horizon_days ?? "?")} day planning horizon ·{" "}
+              {String(summary.latest_run.rows_created ?? "?")} risk rows computed
             </div>
           )}
 
           {/* Filter bar */}
-          <div style={{ display: "flex", gap: "8px", marginBottom: "16px", alignItems: "center" }}>
-            <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Filter tier:</span>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "14px", alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Filter by tier:</span>
             {TIER_FILTER_OPTIONS.map((opt) => (
               <button
                 key={opt || "all"}
@@ -144,65 +265,88 @@ export default function RisksPage() {
 
           {/* Risks table */}
           {risks && (
-            <DataTable
-              columns={[
-                {
-                  key: "product_id",
-                  header: "Product ID",
-                  render: (r) => (
-                    <span style={{ fontFamily: "monospace", fontSize: "11px" }}>
-                      {String(r.product_id).slice(0, 12)}…
-                    </span>
-                  ),
-                },
-                {
-                  key: "store_id",
-                  header: "Store",
-                  render: (r) => (
-                    <span style={{ fontFamily: "monospace", fontSize: "11px" }}>
-                      {String(r.store_id).slice(0, 10)}…
-                    </span>
-                  ),
-                },
-                { key: "category", header: "Category" },
-                { key: "risk_tier", header: "Tier", render: (r) => <StatusBadge value={r.risk_tier as string} /> },
-                {
-                  key: "risk_score",
-                  header: "Score",
-                  align: "right",
-                  render: (r) => r.risk_score != null ? (r.risk_score as number).toFixed(0) : "—",
-                },
-                {
-                  key: "days_until_stockout",
-                  header: "Days until SO",
-                  align: "right",
-                  render: (r) => r.days_until_stockout != null ? (r.days_until_stockout as number).toFixed(0) : "—",
-                },
-                {
-                  key: "current_available_units",
-                  header: "Available",
-                  align: "right",
-                  render: (r) => r.current_available_units != null ? (r.current_available_units as number).toFixed(0) : "—",
-                },
-                {
-                  key: "lost_sales_value_estimate",
-                  header: "Est. lost sales",
-                  align: "right",
-                  render: (r) =>
-                    r.lost_sales_value_estimate != null
-                      ? `€${(r.lost_sales_value_estimate as number).toFixed(0)}`
-                      : "—",
-                },
-              ]}
-              rows={risks.rows as unknown as Record<string, unknown>[]}
-              emptyMessage="No risks found for the selected filter."
-            />
+            <>
+              <DataTable
+                columns={[
+                  {
+                    key: "product_id",
+                    header: "Product ID",
+                    render: (r) => (
+                      <span style={{ fontFamily: "monospace", fontSize: "11px" }}>
+                        {String(r.product_id).slice(0, 12)}…
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "store_id",
+                    header: "Store",
+                    render: (r) => (
+                      <span style={{ fontFamily: "monospace", fontSize: "11px" }}>
+                        {String(r.store_id).slice(0, 10)}…
+                      </span>
+                    ),
+                  },
+                  { key: "category", header: "Category" },
+                  {
+                    key: "risk_tier",
+                    header: "Risk tier",
+                    render: (r) => <StatusBadge value={r.risk_tier as string} />,
+                  },
+                  {
+                    key: "days_until_stockout",
+                    header: "Days to SO",
+                    align: "right",
+                    render: (r) =>
+                      r.days_until_stockout != null
+                        ? (r.days_until_stockout as number).toFixed(0)
+                        : "—",
+                  },
+                  {
+                    key: "current_available_units",
+                    header: "Available units",
+                    align: "right",
+                    render: (r) =>
+                      r.current_available_units != null
+                        ? (r.current_available_units as number).toFixed(0)
+                        : "—",
+                  },
+                  {
+                    key: "lost_sales_value_estimate",
+                    header: "Est. lost sales",
+                    align: "right",
+                    render: (r) =>
+                      r.lost_sales_value_estimate != null
+                        ? `€${(r.lost_sales_value_estimate as number).toFixed(0)}`
+                        : "—",
+                  },
+                ]}
+                rows={risks.rows as unknown as Record<string, unknown>[]}
+                emptyMessage="No risks found for the selected filter."
+              />
+              <div style={{ marginTop: "8px", fontSize: "12px", color: "var(--text-secondary)" }}>
+                Showing {risks.rows.length} of {risks.total} risk rows
+              </div>
+            </>
           )}
-          {risks && (
-            <div style={{ marginTop: "8px", fontSize: "12px", color: "var(--text-secondary)" }}>
-              Showing {risks.rows.length} of {risks.total} risks
-            </div>
-          )}
+
+          {/* Safety note */}
+          <div
+            style={{
+              marginTop: "24px",
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "6px",
+              padding: "12px 16px",
+              fontSize: "12px",
+              color: "var(--text-secondary)",
+            }}
+          >
+            <strong>Planning guidance only.</strong> Risk scores are internal estimates based on forecast
+            demand and current inventory. They do not trigger automatic reorders. Review high-risk items
+            and use the{" "}
+            <Link href="/recommendations">Recommendations</Link>{" "}
+            page to see suggested reorder quantities.
+          </div>
         </>
       )}
     </div>

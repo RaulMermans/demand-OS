@@ -5,6 +5,7 @@ from app.config import get_settings
 from app.api import health, ingestion, forecasts, risks, recommendations, metrics, overview
 from app.api import demo, aggregation, features, models as model_registry, dashboard, observability
 from app.api import csv_upload, monitoring, scenarios, connectors as connector_api
+from app.api import data_science
 from app.db.session import init_db
 
 settings = get_settings()
@@ -49,3 +50,4 @@ app.include_router(csv_upload.router,        prefix="/api", tags=["csv"])
 app.include_router(monitoring.router,        prefix="/api", tags=["monitoring"])
 app.include_router(scenarios.router,         prefix="/api", tags=["scenarios"])
 app.include_router(connector_api.router,     prefix="/api", tags=["connectors"])
+app.include_router(data_science.router,      prefix="/api", tags=["data-science"])

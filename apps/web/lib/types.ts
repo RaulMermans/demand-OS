@@ -594,3 +594,123 @@ export interface LatestPipelineRunResponse {
   status: string;
   run: DemoPipelineRunRecord | null;
 }
+
+// ---------------------------------------------------------------------------
+// Data Science Summary Layer — Sprint 15
+// ---------------------------------------------------------------------------
+
+export interface DataScienceSummaryResponse {
+  status: string;
+  pipeline_story: string[];
+  data_volume: {
+    products: number;
+    stores: number;
+    orders: number;
+    inventory_snapshots: number;
+    feature_rows: number;
+    forecast_rows: number;
+  };
+  model_status: {
+    latest_model: string | null;
+    latest_wape: number | null;
+    interpretation: string;
+  };
+  decision_status: {
+    critical_risks: number;
+    high_risks: number;
+    open_recommendations: number;
+    estimated_lost_sales: number | null;
+    estimated_order_cost: number | null;
+  };
+}
+
+export interface ModelDiagnostic {
+  model_name: string;
+  model_type: string;
+  mae: number | null;
+  rmse: number | null;
+  wape: number | null;
+  bias: number | null;
+  forecast_rows: number;
+  backtest_horizon_days: number | null;
+  interpretation: string;
+  quality_label: "strong" | "directional" | "weak" | "unknown";
+  warning: string | null;
+}
+
+export interface ForecastDiagnosticsResponse {
+  status: string;
+  has_model: boolean;
+  message: string | null;
+  baseline: ModelDiagnostic | null;
+  ml_model: ModelDiagnostic | null;
+  wape_interpretation_guide: Record<string, string>;
+}
+
+export interface ModelComparisonEntry {
+  model_name: string;
+  model_type: string;
+  wape: number | null;
+  mae: number | null;
+  rmse: number | null;
+  bias: number | null;
+  rank: number;
+  quality_label: string;
+  strengths: string[];
+  limitations: string[];
+  best_for: string;
+}
+
+export interface ModelComparisonResponse {
+  status: string;
+  has_comparison: boolean;
+  message: string | null;
+  models: ModelComparisonEntry[];
+}
+
+export interface FeatureSignalGroup {
+  group: string;
+  available: boolean;
+  example_features: string[];
+  interpretation: string;
+}
+
+export interface FeatureSignalsResponse {
+  status: string;
+  source: string;
+  total_features: number;
+  signals: FeatureSignalGroup[];
+  disclaimer: string;
+}
+
+export interface TopRiskEntry {
+  product_id: string;
+  product_name: string | null;
+  store_id: string;
+  risk_tier: string;
+  days_until_stockout: number | null;
+  lost_sales_value_estimate: number | null;
+}
+
+export interface TopRecommendationEntry {
+  product_id: string;
+  product_name: string | null;
+  store_id: string;
+  urgency: string;
+  recommended_units: number | null;
+  estimated_order_cost: number | null;
+}
+
+export interface BusinessImpactResponse {
+  status: string;
+  has_data: boolean;
+  message: string | null;
+  estimated_lost_sales: number | null;
+  estimated_order_cost: number | null;
+  risk_tier_distribution: Record<string, number>;
+  recommendation_urgency_distribution: Record<string, number>;
+  top_risks: TopRiskEntry[];
+  top_recommendations: TopRecommendationEntry[];
+  review_guidance: string[];
+  automation_note: string;
+}

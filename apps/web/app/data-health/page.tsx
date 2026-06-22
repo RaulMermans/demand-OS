@@ -9,6 +9,15 @@ import EmptyState from "@/components/EmptyState";
 import StatusBadge from "@/components/StatusBadge";
 import PageHeader from "@/components/PageHeader";
 
+const LINEAGE_STEPS = [
+  { label: "Raw Records", desc: "Orders, inventory, products, stores, suppliers" },
+  { label: "Cleaned / Daily", desc: "Aggregated to daily (product, store, date) rows" },
+  { label: "Feature Matrix", desc: "Lag, rolling, calendar, price, promo features" },
+  { label: "Forecasts", desc: "Predicted demand — baseline + ML models" },
+  { label: "Stockout Risk", desc: "Probability and days-until-stockout per item" },
+  { label: "Recommendations", desc: "Internal reorder guidance + estimated costs" },
+];
+
 export default function DataHealthPage() {
   const [data, setData] = useState<DataHealthResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,8 +40,10 @@ export default function DataHealthPage() {
   return (
     <div>
       <PageHeader
-        title="Data health"
-        subtitle="Validate pipeline integrity and inspect record volumes from raw ingestion through recommendations."
+        title="Data Health"
+        subtitle="Pipeline integrity validation, record volumes by layer, and data lineage from raw ingestion to recommendations."
+        kicker="Pipeline observability"
+        badge="Read-only · no mutations"
       />
 
       {loading && <LoadingState />}
@@ -47,12 +58,74 @@ export default function DataHealthPage() {
 
       {data && data.status !== "no_data" && (
         <>
-          {/* Validation checks */}
-          <section style={{ marginBottom: "32px" }}>
-            <h2 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
-              Validation Checks
+          {/* Data lineage visual */}
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "8px",
+              padding: "20px 24px",
+              marginBottom: "24px",
+            }}
+          >
+            <h2 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "4px" }}>
+              Data Lineage
             </h2>
-            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", overflow: "hidden" }}>
+            <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "16px" }}>
+              Each stage of the pipeline transforms data from the previous layer. All stages must
+              complete in order before recommendations can be generated.
+            </p>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "stretch",
+                gap: "4px",
+                overflowX: "auto",
+                paddingBottom: "4px",
+              }}
+            >
+              {LINEAGE_STEPS.map((step, i) => (
+                <div key={step.label} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <div
+                    style={{
+                      background: "var(--border)",
+                      borderRadius: "6px",
+                      padding: "10px 12px",
+                      minWidth: "100px",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div style={{ fontSize: "12px", fontWeight: 700 }}>{step.label}</div>
+                    <div
+                      style={{ fontSize: "10px", color: "var(--text-secondary)", marginTop: "3px", lineHeight: 1.3 }}
+                    >
+                      {step.desc}
+                    </div>
+                  </div>
+                  {i < LINEAGE_STEPS.length - 1 && (
+                    <span style={{ fontSize: "14px", color: "var(--text-secondary)", flexShrink: 0 }}>→</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Validation checks */}
+          <section style={{ marginBottom: "24px" }}>
+            <h2 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "4px" }}>
+              Pipeline Integrity Checks
+            </h2>
+            <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "12px" }}>
+              Automated checks that verify each layer has data and that counts are within expected ranges.
+            </p>
+            <div
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "8px",
+                overflow: "hidden",
+              }}
+            >
               {data.checks.map((check, i) => (
                 <div
                   key={check.name}
@@ -67,7 +140,9 @@ export default function DataHealthPage() {
                   <div>
                     <div style={{ fontSize: "13px" }}>{check.name.replace(/_/g, " ")}</div>
                     {check.detail && (
-                      <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>{check.detail}</div>
+                      <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                        {check.detail}
+                      </div>
                     )}
                   </div>
                   <StatusBadge value={check.status} />
@@ -76,12 +151,16 @@ export default function DataHealthPage() {
             </div>
           </section>
 
-          {/* Raw layer counts */}
-          <section style={{ marginBottom: "32px" }}>
-            <h2 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
-              Raw Layer
+          {/* Raw layer */}
+          <section style={{ marginBottom: "24px" }}>
+            <h2 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "4px" }}>
+              Raw Layer — Record Counts
             </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
+            <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "12px" }}>
+              Operational records ingested from the connector (synthetic commerce data for this demo).
+              These are the only records the pipeline consumes as input.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "12px" }}>
               {[
                 { label: "Products", value: fmt(data.products_count) },
                 { label: "Stores", value: fmt(data.stores_count) },
@@ -91,7 +170,15 @@ export default function DataHealthPage() {
                 { label: "Suppliers", value: fmt(data.suppliers_count) },
                 { label: "Purchase orders", value: fmt(data.purchase_orders_count) },
               ].map((m) => (
-                <div key={m.label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "12px 16px" }}>
+                <div
+                  key={m.label}
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "8px",
+                    padding: "12px 14px",
+                  }}
+                >
                   <div style={{ color: "var(--text-secondary)", fontSize: "11px" }}>{m.label}</div>
                   <div style={{ fontSize: "20px", fontWeight: 700, marginTop: "4px" }}>{m.value}</div>
                 </div>
@@ -100,18 +187,30 @@ export default function DataHealthPage() {
           </section>
 
           {/* Canonical + feature counts */}
-          <section style={{ marginBottom: "32px" }}>
-            <h2 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
+          <section style={{ marginBottom: "24px" }}>
+            <h2 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "4px" }}>
               Canonical &amp; Feature Layers
             </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
+            <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "12px" }}>
+              Daily aggregates and the ML feature matrix. The feature matrix is the direct input to
+              the forecasting models. All features are leakage-safe.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "12px" }}>
               {[
                 { label: "Sales daily", value: fmt(data.canonical_counts?.sales_daily) },
                 { label: "Inventory daily", value: fmt(data.canonical_counts?.inventory_daily) },
                 { label: "Product store daily", value: fmt(data.canonical_counts?.product_store_daily) },
                 { label: "Feature matrix rows", value: fmt(data.feature_counts?.feature_matrix) },
               ].map((m) => (
-                <div key={m.label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "12px 16px" }}>
+                <div
+                  key={m.label}
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "8px",
+                    padding: "12px 14px",
+                  }}
+                >
                   <div style={{ color: "var(--text-secondary)", fontSize: "11px" }}>{m.label}</div>
                   <div style={{ fontSize: "20px", fontWeight: 700, marginTop: "4px" }}>{m.value}</div>
                 </div>
@@ -119,23 +218,41 @@ export default function DataHealthPage() {
             </div>
           </section>
 
-          {/* Model/forecast/risk/rec counts */}
-          <section style={{ marginBottom: "32px" }}>
-            <h2 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
-              Model, Risk &amp; Recommendation Layers
+          {/* Forecast / risk / rec counts */}
+          <section style={{ marginBottom: "24px" }}>
+            <h2 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "4px" }}>
+              Forecast, Risk &amp; Recommendation Layers
             </h2>
-            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px" }}>
+            <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "12px" }}>
+              Computed outputs — derived entirely from the feature matrix and pipeline logic.
+              No precomputed or hardcoded values.
+            </p>
+            <div
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "8px",
+              }}
+            >
               {[
                 { label: "Forecast runs", value: fmt(data.forecast_counts?.forecast_runs) },
                 { label: "Forecast rows", value: fmt(data.forecast_counts?.forecasts) },
                 { label: "Model metrics", value: fmt(data.forecast_counts?.model_metrics) },
                 { label: "Model versions", value: fmt(data.model_counts?.model_versions) },
                 { label: "Stockout risk runs", value: fmt(data.risk_counts?.stockout_risk_runs) },
-                { label: "Stockout risks", value: fmt(data.risk_counts?.stockout_risks) },
+                { label: "Stockout risk rows", value: fmt(data.risk_counts?.stockout_risks) },
                 { label: "Recommendation runs", value: fmt(data.recommendation_counts?.recommendation_runs) },
                 { label: "Reorder recommendations", value: fmt(data.recommendation_counts?.reorder_recommendations) },
               ].map((row, i, arr) => (
-                <div key={row.label} style={{ display: "flex", justifyContent: "space-between", padding: "10px 20px", borderBottom: i < arr.length - 1 ? "1px solid var(--border)" : "none" }}>
+                <div
+                  key={row.label}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "10px 18px",
+                    borderBottom: i < arr.length - 1 ? "1px solid var(--border)" : "none",
+                  }}
+                >
                   <span style={{ color: "var(--text-secondary)", fontSize: "13px" }}>{row.label}</span>
                   <span style={{ fontWeight: 600 }}>{row.value}</span>
                 </div>
@@ -143,22 +260,41 @@ export default function DataHealthPage() {
             </div>
           </section>
 
-          {/* Latest runs */}
-          <section>
-            <h2 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
-              Latest Run Statuses
+          {/* Latest run timestamps */}
+          <section style={{ marginBottom: "24px" }}>
+            <h2 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "4px" }}>
+              Latest Run Timestamps
             </h2>
-            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px" }}>
+            <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "12px" }}>
+              Most recent status of each pipeline stage. All stages should show completed for a
+              fully operational demo.
+            </p>
+            <div
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "8px",
+              }}
+            >
               {[
-                { label: "Latest ingestion", info: data.latest_ingestion_run },
-                { label: "Latest aggregation", info: data.latest_aggregation_run },
-                { label: "Latest feature run", info: data.latest_feature_run },
-                { label: "Latest forecast run", info: data.latest_forecast_run },
-                { label: "Latest model version", info: data.latest_model_version },
-                { label: "Latest risk run", info: data.latest_stockout_risk_run },
-                { label: "Latest recommendation run", info: data.latest_recommendation_run },
+                { label: "Ingestion", info: data.latest_ingestion_run },
+                { label: "Aggregation", info: data.latest_aggregation_run },
+                { label: "Feature build", info: data.latest_feature_run },
+                { label: "Forecast run", info: data.latest_forecast_run },
+                { label: "Model training", info: data.latest_model_version },
+                { label: "Stockout risk", info: data.latest_stockout_risk_run },
+                { label: "Recommendations", info: data.latest_recommendation_run },
               ].map((row, i, arr) => (
-                <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 20px", borderBottom: i < arr.length - 1 ? "1px solid var(--border)" : "none" }}>
+                <div
+                  key={row.label}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "10px 18px",
+                    borderBottom: i < arr.length - 1 ? "1px solid var(--border)" : "none",
+                  }}
+                >
                   <span style={{ color: "var(--text-secondary)", fontSize: "13px" }}>{row.label}</span>
                   <StatusBadge
                     value={(row.info as Record<string, unknown>)?.status as string ?? "warning"}
@@ -168,6 +304,22 @@ export default function DataHealthPage() {
               ))}
             </div>
           </section>
+
+          {/* Data integrity note */}
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "6px",
+              padding: "12px 16px",
+              fontSize: "12px",
+              color: "var(--text-secondary)",
+            }}
+          >
+            <strong>Data integrity:</strong> Raw records are never modified after ingestion. Derived
+            tables (features, forecasts, risks, recommendations) are re-computed from scratch on each
+            pipeline run. No precomputed or hardcoded output values exist in this system.
+          </div>
         </>
       )}
     </div>
