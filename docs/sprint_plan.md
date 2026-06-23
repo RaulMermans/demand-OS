@@ -736,3 +736,61 @@ No new product features, live connectors, or external actions.
 supplier communication, email/Slack alerts, real customer data, or autonomous actions.
 
 **Sprint 15 Status: COMPLETE ✅**
+
+---
+
+## Sprint 16 — Analytics Cockpit, Inventory Trend Intelligence, and Executive Dashboard Polish
+
+**Goal:** Make DemandOS look and feel like a professional ML inventory intelligence product.
+
+### Backend: Analytics Cockpit Service
+
+**New files:**
+- `apps/api/app/schemas/analytics.py` — Pydantic schemas for all cockpit responses
+- `apps/api/app/services/analytics_cockpit_service.py` — Read-only analytics service
+- `apps/api/app/api/analytics.py` — FastAPI router registered at `/api/analytics/`
+
+**Endpoints:**
+- `GET /api/analytics/cockpit` — Executive KPI summary (dataset, inventory, forecasting, risk, recommendations, pipeline)
+- `GET /api/analytics/inventory-trend` — Daily inventory on-hand vs. forecast demand, with reorder point and safety stock
+- `GET /api/analytics/risk-drivers` — Rule-based risk driver explanations for top at-risk SKU/store pairs
+- `GET /api/analytics/reorder-queue` — Open reorder recommendations formatted as a decision queue
+- `GET /api/analytics/executive-summary` — Business-readable executive summary with headline, summary, next actions, safety note
+
+**KPI definitions:**
+- Stockout risk %: (critical + high risk SKU/store combos) / total tracked combos
+- Inventory value: on_hand_units × unit_cost (falls back to unit_price, documented)
+- Forecast quality: WAPE ≤ 0.30 → Strong, 0.30–0.60 → Directional, >0.60 → Weak / Demo signal
+- Est. lost sales addressed: sum(estimated_lost_sales_avoided) for open recommendations
+
+**Frontend:**
+- Home page redesigned as executive analytics cockpit
+- 6 KPI cards: SKUs monitored, stockout risk %, inventory value, forecast quality, est. lost sales, open recommendations
+- Inventory trend chart (30-day window, on-hand vs. forecast vs. reorder point vs. safety stock)
+- Pipeline status tracker (5 stages)
+- Risk distribution bar chart (critical/high/medium/low)
+- Top risk drivers panel (top 5 SKU/store explanations)
+- Reorder queue preview (top 5, links to recommendations page)
+- Safety boundary footer
+
+**New components:**
+- `InventoryTrendChart.tsx` — Recharts line chart for inventory trend
+- `RiskDistributionChart.tsx` — Horizontal bar chart for risk tiers
+- `RiskDriverList.tsx` — Risk driver cards with severity indicators
+- `ReorderQueueTable.tsx` — Decision queue table with urgency badges
+
+**Existing pages improved:**
+- Risks page: adds risk driver panel
+- Recommendations page: adds decision queue table
+
+**Tests:**
+- `apps/api/tests/test_analytics_cockpit.py` — 46 tests covering all 5 endpoints
+- Read-only verification, no-secret checks, no fake confidence %, no hardcoded values, no external side effects
+
+**Scripts:**
+- `scripts/verify.sh` Sprint 16 checks (25+ new checks)
+- `scripts/smoke_production.py` Sprint 16 checks (S16-1 through S16-5)
+
+**Architecture:** Deterministic read-only analytics layer. No agents, no autonomy, no external services.
+
+**Sprint 16 Status: COMPLETE ✅**

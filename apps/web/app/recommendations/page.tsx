@@ -5,11 +5,14 @@ import {
   getDashboardRecommendationSummary,
   getRecommendations,
   updateRecommendationStatus,
+  getReorderQueue,
 } from "@/lib/api";
 import type {
   DashboardRecommendationSummaryResponse,
   RecommendationsListResponse,
+  ReorderQueueResponse,
 } from "@/lib/types";
+import ReorderQueueTable from "@/components/ReorderQueueTable";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
@@ -32,6 +35,7 @@ const STATUS_OPTS = ["", "open", "reviewed", "approved_internal", "ignored", "re
 export default function RecommendationsPage() {
   const [summary, setSummary] = useState<DashboardRecommendationSummaryResponse | null>(null);
   const [recs, setRecs] = useState<RecommendationsListResponse | null>(null);
+  const [queue, setQueue] = useState<ReorderQueueResponse | null>(null);
   const [urgencyFilter, setUrgencyFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -44,8 +48,9 @@ export default function RecommendationsPage() {
     Promise.all([
       getDashboardRecommendationSummary(),
       getRecommendations({ urgency: urgency || undefined, status: status || undefined, limit: 100 }),
+      getReorderQueue().catch(() => null),
     ])
-      .then(([s, r]) => { setSummary(s); setRecs(r); })
+      .then(([s, r, q]) => { setSummary(s); setRecs(r); setQueue(q); })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   };
@@ -223,6 +228,28 @@ export default function RecommendationsPage() {
                 valueFormatter={(v) => String(v)}
               />
             </ChartCard>
+          )}
+
+          {/* Decision queue */}
+          {queue && queue.items.length > 0 && (
+            <section style={{ marginBottom: "24px" }}>
+              <h2 style={{ fontSize: "15px", fontWeight: 700, marginBottom: "12px" }}>
+                Decision queue — open items
+              </h2>
+              <div
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "8px",
+                  padding: "16px",
+                }}
+              >
+                <ReorderQueueTable items={queue.items} />
+              </div>
+              <p style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "8px" }}>
+                {queue.safety_note}
+              </p>
+            </section>
           )}
 
           {/* Review status explanation */}

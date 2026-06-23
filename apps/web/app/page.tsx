@@ -2,35 +2,84 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getDashboardOverview, getBusinessImpact, getForecastDiagnostics } from "@/lib/api";
+import {
+  getAnalyticsCockpit,
+  getInventoryTrend,
+  getRiskDrivers,
+  getReorderQueue,
+} from "@/lib/api";
 import type {
-  DashboardOverviewResponse,
-  BusinessImpactResponse,
-  ForecastDiagnosticsResponse,
+  CockpitResponse,
+  InventoryTrendResponse,
+  RiskDriversResponse,
+  ReorderQueueResponse,
 } from "@/lib/types";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 import StatusBadge from "@/components/StatusBadge";
-import PageHeader from "@/components/PageHeader";
+import KpiCard from "@/components/KpiCard";
+import InventoryTrendChart from "@/components/InventoryTrendChart";
+import RiskDistributionChart from "@/components/RiskDistributionChart";
+import RiskDriverList from "@/components/RiskDriverList";
+import ReorderQueueTable from "@/components/ReorderQueueTable";
 
 const QUALITY_COLORS: Record<string, string> = {
-  strong: "#15803d",
-  directional: "#a16207",
-  weak: "#dc2626",
-  unknown: "#6b7280",
+  Strong: "#15803d",
+  Directional: "#a16207",
+  "Weak / Demo signal": "#dc2626",
+  "No model": "#6b7280",
 };
 
-const QUALITY_LABELS: Record<string, string> = {
-  strong: "Strong signal",
-  directional: "Directional signal",
-  weak: "Weak signal — use cautiously",
-  unknown: "No model yet",
-};
+const fmt = (n: number | null | undefined, dec = 0) =>
+  n == null ? "—" : n.toLocaleString("en", { maximumFractionDigits: dec });
+
+const fmtEur = (n: number | null | undefined) =>
+  n == null ? "—" : `€${n.toLocaleString("en", { maximumFractionDigits: 0 })}`;
+
+const fmtPct = (n: number | null | undefined) =>
+  n == null ? "—" : `${n.toFixed(1)}%`;
+
+function SectionHeader({ title, href, linkLabel }: { title: string; href?: string; linkLabel?: string }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: "12px",
+      }}
+    >
+      <h2 style={{ fontSize: "15px", fontWeight: 700, margin: 0 }}>{title}</h2>
+      {href && (
+        <Link href={href} style={{ fontSize: "12px", color: "#2563eb" }}>
+          {linkLabel ?? "View all →"}
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function Panel({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "12px",
+        padding: "20px",
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export default function HomePage() {
-  const [data, setData] = useState<DashboardOverviewResponse | null>(null);
-  const [impact, setImpact] = useState<BusinessImpactResponse | null>(null);
-  const [diagnostics, setDiagnostics] = useState<ForecastDiagnosticsResponse | null>(null);
+  const [cockpit, setCockpit] = useState<CockpitResponse | null>(null);
+  const [trend, setTrend] = useState<InventoryTrendResponse | null>(null);
+  const [riskDrivers, setRiskDrivers] = useState<RiskDriversResponse | null>(null);
+  const [queue, setQueue] = useState<ReorderQueueResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -38,14 +87,16 @@ export default function HomePage() {
     setLoading(true);
     setError(null);
     Promise.all([
-      getDashboardOverview(),
-      getBusinessImpact().catch(() => null),
-      getForecastDiagnostics().catch(() => null),
+      getAnalyticsCockpit(),
+      getInventoryTrend({ days: 30 }).catch(() => null),
+      getRiskDrivers(5).catch(() => null),
+      getReorderQueue().catch(() => null),
     ])
-      .then(([overview, biz, diag]) => {
-        setData(overview);
-        setImpact(biz);
-        setDiagnostics(diag);
+      .then(([c, t, d, q]) => {
+        setCockpit(c);
+        setTrend(t);
+        setRiskDrivers(d);
+        setQueue(q);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -53,328 +104,261 @@ export default function HomePage() {
 
   useEffect(() => { load(); }, []);
 
-  const fmt = (n: number | null | undefined, decimals = 0) =>
-    n == null ? "—" : n.toLocaleString("en", { maximumFractionDigits: decimals });
-
-  const fmtPct = (n: number | null | undefined) =>
-    n == null ? "—" : `${(n * 100).toFixed(1)}%`;
-
-  const latestModel = diagnostics?.ml_model ?? diagnostics?.baseline ?? null;
-  const qualityLabel = latestModel?.quality_label ?? "unknown";
+  const qualityLabel = cockpit?.forecasting.forecast_quality_label ?? "No model";
+  const qualityColor = QUALITY_COLORS[qualityLabel] ?? "#6b7280";
+  const noData = cockpit?.status === "no_data";
 
   return (
     <div>
-      <PageHeader
-        title="Inventory decisions, from raw data to forecasted risk"
-        subtitle="DemandOS turns synthetic raw commerce records into demand forecasts, stockout risk, and internal reorder guidance."
-        kicker="Public portfolio prototype"
-        badge="Live demo · synthetic dataset"
-      />
+      {/* ── Hero ────────────────────────────────────────────────────────── */}
+      <div style={{ marginBottom: "28px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+          <span
+            style={{
+              fontSize: "10px",
+              fontWeight: 700,
+              letterSpacing: "0.07em",
+              padding: "3px 10px",
+              borderRadius: "100px",
+              background: "#dbeafe",
+              color: "#1e40af",
+              textTransform: "uppercase",
+            }}
+          >
+            Synthetic demo · no external actions
+          </span>
+        </div>
+        <h1 style={{ fontSize: "28px", fontWeight: 750, letterSpacing: "-0.02em", margin: "0 0 8px" }}>
+          Inventory intelligence from raw data to reorder guidance
+        </h1>
+        <p style={{ fontSize: "14px", color: "var(--text-secondary)", margin: 0, maxWidth: "640px" }}>
+          DemandOS turns synthetic raw commerce records into demand forecasts, stockout risk scores,
+          and internal reorder recommendations — no hardcoded values, no external side effects.
+        </p>
+      </div>
 
-      {loading && <LoadingState message="Loading dashboard..." />}
+      {loading && <LoadingState message="Loading analytics cockpit..." />}
       {error && <ErrorState message={error} onRetry={load} />}
 
       {!loading && !error && (
         <>
-          {data?.status === "no_data" && (
-            <div className="scaffold-banner">
-              <strong>No data yet.</strong> Run{" "}
-              <code>POST /api/demo/reset</code> to seed the demo dataset, then
-              run aggregation, features, forecasts, risks, and recommendations.
-            </div>
-          )}
-
-          {/* How to read this dashboard */}
-          <div
-            style={{
-              background: "#f0f9ff",
-              border: "1px solid #bae6fd",
-              borderRadius: "8px",
-              padding: "20px 24px",
-              marginBottom: "24px",
-            }}
-          >
-            <h2 style={{ fontSize: "14px", fontWeight: 600, color: "#0c4a6e", marginBottom: "10px" }}>
-              How to read this dashboard
-            </h2>
-            <ol style={{ margin: 0, paddingLeft: "20px" }}>
-              {[
-                "Raw commerce records (orders, inventory, products) are seeded into the database.",
-                "The pipeline builds daily demand aggregates and leakage-safe ML features.",
-                "Forecasting models estimate near-term demand using 30+ signals.",
-                "Stockout risk scoring identifies product/store combinations likely to run out.",
-                "Reorder recommendations are internal review guidance — no purchase order is created automatically.",
-              ].map((line, i) => (
-                <li
-                  key={i}
-                  style={{ fontSize: "13px", color: "#0c4a6e", marginBottom: "5px", lineHeight: 1.5 }}
-                >
-                  {line}
-                </li>
-              ))}
-            </ol>
-            <div style={{ marginTop: "10px" }}>
-              <Link href="/data-science" style={{ fontSize: "12px", color: "#0369a1" }}>
-                View ML Insights for the full data science breakdown →
-              </Link>
-            </div>
-          </div>
-
-          {/* What to review first */}
-          {impact?.has_data && (
+          {/* ── No-data banner ─────────────────────────────────────────── */}
+          {noData && (
             <div
               style={{
-                background: "#f0fdf4",
-                border: "1px solid #86efac",
+                background: "#fefce8",
+                border: "1px solid #fde047",
                 borderRadius: "8px",
-                padding: "20px 24px",
+                padding: "14px 18px",
                 marginBottom: "24px",
+                fontSize: "13px",
+                color: "#713f12",
               }}
             >
-              <h2 style={{ fontSize: "14px", fontWeight: 600, color: "#166534", marginBottom: "10px" }}>
-                What to review first
-              </h2>
-              <ul style={{ margin: 0, paddingLeft: "20px" }}>
-                {impact.review_guidance.map((line, i) => (
-                  <li
-                    key={i}
-                    style={{ fontSize: "13px", color: "#166534", marginBottom: "5px", lineHeight: 1.5 }}
-                  >
-                    {line}
-                  </li>
-                ))}
-              </ul>
-              <div style={{ marginTop: "10px", display: "flex", gap: "16px", flexWrap: "wrap" }}>
-                <Link href="/risks" style={{ fontSize: "12px", color: "#166534" }}>
-                  View inventory risks →
-                </Link>
-                <Link href="/recommendations" style={{ fontSize: "12px", color: "#166534" }}>
-                  View reorder recommendations →
-                </Link>
-              </div>
+              <strong>No pipeline data found.</strong> Run{" "}
+              <code style={{ background: "#fef9c3", padding: "1px 4px", borderRadius: "3px" }}>
+                POST /api/demo/run-full-pipeline
+              </code>{" "}
+              from the{" "}
+              <Link href="/pipeline" style={{ color: "#92400e" }}>
+                Pipeline page
+              </Link>{" "}
+              to seed the demo dataset end-to-end.
             </div>
           )}
 
-          {/* Model confidence */}
-          {latestModel && (
-            <div
-              style={{
-                background: "var(--surface)",
-                border: `1px solid ${QUALITY_COLORS[qualityLabel] ?? "var(--border)"}44`,
-                borderRadius: "8px",
-                padding: "18px 24px",
-                marginBottom: "24px",
-              }}
-            >
-              <h2 style={{ fontSize: "14px", fontWeight: 600, marginBottom: "6px" }}>
-                Model confidence
-              </h2>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-                <span
-                  style={{
-                    padding: "3px 10px",
-                    borderRadius: "4px",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    background: `${QUALITY_COLORS[qualityLabel]}22`,
-                    color: QUALITY_COLORS[qualityLabel] ?? "#6b7280",
-                    border: `1px solid ${QUALITY_COLORS[qualityLabel]}44`,
-                  }}
-                >
-                  {QUALITY_LABELS[qualityLabel]}
-                </span>
-                <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-                  {latestModel.model_name} · WAPE {fmtPct(latestModel.wape)}
-                </span>
-              </div>
-              <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: "0 0 8px" }}>
-                {latestModel.interpretation}
-              </p>
-              {latestModel.warning && (
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#92400e",
-                    background: "#fef3c7",
-                    borderRadius: "4px",
-                    padding: "6px 10px",
-                    marginBottom: "8px",
-                  }}
-                >
-                  {latestModel.warning}
-                </div>
-              )}
-              <Link href="/data-science" style={{ fontSize: "12px" }}>
-                View full ML Insights →
-              </Link>
-            </div>
-          )}
-
-          {/* Raw counts */}
-          {data && (
+          {/* ── Executive KPI cards ─────────────────────────────────────── */}
+          {cockpit && (
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                gap: "12px",
+                marginBottom: "24px",
+              }}
+            >
+              <KpiCard
+                label="SKUs monitored"
+                value={fmt(cockpit.dataset.sku_store_combinations)}
+                sub={`${cockpit.dataset.products} products × ${cockpit.dataset.stores} stores`}
+              />
+              <KpiCard
+                label="Stockout risk"
+                value={fmtPct(cockpit.inventory.stockout_risk_percent)}
+                color={
+                  (cockpit.inventory.stockout_risk_percent ?? 0) > 30 ? "#dc2626" :
+                  (cockpit.inventory.stockout_risk_percent ?? 0) > 10 ? "#d97706" : "#15803d"
+                }
+                sub={`${cockpit.inventory.at_risk_sku_stores} at-risk combinations`}
+              />
+              <KpiCard
+                label="Inventory value"
+                value={fmtEur(cockpit.inventory.estimated_inventory_value)}
+                sub={cockpit.inventory.inventory_value_method}
+              />
+              <KpiCard
+                label="Forecast quality"
+                value={qualityLabel}
+                color={qualityColor}
+                sub={
+                  cockpit.forecasting.latest_wape != null
+                    ? `WAPE ${(cockpit.forecasting.latest_wape * 100).toFixed(1)}%`
+                    : "No model yet"
+                }
+              />
+              <KpiCard
+                label="Est. lost sales"
+                value={fmtEur(cockpit.risk.estimated_lost_sales)}
+                color={cockpit.risk.estimated_lost_sales != null ? "#dc2626" : undefined}
+                sub="from at-risk SKU/stores"
+              />
+              <KpiCard
+                label="Open recommendations"
+                value={fmt(cockpit.recommendations.open)}
+                sub={
+                  cockpit.recommendations.estimated_order_cost != null
+                    ? `Est. cost ${fmtEur(cockpit.recommendations.estimated_order_cost)}`
+                    : "internal review only"
+                }
+              />
+            </div>
+          )}
+
+          {/* ── Inventory trend chart ───────────────────────────────────── */}
+          <Panel style={{ marginBottom: "24px" }}>
+            <SectionHeader title="Inventory trend (last 30 days)" />
+            {trend && trend.series.length > 0 ? (
+              <>
+                <InventoryTrendChart series={trend.series} height={220} />
+                {trend.metadata.reorder_point_note && (
+                  <p style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "8px", fontStyle: "italic" }}>
+                    {trend.metadata.reorder_point_note}
+                  </p>
+                )}
+              </>
+            ) : (
+              <InventoryTrendChart series={[]} height={220} />
+            )}
+          </Panel>
+
+          {/* ── Pipeline status + Risk distribution ─────────────────────── */}
+          {cockpit && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
                 gap: "16px",
                 marginBottom: "24px",
               }}
             >
-              {[
-                { label: "Products", value: fmt(data.raw_counts.products) },
-                { label: "Stores", value: fmt(data.raw_counts.stores) },
-                { label: "Orders", value: fmt(data.raw_counts.orders) },
-                { label: "Inventory snapshots", value: fmt(data.raw_counts.inventory_snapshots) },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  style={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "8px",
-                    padding: "18px",
-                  }}
-                >
-                  <div style={{ color: "var(--text-secondary)", fontSize: "11px" }}>{item.label}</div>
-                  <div style={{ fontSize: "26px", fontWeight: 700, margin: "6px 0" }}>{item.value}</div>
+              {/* Pipeline */}
+              <Panel>
+                <SectionHeader title="Pipeline status" href="/pipeline" linkLabel="Run pipeline →" />
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {(
+                    [
+                      { label: "Raw data", key: "data_seeded" },
+                      { label: "ML features", key: "features" },
+                      { label: "Demand forecasts", key: "forecasts" },
+                      { label: "Stockout risks", key: "risks" },
+                      { label: "Reorder recommendations", key: "recommendations" },
+                    ] as Array<{ label: string; key: keyof typeof cockpit.pipeline }>
+                  ).map(({ label, key }) => (
+                    <div
+                      key={key}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "6px 0",
+                        borderBottom: "1px solid var(--border)",
+                      }}
+                    >
+                      <span style={{ fontSize: "12px" }}>{label}</span>
+                      <StatusBadge
+                        value={cockpit.pipeline[key] === "ready" ? "completed" : "warning"}
+                        label={cockpit.pipeline[key] === "ready" ? "Ready" : "Pending"}
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
+              </Panel>
 
-          {/* Pipeline readiness */}
-          {data && (
-            <div style={{ marginBottom: "24px" }}>
-              <h2 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "12px" }}>
-                Pipeline Status
-              </h2>
-              <div
-                style={{
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
-                  overflow: "hidden",
-                }}
-              >
-                {[
-                  { label: "Data seeded", ready: data.pipeline_readiness.data_seeded },
-                  { label: "Aggregation run", ready: data.pipeline_readiness.aggregation_run },
-                  { label: "Features built", ready: data.pipeline_readiness.features_built },
-                  { label: "Forecast run", ready: data.pipeline_readiness.forecast_run },
-                  { label: "Risk run", ready: data.pipeline_readiness.risk_run },
-                  { label: "Recommendation run", ready: data.pipeline_readiness.recommendation_run },
-                ].map((step, i, arr) => (
+              {/* Risk distribution */}
+              <Panel>
+                <SectionHeader title="Risk distribution" href="/risks" />
+                <RiskDistributionChart
+                  critical={cockpit.risk.critical}
+                  high={cockpit.risk.high}
+                  medium={cockpit.risk.medium}
+                  low={cockpit.risk.low}
+                />
+                {cockpit.risk.estimated_lost_sales != null && (
                   <div
-                    key={step.label}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "11px 18px",
-                      borderBottom: i < arr.length - 1 ? "1px solid var(--border)" : "none",
+                      marginTop: "14px",
+                      padding: "10px 12px",
+                      background: "#fef2f2",
+                      border: "1px solid #fecaca",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      color: "#991b1b",
                     }}
                   >
-                    <span style={{ fontSize: "13px" }}>{step.label}</span>
-                    <StatusBadge
-                      value={step.ready ? "completed" : "warning"}
-                      label={step.ready ? "Ready" : "Pending"}
-                    />
+                    <strong>Est. lost sales exposure:</strong>{" "}
+                    {fmtEur(cockpit.risk.estimated_lost_sales)}
                   </div>
-                ))}
-              </div>
+                )}
+              </Panel>
             </div>
           )}
 
-          {/* Risk + Recommendation cards */}
-          {data && (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                gap: "16px",
-                marginBottom: "24px",
-              }}
-            >
-              <Link href="/risks" style={{ textDecoration: "none" }}>
-                <div
-                  style={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "8px",
-                    padding: "20px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginBottom: "10px" }}>
-                    STOCKOUT RISK
-                  </div>
-                  <div style={{ display: "flex", gap: "14px", flexWrap: "wrap", marginBottom: "10px" }}>
-                    {[
-                      { label: "Critical", value: data.risk_summary.critical as number, color: "#dc2626" },
-                      { label: "High", value: data.risk_summary.high as number, color: "#c2410c" },
-                      { label: "Medium", value: data.risk_summary.medium as number, color: "#a16207" },
-                      { label: "Low", value: data.risk_summary.low as number, color: "#15803d" },
-                    ].map((tier) => (
-                      <div key={tier.label} style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: "20px", fontWeight: 700, color: tier.color }}>
-                          {tier.value ?? "—"}
-                        </div>
-                        <div style={{ fontSize: "10px", color: "var(--text-secondary)" }}>{tier.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                  {data.risk_summary.estimated_lost_sales_value != null && (
-                    <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
-                      Est. lost sales: €{fmt(data.risk_summary.estimated_lost_sales_value as number)}
-                    </div>
-                  )}
-                  <div style={{ fontSize: "12px", marginTop: "10px" }}>View risk details →</div>
-                </div>
-              </Link>
+          {/* ── Risk drivers ────────────────────────────────────────────── */}
+          <div style={{ marginBottom: "24px" }}>
+            <SectionHeader title="Top risk drivers" href="/risks" />
+            <RiskDriverList
+              drivers={riskDrivers?.drivers ?? []}
+              disclaimer={riskDrivers?.disclaimer}
+            />
+          </div>
 
-              <Link href="/recommendations" style={{ textDecoration: "none" }}>
-                <div
-                  style={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "8px",
-                    padding: "20px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginBottom: "10px" }}>
-                    REORDER RECOMMENDATIONS
-                  </div>
-                  <div style={{ fontSize: "26px", fontWeight: 700, marginBottom: "6px" }}>
-                    {fmt(data.recommendation_summary.open_count as number)}
-                  </div>
-                  <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "10px" }}>
-                    open internal review items
-                  </div>
-                  {data.recommendation_summary.estimated_order_cost != null && (
-                    <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
-                      Est. order cost: €{fmt(data.recommendation_summary.estimated_order_cost as number)}
-                    </div>
-                  )}
-                  <div style={{ fontSize: "12px", marginTop: "10px" }}>Review recommendations →</div>
+          {/* ── Reorder queue preview ───────────────────────────────────── */}
+          <div style={{ marginBottom: "24px" }}>
+            <SectionHeader title="Reorder queue (top 5)" href="/recommendations" />
+            <Panel>
+              <ReorderQueueTable items={queue?.items ?? []} limit={5} compact />
+              {queue && queue.items.length > 5 && (
+                <div style={{ marginTop: "10px", textAlign: "right" }}>
+                  <Link href="/recommendations" style={{ fontSize: "12px", color: "#2563eb" }}>
+                    View all {queue.items.length} recommendations →
+                  </Link>
                 </div>
-              </Link>
-            </div>
-          )}
+              )}
+            </Panel>
+          </div>
 
-          {/* Safety note */}
+          {/* ── Safety boundary ─────────────────────────────────────────── */}
           <div
             style={{
+              background: "#f8fafc",
+              border: "1px solid var(--border)",
+              borderRadius: "8px",
+              padding: "14px 18px",
               fontSize: "12px",
               color: "var(--text-secondary)",
-              padding: "12px 16px",
-              background: "var(--surface)",
-              border: "1px solid var(--border)",
-              borderRadius: "6px",
             }}
           >
-            <strong>Safety boundary:</strong> No purchasing is automated. Recommendations are internal
-            review guidance only. No external APIs, emails, or purchase orders are triggered.
+            <strong style={{ color: "var(--text-primary)" }}>Safety boundary:</strong>{" "}
+            DemandOS does not create purchase orders, contact suppliers, or trigger any external action.
+            All outputs are internal review guidance computed from the synthetic demo dataset.
+            Scenario outputs are simulated only. Connectors are disabled.
+            <span style={{ display: "block", marginTop: "6px" }}>
+              <Link href="/data-science" style={{ color: "#2563eb" }}>ML Insights →</Link>
+              {" · "}
+              <Link href="/overview" style={{ color: "#2563eb" }}>Pipeline overview →</Link>
+              {" · "}
+              <Link href="/scenarios" style={{ color: "#2563eb" }}>Scenario planner →</Link>
+            </span>
           </div>
         </>
       )}

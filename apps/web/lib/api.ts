@@ -46,6 +46,11 @@ import type {
   ModelComparisonResponse,
   FeatureSignalsResponse,
   BusinessImpactResponse,
+  CockpitResponse,
+  InventoryTrendResponse,
+  RiskDriversResponse,
+  ReorderQueueResponse,
+  ExecutiveSummaryResponse,
 } from "./types";
 import { getStoredApiKey } from "./apiKey";
 
@@ -419,4 +424,37 @@ export function getFeatureSignals(): Promise<FeatureSignalsResponse> {
 
 export function getBusinessImpact(): Promise<BusinessImpactResponse> {
   return apiFetch<BusinessImpactResponse>("/api/data-science/business-impact");
+}
+
+// ---------------------------------------------------------------------------
+// Analytics Cockpit — Sprint 16
+// ---------------------------------------------------------------------------
+
+export function getAnalyticsCockpit(): Promise<CockpitResponse> {
+  return apiFetch<CockpitResponse>("/api/analytics/cockpit");
+}
+
+export function getInventoryTrend(params?: {
+  product_id?: string;
+  store_id?: string;
+  days?: number;
+}): Promise<InventoryTrendResponse> {
+  const qs = new URLSearchParams();
+  if (params?.product_id) qs.set("product_id", params.product_id);
+  if (params?.store_id) qs.set("store_id", params.store_id);
+  if (params?.days) qs.set("days", String(params.days));
+  const query = qs.toString();
+  return apiFetch<InventoryTrendResponse>(`/api/analytics/inventory-trend${query ? `?${query}` : ""}`);
+}
+
+export function getRiskDrivers(limit = 10): Promise<RiskDriversResponse> {
+  return apiFetch<RiskDriversResponse>(`/api/analytics/risk-drivers?limit=${limit}`);
+}
+
+export function getReorderQueue(): Promise<ReorderQueueResponse> {
+  return apiFetch<ReorderQueueResponse>("/api/analytics/reorder-queue");
+}
+
+export function getExecutiveSummary(): Promise<ExecutiveSummaryResponse> {
+  return apiFetch<ExecutiveSummaryResponse>("/api/analytics/executive-summary");
 }

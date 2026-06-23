@@ -455,6 +455,89 @@ def main() -> int:
         results.append(ok2)
 
     # -----------------------------------------------------------------------
+    # Sprint 16 — analytics cockpit endpoints (read-only)
+    # -----------------------------------------------------------------------
+    print()
+    print("[ S16-1 ] Analytics cockpit")
+    status, body = _request("GET", f"{base}/api/analytics/cockpit", read_headers)
+    ok = check("GET /api/analytics/cockpit returns 200", status == 200, f"HTTP {status}")
+    ck_data: dict[str, Any] = body if isinstance(body, dict) else {}
+    results.append(ok)
+    if ok:
+        ok2 = check("cockpit has status field",
+                    "status" in ck_data,
+                    str(ck_data)[:80])
+        results.append(ok2)
+        ok3 = check("cockpit has dataset, inventory, forecasting, risk, recommendations, pipeline",
+                    all(k in ck_data for k in ("dataset", "inventory", "forecasting", "risk", "recommendations", "pipeline")),
+                    str(list(ck_data.keys()))[:80])
+        results.append(ok3)
+
+    print()
+    print("[ S16-2 ] Inventory trend")
+    status, body = _request("GET", f"{base}/api/analytics/inventory-trend", read_headers)
+    ok = check("GET /api/analytics/inventory-trend returns 200", status == 200, f"HTTP {status}")
+    results.append(ok)
+    if ok:
+        it_data: dict[str, Any] = body if isinstance(body, dict) else {}
+        ok2 = check("inventory trend has series list",
+                    "series" in it_data and isinstance(it_data.get("series"), list),
+                    "")
+        results.append(ok2)
+        ok3 = check("inventory trend has metadata",
+                    "metadata" in it_data and isinstance(it_data.get("metadata"), dict),
+                    "")
+        results.append(ok3)
+
+    print()
+    print("[ S16-3 ] Risk drivers")
+    status, body = _request("GET", f"{base}/api/analytics/risk-drivers", read_headers)
+    ok = check("GET /api/analytics/risk-drivers returns 200", status == 200, f"HTTP {status}")
+    results.append(ok)
+    if ok:
+        rd_data: dict[str, Any] = body if isinstance(body, dict) else {}
+        ok2 = check("risk drivers has drivers list",
+                    "drivers" in rd_data and isinstance(rd_data.get("drivers"), list),
+                    "")
+        results.append(ok2)
+        ok3 = check("risk drivers has disclaimer",
+                    "disclaimer" in rd_data and isinstance(rd_data.get("disclaimer"), str),
+                    "")
+        results.append(ok3)
+
+    print()
+    print("[ S16-4 ] Reorder queue")
+    status, body = _request("GET", f"{base}/api/analytics/reorder-queue", read_headers)
+    ok = check("GET /api/analytics/reorder-queue returns 200", status == 200, f"HTTP {status}")
+    results.append(ok)
+    if ok:
+        rq_data: dict[str, Any] = body if isinstance(body, dict) else {}
+        ok2 = check("reorder queue has items list",
+                    "items" in rq_data and isinstance(rq_data.get("items"), list),
+                    "")
+        results.append(ok2)
+        ok3 = check("reorder queue has safety_note",
+                    "safety_note" in rq_data and "purchase order" in str(rq_data.get("safety_note", "")).lower(),
+                    "")
+        results.append(ok3)
+
+    print()
+    print("[ S16-5 ] Executive summary")
+    status, body = _request("GET", f"{base}/api/analytics/executive-summary", read_headers)
+    ok = check("GET /api/analytics/executive-summary returns 200", status == 200, f"HTTP {status}")
+    results.append(ok)
+    if ok:
+        es_data: dict[str, Any] = body if isinstance(body, dict) else {}
+        ok2 = check("executive summary has headline",
+                    "headline" in es_data and isinstance(es_data.get("headline"), str),
+                    "")
+        results.append(ok2)
+        ok3 = check("executive summary has safety_note",
+                    "safety_note" in es_data and isinstance(es_data.get("safety_note"), str),
+                    "")
+        results.append(ok3)
+
+    # -----------------------------------------------------------------------
     # Optional: run full pipeline (only with --run-pipeline)
     # -----------------------------------------------------------------------
     if run_pipeline:

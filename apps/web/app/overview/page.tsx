@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getOverview, getDashboardPipelineStatus } from "@/lib/api";
-import type { OverviewResponse, DashboardPipelineStatusResponse } from "@/lib/types";
+import { getOverview, getDashboardPipelineStatus, getAnalyticsCockpit } from "@/lib/api";
+import type { OverviewResponse, DashboardPipelineStatusResponse, CockpitResponse } from "@/lib/types";
+import Link from "next/link";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
@@ -15,6 +16,7 @@ import PageHeader from "@/components/PageHeader";
 export default function OverviewPage() {
   const [data, setData] = useState<OverviewResponse | null>(null);
   const [pipelineStatus, setPipelineStatus] = useState<DashboardPipelineStatusResponse | null>(null);
+  const [cockpit, setCockpit] = useState<CockpitResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -24,8 +26,9 @@ export default function OverviewPage() {
     Promise.all([
       getOverview(),
       getDashboardPipelineStatus(),
+      getAnalyticsCockpit().catch(() => null),
     ])
-      .then(([o, p]) => { setData(o); setPipelineStatus(p); })
+      .then(([o, p, c]) => { setData(o); setPipelineStatus(p); setCockpit(c); })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   };
@@ -75,6 +78,46 @@ export default function OverviewPage() {
 
       {s && data?.status !== "no_data" && (
         <>
+          {/* Analytics cockpit shortcut */}
+          {cockpit && cockpit.status === "ready" && (
+            <div
+              style={{
+                background: "#f0f9ff",
+                border: "1px solid #bae6fd",
+                borderRadius: "8px",
+                padding: "12px 18px",
+                marginBottom: "20px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "10px",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: "13px", fontWeight: 600, color: "#0c4a6e" }}>
+                  Analytics cockpit available
+                </div>
+                <div style={{ fontSize: "12px", color: "#0369a1", marginTop: "2px" }}>
+                  {cockpit.inventory.at_risk_sku_stores} at-risk SKU/store combinations ·
+                  {cockpit.risk.critical + cockpit.risk.high} critical/high risks ·
+                  {cockpit.recommendations.open} open recommendations
+                </div>
+              </div>
+              <Link
+                href="/"
+                style={{
+                  fontSize: "12px",
+                  color: "#0369a1",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                View cockpit →
+              </Link>
+            </div>
+          )}
+
           {/* Raw data KPIs */}
           <section style={{ marginBottom: "24px" }}>
             <h2 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
@@ -85,8 +128,8 @@ export default function OverviewPage() {
                 { label: "Products", value: fmt(s.products) },
                 { label: "Stores", value: fmt(s.stores) },
                 { label: "Orders", value: fmt(s.orders) },
-                { label: "Feature rows", value: fmt(s.feature_rows_count) },
-                { label: "Forecast rows", value: fmt(s.forecast_rows_count) },
+                { label: "Model feature rows", value: fmt(s.feature_rows_count) },
+                { label: "Forecasted demand points", value: fmt(s.forecast_rows_count) },
               ].map((m) => (
                 <KpiCard key={m.label} label={m.label} value={m.value} />
               ))}

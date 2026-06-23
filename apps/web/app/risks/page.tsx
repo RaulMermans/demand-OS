@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getDashboardRiskSummary, getRisks } from "@/lib/api";
-import type { DashboardRiskSummaryResponse, RisksListResponse } from "@/lib/types";
+import { getDashboardRiskSummary, getRisks, getRiskDrivers } from "@/lib/api";
+import type { DashboardRiskSummaryResponse, RisksListResponse, RiskDriversResponse } from "@/lib/types";
+import RiskDriverList from "@/components/RiskDriverList";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
@@ -27,6 +28,7 @@ const TIER_FILTER_OPTIONS = ["", "critical", "high", "medium", "low"];
 export default function RisksPage() {
   const [summary, setSummary] = useState<DashboardRiskSummaryResponse | null>(null);
   const [risks, setRisks] = useState<RisksListResponse | null>(null);
+  const [drivers, setDrivers] = useState<RiskDriversResponse | null>(null);
   const [tierFilter, setTierFilter] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,8 +39,9 @@ export default function RisksPage() {
     Promise.all([
       getDashboardRiskSummary(),
       getRisks({ risk_tier: tier || undefined, limit: 100 }),
+      getRiskDrivers(8).catch(() => null),
     ])
-      .then(([s, r]) => { setSummary(s); setRisks(r); })
+      .then(([s, r, d]) => { setSummary(s); setRisks(r); setDrivers(d); })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   };
@@ -231,6 +234,16 @@ export default function RisksPage() {
               valueFormatter={(v) => String(v)}
             />
           </ChartCard>
+
+          {/* Risk driver panel */}
+          {drivers && drivers.drivers.length > 0 && (
+            <section style={{ marginBottom: "24px" }}>
+              <h2 style={{ fontSize: "15px", fontWeight: 700, marginBottom: "12px" }}>
+                Risk drivers — top exposures
+              </h2>
+              <RiskDriverList drivers={drivers.drivers} disclaimer={drivers.disclaimer} />
+            </section>
+          )}
 
           {/* Run info */}
           {summary.latest_run && (

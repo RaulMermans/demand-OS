@@ -824,27 +824,27 @@ else
   ((FAIL += 1))
 fi
 
-if grep -q "How to read this dashboard" apps/web/app/page.tsx 2>/dev/null; then
-  echo "   ✅ Home page has 'How to read this dashboard' card"
+if grep -q "Inventory intelligence\|getAnalyticsCockpit\|Analytics cockpit" apps/web/app/page.tsx 2>/dev/null; then
+  echo "   ✅ Home page has analytics cockpit (Sprint 16 redesign)"
   ((PASS += 1))
 else
-  echo "   ❌ Home page missing 'How to read this dashboard'"
+  echo "   ❌ Home page missing analytics cockpit"
   ((FAIL += 1))
 fi
 
-if grep -q "What to review first" apps/web/app/page.tsx 2>/dev/null; then
-  echo "   ✅ Home page has 'What to review first' card"
+if grep -q "Safety boundary\|no external actions\|Synthetic demo" apps/web/app/page.tsx 2>/dev/null; then
+  echo "   ✅ Home page has safety/context section"
   ((PASS += 1))
 else
-  echo "   ❌ Home page missing 'What to review first'"
+  echo "   ❌ Home page missing safety or context section"
   ((FAIL += 1))
 fi
 
-if grep -q "Model confidence" apps/web/app/page.tsx 2>/dev/null; then
-  echo "   ✅ Home page has 'Model confidence' card"
+if grep -q "Forecast quality\|forecast_quality_label\|getAnalyticsCockpit" apps/web/app/page.tsx 2>/dev/null; then
+  echo "   ✅ Home page has forecast quality indicator"
   ((PASS += 1))
 else
-  echo "   ❌ Home page missing 'Model confidence' card"
+  echo "   ❌ Home page missing forecast quality indicator"
   ((FAIL += 1))
 fi
 
@@ -925,6 +925,128 @@ if grep -q "17-ml-insights" docs/screenshots/README.md 2>/dev/null; then
   ((PASS += 1))
 else
   echo "   ⚠️  Screenshot docs missing 17-ml-insights (SKIP — manual capture pending)"
+  ((SKIP += 1))
+fi
+
+echo ""
+echo "Sprint 16 — analytics cockpit API files..."
+for f in \
+  apps/api/app/schemas/analytics.py \
+  apps/api/app/services/analytics_cockpit_service.py \
+  apps/api/app/api/analytics.py \
+  apps/api/tests/test_analytics_cockpit.py; do
+  if [ -f "$f" ]; then
+    echo "   ✅ $f exists"
+    ((PASS += 1))
+  else
+    echo "   ❌ $f missing"
+    ((FAIL += 1))
+  fi
+done
+
+echo ""
+echo "Sprint 16 — analytics router registered..."
+if grep -q "analytics" apps/api/app/main.py 2>/dev/null; then
+  echo "   ✅ main.py includes analytics router"
+  ((PASS += 1))
+else
+  echo "   ❌ main.py missing analytics router"
+  ((FAIL += 1))
+fi
+
+echo ""
+echo "Sprint 16 — analytics endpoints exist..."
+for ep in "cockpit" "inventory-trend" "risk-drivers" "reorder-queue" "executive-summary"; do
+  if grep -q "$ep" apps/api/app/api/analytics.py 2>/dev/null; then
+    echo "   ✅ /api/analytics/$ep defined"
+    ((PASS += 1))
+  else
+    echo "   ❌ /api/analytics/$ep missing"
+    ((FAIL += 1))
+  fi
+done
+
+echo ""
+echo "Sprint 16 — cockpit UI components..."
+for f in \
+  apps/web/components/InventoryTrendChart.tsx \
+  apps/web/components/RiskDistributionChart.tsx \
+  apps/web/components/RiskDriverList.tsx \
+  apps/web/components/ReorderQueueTable.tsx; do
+  if [ -f "$f" ]; then
+    echo "   ✅ $f exists"
+    ((PASS += 1))
+  else
+    echo "   ❌ $f missing"
+    ((FAIL += 1))
+  fi
+done
+
+echo ""
+echo "Sprint 16 — home page uses analytics cockpit..."
+if grep -q "getAnalyticsCockpit" apps/web/app/page.tsx 2>/dev/null; then
+  echo "   ✅ Home page calls getAnalyticsCockpit"
+  ((PASS += 1))
+else
+  echo "   ❌ Home page missing getAnalyticsCockpit call"
+  ((FAIL += 1))
+fi
+
+if grep -q "InventoryTrendChart" apps/web/app/page.tsx 2>/dev/null; then
+  echo "   ✅ Home page has InventoryTrendChart"
+  ((PASS += 1))
+else
+  echo "   ❌ Home page missing InventoryTrendChart"
+  ((FAIL += 1))
+fi
+
+if grep -q "RiskDriverList" apps/web/app/page.tsx 2>/dev/null; then
+  echo "   ✅ Home page has RiskDriverList"
+  ((PASS += 1))
+else
+  echo "   ❌ Home page missing RiskDriverList"
+  ((FAIL += 1))
+fi
+
+if grep -q "ReorderQueueTable" apps/web/app/page.tsx 2>/dev/null; then
+  echo "   ✅ Home page has ReorderQueueTable (reorder queue preview)"
+  ((PASS += 1))
+else
+  echo "   ❌ Home page missing ReorderQueueTable"
+  ((FAIL += 1))
+fi
+
+echo ""
+echo "Sprint 16 — no hardcoded KPI constants in home page..."
+for bad in "94%" "120,000" "9,516" "6,686" "7,751"; do
+  if grep -qF "$bad" apps/web/app/page.tsx 2>/dev/null; then
+    echo "   ❌ Hardcoded value '$bad' found in home page"
+    ((FAIL += 1))
+  else
+    echo "   ✅ No hardcoded '$bad' in home page"
+    ((PASS += 1))
+  fi
+done
+
+echo ""
+echo "Sprint 16 — no secrets in analytics files..."
+if grep -rqE 'DEMANDOS_API_KEY=[a-zA-Z0-9]{16,}' \
+  apps/api/app/api/analytics.py \
+  apps/api/app/services/analytics_cockpit_service.py 2>/dev/null; then
+  echo "   ❌ Possible API key value in Sprint 16 files"
+  ((FAIL += 1))
+else
+  echo "   ✅ No API key values in Sprint 16 files"
+  ((PASS += 1))
+fi
+
+echo ""
+echo "Sprint 16 — screenshot docs (18-analytics-cockpit)..."
+if grep -q "18-analytics-cockpit" docs/screenshots/README.md 2>/dev/null; then
+  echo "   ✅ Screenshot docs include 18-analytics-cockpit"
+  ((PASS += 1))
+else
+  echo "   ⚠️  Screenshot docs missing 18-analytics-cockpit (SKIP — manual capture pending)"
   ((SKIP += 1))
 fi
 

@@ -79,3 +79,27 @@ jobs visible and green.
 Capture the `/data-science` page showing the ML workflow overview, model leaderboard,
 forecast diagnostics, and feature signal groups. The data volume and business impact
 cards should be visible. No secrets should appear.
+
+## Sprint 16 Capture Checklist
+
+- [ ] Deploy Sprint 16 to Vercel.
+- [ ] Run `python scripts/capture_screenshots.py --base-url https://demand-os-three.vercel.app` to refresh automated captures.
+- [ ] Manually capture `18-analytics-cockpit.png` from the redesigned home page.
+- [ ] Refresh `02-home-dashboard.png` — home page is now the executive analytics cockpit.
+- [ ] Refresh `05-inventory-risk.png` — risks page now shows risk driver panel.
+- [ ] Refresh `06-recommendations.png` — recommendations page now shows decision queue table.
+- [ ] Verify no secrets or connection strings are visible.
+
+### 18 — Analytics Cockpit
+
+Capture the redesigned home page (`/`) showing:
+- Hero section with tagline and synthetic demo badge
+- 6 executive KPI cards (SKUs monitored, stockout risk %, inventory value, forecast quality, est. lost sales, open recommendations)
+- Inventory trend chart (on-hand vs. forecast vs. reorder point)
+- Pipeline status tracker
+- Risk distribution bar chart
+- Top risk driver cards
+- Reorder queue preview table (top 5)
+- Safety boundary footer
+
+Save as `18-analytics-cockpit.png`. No secrets, API keys, or real customer data should appear.

@@ -714,3 +714,138 @@ export interface BusinessImpactResponse {
   review_guidance: string[];
   automation_note: string;
 }
+
+// ---------------------------------------------------------------------------
+// Sprint 16 — Analytics Cockpit
+// ---------------------------------------------------------------------------
+
+export interface CockpitDataset {
+  products: number;
+  stores: number;
+  sku_store_combinations: number;
+  orders: number;
+  inventory_snapshots: number;
+}
+
+export interface CockpitInventory {
+  total_inventory_units: number | null;
+  estimated_inventory_value: number | null;
+  inventory_value_method: string;
+  stockout_risk_percent: number | null;
+  at_risk_sku_stores: number;
+}
+
+export interface CockpitForecasting {
+  latest_model: string | null;
+  latest_wape: number | null;
+  forecast_quality_label: string;
+  forecast_rows: number;
+  interpretation: string;
+}
+
+export interface CockpitRisk {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  estimated_lost_sales: number | null;
+}
+
+export interface CockpitRecommendations {
+  open: number;
+  estimated_order_cost: number | null;
+  estimated_lost_sales_addressed: number | null;
+}
+
+export interface CockpitPipeline {
+  data_seeded: string;
+  features: string;
+  forecasts: string;
+  risks: string;
+  recommendations: string;
+}
+
+export interface CockpitResponse {
+  status: string;
+  generated_at: string;
+  dataset: CockpitDataset;
+  inventory: CockpitInventory;
+  forecasting: CockpitForecasting;
+  risk: CockpitRisk;
+  recommendations: CockpitRecommendations;
+  pipeline: CockpitPipeline;
+}
+
+export interface InventoryTrendPoint {
+  date: string;
+  inventory_on_hand: number | null;
+  forecasted_demand: number | null;
+  reorder_point: number | null;
+  safety_stock: number | null;
+}
+
+export interface InventoryTrendMetadata {
+  product_id: string | null;
+  store_id: string | null;
+  days: number;
+  mode: string;
+  reorder_point_note: string | null;
+}
+
+export interface InventoryTrendResponse {
+  series: InventoryTrendPoint[];
+  metadata: InventoryTrendMetadata;
+}
+
+export interface RiskDriver {
+  name: string;
+  severity: string;
+  explanation: string;
+}
+
+export interface RiskDriverEntry {
+  product_id: string;
+  store_id: string;
+  product_name: string | null;
+  sku: string | null;
+  risk_tier: string;
+  risk_score: number | null;
+  estimated_lost_sales: number | null;
+  drivers: RiskDriver[];
+}
+
+export interface RiskDriversResponse {
+  drivers: RiskDriverEntry[];
+  total: number;
+  disclaimer: string;
+}
+
+export interface ReorderQueueItem {
+  recommendation_id: string;
+  product_id: string;
+  store_id: string;
+  sku: string | null;
+  product_name: string | null;
+  category: string | null;
+  risk_tier: string | null;
+  recommended_units: number | null;
+  estimated_order_cost: number | null;
+  lead_time_days: number | null;
+  urgency: string;
+  confidence_label: string;
+  reason: string;
+  status: string;
+}
+
+export interface ReorderQueueResponse {
+  items: ReorderQueueItem[];
+  total: number;
+  safety_note: string;
+}
+
+export interface ExecutiveSummaryResponse {
+  headline: string;
+  summary: string[];
+  next_actions: string[];
+  safety_note: string;
+}
