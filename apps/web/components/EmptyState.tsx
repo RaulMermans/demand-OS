@@ -5,44 +5,70 @@ import Link from "next/link";
 interface EmptyStateProps {
   title: string;
   message?: string;
-  action?: React.ReactNode;
-  showPipelineLink?: boolean;
+  action?: { label: string; href: string };
 }
 
-export default function EmptyState({ title, message, action, showPipelineLink }: EmptyStateProps) {
+export default function EmptyState({ title, message, action }: EmptyStateProps) {
   return (
     <div
       style={{
         textAlign: "center",
-        padding: "54px 24px",
+        padding: "56px 24px",
         color: "var(--text-secondary)",
-        background: "var(--surface)",
+        background: "var(--surface-2)",
         border: "1px dashed var(--border-strong)",
         borderRadius: "12px",
       }}
     >
-      <div style={{ width: "42px", height: "42px", display: "grid", placeItems: "center", margin: "0 auto 13px", borderRadius: "12px", background: "var(--accent-soft)", color: "var(--accent)", fontSize: "21px" }}>○</div>
-      <div style={{ fontWeight: 600, fontSize: "16px", color: "var(--text-primary)", marginBottom: "8px" }}>
+      <div
+        style={{
+          width: "40px",
+          height: "40px",
+          display: "grid",
+          placeItems: "center",
+          margin: "0 auto 14px",
+          borderRadius: "10px",
+          background: "var(--accent-soft)",
+          color: "var(--accent)",
+          fontSize: "18px",
+        }}
+      >
+        ○
+      </div>
+      <div
+        style={{
+          fontWeight: 600,
+          fontSize: "15px",
+          color: "var(--text-primary)",
+          marginBottom: "8px",
+        }}
+      >
         {title}
       </div>
       {message && (
-        <div style={{ fontSize: "13px", maxWidth: "400px", margin: "0 auto" }}>{message}</div>
+        <div style={{ fontSize: "13px", maxWidth: "400px", margin: "0 auto" }}>
+          {message}
+        </div>
       )}
-      {showPipelineLink && (
-        <div style={{ marginTop: "16px", fontSize: "13px" }}>
+      {action && (
+        <div style={{ marginTop: "20px" }}>
           <Link
-            href="/pipeline"
+            href={action.href}
             style={{
-              color: "var(--accent)",
-              textDecoration: "underline",
-              fontWeight: 500,
+              display: "inline-block",
+              padding: "8px 20px",
+              borderRadius: "8px",
+              background: "var(--accent)",
+              color: "#fff",
+              fontSize: "13px",
+              fontWeight: 600,
+              textDecoration: "none",
             }}
           >
-            Go to Pipeline Controls to run the demo pipeline →
+            {action.label}
           </Link>
         </div>
       )}
-      {action && <div style={{ marginTop: "20px" }}>{action}</div>}
     </div>
   );
 }

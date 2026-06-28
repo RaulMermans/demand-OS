@@ -4,32 +4,31 @@ interface LoadingStateProps {
   message?: string;
 }
 
-export default function LoadingState({ message = "Loading..." }: LoadingStateProps) {
+export default function LoadingState({ message = "Loading…" }: LoadingStateProps) {
   return (
     <div
       style={{
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
-        gap: "12px",
-        padding: "42px 20px",
+        justifyContent: "center",
+        padding: "56px 24px",
+        gap: "16px",
         color: "var(--text-secondary)",
         fontSize: "14px",
-        background: "var(--surface)",
-        border: "1px solid var(--border)",
-        borderRadius: "12px",
       }}
     >
       <div
         style={{
-          width: "20px",
-          height: "20px",
-          border: "2px solid var(--border)",
+          width: "28px",
+          height: "28px",
+          border: "3px solid var(--border)",
           borderTopColor: "var(--accent)",
           borderRadius: "50%",
-          animation: "spin 0.8s linear infinite",
+          animation: "spin 0.75s linear infinite",
         }}
       />
-      {message}
+      <span>{message}</span>
     </div>
   );
 }

@@ -1,18 +1,13 @@
 "use client";
 
 import type { ReorderQueueItem } from "@/lib/types";
+import StatusBadge from "./StatusBadge";
 
 const URGENCY_COLORS: Record<string, string> = {
   critical: "#dc2626",
-  high: "#ea580c",
-  medium: "#d97706",
-  low: "#16a34a",
-};
-
-const CONFIDENCE_LABELS: Record<string, string> = {
-  review_now: "Review now",
-  monitor: "Monitor",
-  low_priority: "Low priority",
+  high:     "#f97316",
+  medium:   "#d97706",
+  low:      "#16a34a",
 };
 
 interface Props {
@@ -23,17 +18,18 @@ interface Props {
 
 export default function ReorderQueueTable({ items, limit, compact = false }: Props) {
   const visible = limit ? items.slice(0, limit) : items;
+  const pad = compact ? "5px 8px" : "9px 12px";
 
   if (!items || items.length === 0) {
     return (
       <div
         style={{
-          padding: "20px",
+          padding: "24px",
           textAlign: "center",
           color: "var(--text-secondary)",
           fontSize: "13px",
           border: "1px dashed var(--border)",
-          borderRadius: "6px",
+          borderRadius: "8px",
         }}
       >
         No open reorder recommendations. Run the pipeline to generate recommendations.
@@ -53,26 +49,17 @@ export default function ReorderQueueTable({ items, limit, compact = false }: Pro
         >
           <thead>
             <tr style={{ borderBottom: "1px solid var(--border)" }}>
-              {[
-                "Product",
-                "SKU",
-                "Store",
-                "Urgency",
-                "Units",
-                "Est. Cost",
-                "Lead (days)",
-                "Action",
-              ].map((h) => (
+              {["Urgency", "Product", "Store", "Rec. units", "Est. cost", "Reason", "Status"].map((h) => (
                 <th
                   key={h}
                   style={{
                     textAlign: "left",
-                    padding: compact ? "5px 8px" : "7px 10px",
-                    color: "var(--text-secondary)",
-                    fontWeight: 600,
+                    padding: pad,
                     fontSize: "10px",
+                    fontWeight: 700,
                     letterSpacing: "0.04em",
                     textTransform: "uppercase",
+                    color: "var(--text-secondary)",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -87,19 +74,10 @@ export default function ReorderQueueTable({ items, limit, compact = false }: Pro
                 key={item.recommendation_id}
                 style={{
                   borderBottom: "1px solid var(--border)",
-                  background: i % 2 === 0 ? "transparent" : "var(--surface)",
+                  background: i % 2 === 1 ? "var(--surface-2)" : "transparent",
                 }}
               >
-                <td style={{ padding: compact ? "5px 8px" : "8px 10px", fontWeight: 500 }}>
-                  {item.product_name ?? item.product_id}
-                </td>
-                <td style={{ padding: compact ? "5px 8px" : "8px 10px", color: "var(--text-secondary)" }}>
-                  {item.sku ?? "—"}
-                </td>
-                <td style={{ padding: compact ? "5px 8px" : "8px 10px", color: "var(--text-secondary)" }}>
-                  {item.store_id}
-                </td>
-                <td style={{ padding: compact ? "5px 8px" : "8px 10px" }}>
+                <td style={{ padding: pad }}>
                   <span
                     style={{
                       padding: "2px 7px",
@@ -108,60 +86,41 @@ export default function ReorderQueueTable({ items, limit, compact = false }: Pro
                       fontWeight: 700,
                       background: `${URGENCY_COLORS[item.urgency] ?? "#6b7280"}22`,
                       color: URGENCY_COLORS[item.urgency] ?? "#6b7280",
-                      border: `1px solid ${URGENCY_COLORS[item.urgency] ?? "#6b7280"}44`,
                       textTransform: "uppercase",
                     }}
                   >
                     {item.urgency}
                   </span>
                 </td>
-                <td
-                  style={{
-                    padding: compact ? "5px 8px" : "8px 10px",
-                    fontWeight: 600,
-                    textAlign: "right",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {item.recommended_units != null
-                    ? item.recommended_units.toLocaleString()
-                    : "—"}
+                <td style={{ padding: pad, fontWeight: 500 }}>
+                  <div>{item.product_name ?? item.product_id}</div>
+                  {item.sku && (
+                    <div style={{ fontSize: "10px", color: "var(--text-secondary)" }}>{item.sku}</div>
+                  )}
                 </td>
-                <td
-                  style={{
-                    padding: compact ? "5px 8px" : "8px 10px",
-                    textAlign: "right",
-                    whiteSpace: "nowrap",
-                  }}
-                >
+                <td style={{ padding: pad, color: "var(--text-secondary)" }}>{item.store_id}</td>
+                <td style={{ padding: pad, fontWeight: 600, textAlign: "right" }}>
+                  {item.recommended_units != null ? item.recommended_units.toLocaleString() : "—"}
+                </td>
+                <td style={{ padding: pad, textAlign: "right", whiteSpace: "nowrap" }}>
                   {item.estimated_order_cost != null
                     ? `€${item.estimated_order_cost.toLocaleString()}`
                     : "—"}
                 </td>
                 <td
                   style={{
-                    padding: compact ? "5px 8px" : "8px 10px",
-                    textAlign: "center",
+                    padding: pad,
                     color: "var(--text-secondary)",
+                    maxWidth: "200px",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {item.lead_time_days ?? "—"}
+                  {item.reason || "—"}
                 </td>
-                <td style={{ padding: compact ? "5px 8px" : "8px 10px" }}>
-                  <span
-                    style={{
-                      fontSize: "10px",
-                      fontWeight: 600,
-                      color:
-                        item.confidence_label === "review_now"
-                          ? "#dc2626"
-                          : item.confidence_label === "monitor"
-                          ? "#d97706"
-                          : "var(--text-secondary)",
-                    }}
-                  >
-                    {CONFIDENCE_LABELS[item.confidence_label] ?? item.confidence_label}
-                  </span>
+                <td style={{ padding: pad }}>
+                  <StatusBadge value={item.status} />
                 </td>
               </tr>
             ))}
@@ -169,7 +128,14 @@ export default function ReorderQueueTable({ items, limit, compact = false }: Pro
         </table>
       </div>
       {limit && items.length > limit && (
-        <p style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "8px", textAlign: "right" }}>
+        <p
+          style={{
+            fontSize: "11px",
+            color: "var(--text-secondary)",
+            marginTop: "8px",
+            textAlign: "right",
+          }}
+        >
           Showing {limit} of {items.length} items
         </p>
       )}

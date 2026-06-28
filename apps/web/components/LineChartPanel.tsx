@@ -8,35 +8,34 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ReferenceLine,
 } from "recharts";
 
-export interface LineChartSeries {
+interface Series {
   key: string;
   label: string;
   color: string;
   dashed?: boolean;
 }
 
-interface LineChartPanelProps {
+interface Props {
   data: Record<string, unknown>[];
-  series: LineChartSeries[];
   xKey: string;
+  series: Series[];
   height?: number;
   emptyMessage?: string;
-  referenceLineX?: string;
   valueFormatter?: (v: number) => string;
 }
 
+export interface LineChartSeries extends Series {}
+
 export default function LineChartPanel({
   data,
-  series,
   xKey,
+  series,
   height = 240,
   emptyMessage = "No data available.",
-  referenceLineX,
   valueFormatter,
-}: LineChartPanelProps) {
+}: Props) {
   if (!data || data.length === 0) {
     return (
       <div
@@ -84,18 +83,7 @@ export default function LineChartPanel({
           }}
           formatter={(val, name) => [fmt(Number(val)), String(name)]}
         />
-        <Legend
-          wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
-          iconType="line"
-        />
-        {referenceLineX && (
-          <ReferenceLine
-            x={referenceLineX}
-            stroke="var(--text-secondary)"
-            strokeDasharray="4 2"
-            label={{ value: "today", fontSize: 10, fill: "var(--text-secondary)" }}
-          />
-        )}
+        <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} iconType="line" />
         {series.map((s) => (
           <Line
             key={s.key}
@@ -104,7 +92,7 @@ export default function LineChartPanel({
             stroke={s.color}
             strokeWidth={1.5}
             dot={false}
-            strokeDasharray={s.dashed ? "5 3" : undefined}
+            strokeDasharray={s.dashed ? "4 4" : undefined}
             connectNulls
           />
         ))}

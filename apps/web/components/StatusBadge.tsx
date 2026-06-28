@@ -1,31 +1,31 @@
 "use client";
 
 const COLORS: Record<string, { bg: string; text: string }> = {
-  // Risk / urgency tiers
-  critical: { bg: "var(--danger-soft)", text: "var(--danger)" },
-  high:     { bg: "#fff7ed", text: "#c2410c" },
-  medium:   { bg: "var(--warning-soft)", text: "#a16207" },
-  low:      { bg: "var(--success-soft)", text: "var(--success)" },
-  unknown:  { bg: "var(--surface-2)", text: "var(--text-secondary)" },
-  // Pipeline statuses
-  completed: { bg: "var(--success-soft)", text: "var(--success)" },
-  success:   { bg: "var(--success-soft)", text: "var(--success)" },
-  ok:        { bg: "var(--success-soft)", text: "var(--success)" },
-  green:     { bg: "var(--success-soft)", text: "var(--success)" },
-  running:   { bg: "var(--info-soft)", text: "var(--info)" },
-  failed:    { bg: "var(--danger-soft)", text: "var(--danger)" },
-  red:       { bg: "var(--danger-soft)", text: "var(--danger)" },
-  warning:   { bg: "var(--warning-soft)", text: "var(--warning)" },
-  yellow:    { bg: "var(--warning-soft)", text: "var(--warning)" },
-  // Recommendation statuses
-  open:              { bg: "#eff6ff", text: "#1d4ed8" },
-  reviewed:          { bg: "#fefce8", text: "#a16207" },
-  approved_internal: { bg: "#f0fdf4", text: "#15803d" },
-  ignored:           { bg: "var(--surface-2)", text: "var(--text-secondary)" },
-  resolved:          { bg: "#f0fdf4", text: "#15803d" },
-  // Confidence
-  high_confidence:   { bg: "#f0fdf4", text: "#15803d" },
-  low_confidence:    { bg: "#fef2f2", text: "#dc2626" },
+  critical:    { bg: "#fee2e2", text: "#991b1b" },
+  high:        { bg: "#ffedd5", text: "#9a3412" },
+  medium:      { bg: "#fef3c7", text: "#92400e" },
+  warning:     { bg: "#fef3c7", text: "#92400e" },
+  low:         { bg: "#dcfce7", text: "#166534" },
+  healthy:     { bg: "#dcfce7", text: "#166534" },
+  ready:       { bg: "#dcfce7", text: "#166534" },
+  strong:      { bg: "#dcfce7", text: "#166534" },
+  completed:   { bg: "#dcfce7", text: "#166534" },
+  passed:      { bg: "#dcfce7", text: "#166534" },
+  success:     { bg: "#dcfce7", text: "#166534" },
+  ok:          { bg: "#dcfce7", text: "#166534" },
+  directional: { bg: "#dbeafe", text: "#1e40af" },
+  running:     { bg: "#dbeafe", text: "#1e40af" },
+  open:        { bg: "#dbeafe", text: "#1e40af" },
+  pending:     { bg: "#f1f5f9", text: "#475569" },
+  weak:        { bg: "#f1f5f9", text: "#475569" },
+  failed:      { bg: "#f1f5f9", text: "#475569" },
+  no_data:     { bg: "#f1f5f9", text: "#475569" },
+  no_model:    { bg: "#f1f5f9", text: "#475569" },
+  unknown:     { bg: "#f1f5f9", text: "#475569" },
+  incomplete:  { bg: "#f1f5f9", text: "#475569" },
+  ignored:     { bg: "#f1f5f9", text: "#475569" },
+  synthetic:   { bg: "#e0e7ff", text: "#3730a3" },
+  demo:        { bg: "#e0e7ff", text: "#3730a3" },
 };
 
 interface StatusBadgeProps {
@@ -34,9 +34,10 @@ interface StatusBadgeProps {
 }
 
 export default function StatusBadge({ value, label }: StatusBadgeProps) {
-  const key = (value ?? "unknown").toLowerCase();
+  const raw = value ?? "unknown";
+  const key = raw.toLowerCase().replace(/[\s/]+/g, "_");
   const colors = COLORS[key] ?? COLORS.unknown;
-  const display = label ?? (value ?? "—");
+  const display = label ?? raw;
 
   return (
     <span
@@ -49,6 +50,7 @@ export default function StatusBadge({ value, label }: StatusBadgeProps) {
         letterSpacing: "0.02em",
         background: colors.bg,
         color: colors.text,
+        whiteSpace: "nowrap",
       }}
     >
       {display}

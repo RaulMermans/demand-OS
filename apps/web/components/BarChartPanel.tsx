@@ -10,25 +10,27 @@ import {
   Cell,
 } from "recharts";
 
-export interface BarChartDatum {
+interface DataPoint {
   name: string;
   value: number;
   color?: string;
 }
 
-interface BarChartPanelProps {
-  data: BarChartDatum[];
+interface Props {
+  data: DataPoint[];
   height?: number;
   emptyMessage?: string;
   valueFormatter?: (v: number) => string;
 }
+
+export interface BarChartDatum extends DataPoint {}
 
 export default function BarChartPanel({
   data,
   height = 200,
   emptyMessage = "No data available.",
   valueFormatter,
-}: BarChartPanelProps) {
+}: Props) {
   if (!data || data.length === 0) {
     return (
       <div
