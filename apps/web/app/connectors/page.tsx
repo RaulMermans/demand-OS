@@ -98,8 +98,8 @@ export default function ConnectorsPage() {
   return (
     <div>
       <PageHeader
-        title="Connector readiness"
-        subtitle="Review disabled Shopify and WooCommerce scaffolds, validate configuration shape, and inspect dry-run safety behavior."
+        title="Data Sources"
+        subtitle="Shopify and WooCommerce are prepared as disabled connector stubs. No live API calls are made."
         badge="No live connector calls"
       />
       <div className="notice notice-warning" style={{ marginBottom: "20px" }}>

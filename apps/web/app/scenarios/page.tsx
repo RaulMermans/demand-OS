@@ -170,13 +170,13 @@ export default function ScenariosPage() {
   return (
     <div>
       <PageHeader
-        title="Scenario planning"
-        subtitle="Test bounded what-if assumptions against the current baseline without changing canonical forecasts, risks, or recommendations."
-        badge="Simulated · non-mutating"
+        title="Scenarios"
+        subtitle="What happens if demand, lead time, or inventory changes?"
+        badge="Simulated only · no real data modified"
       />
       <div className="notice notice-warning" style={{ marginBottom: "20px" }}>
-        Scenario outputs are stored separately for comparison only. They never mutate
-        operational tables or trigger purchasing actions.
+        Scenario outputs are <strong>simulated only</strong>. They are stored separately for comparison only. They never mutate
+        operational tables or trigger purchasing actions. Results are for planning exploration — not operational decisions.
       </div>
       <ApiKeyInput />
 
@@ -190,8 +190,85 @@ export default function ScenariosPage() {
             padding: "20px",
           }}
         >
-          <div style={{ fontWeight: 600, fontSize: "14px", marginBottom: "16px" }}>
+          <div style={{ fontWeight: 600, fontSize: "14px", marginBottom: "12px" }}>
             Scenario Parameters
+          </div>
+
+          {/* Preset chips */}
+          <div style={{ marginBottom: "16px" }}>
+            <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginBottom: "6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Demand change
+            </div>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
+              {[0.8, 0.9, 1.0, 1.1, 1.2].map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setInputs((prev) => ({ ...prev, demand_multiplier: v }))}
+                  style={{
+                    padding: "4px 12px",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                    border: inputs.demand_multiplier === v ? "1px solid var(--accent)" : "1px solid var(--border)",
+                    background: inputs.demand_multiplier === v ? "var(--accent-soft)" : "var(--surface)",
+                    color: inputs.demand_multiplier === v ? "var(--accent)" : "var(--text-secondary)",
+                    fontWeight: inputs.demand_multiplier === v ? 600 : 400,
+                  }}
+                >
+                  {v === 1.0 ? "Base" : v < 1.0 ? `−${Math.round((1 - v) * 100)}%` : `+${Math.round((v - 1) * 100)}%`}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginBottom: "6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Supplier lead time
+            </div>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
+              {[1.0, 1.25, 1.5].map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setInputs((prev) => ({ ...prev, lead_time_multiplier: v }))}
+                  style={{
+                    padding: "4px 12px",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                    border: inputs.lead_time_multiplier === v ? "1px solid var(--accent)" : "1px solid var(--border)",
+                    background: inputs.lead_time_multiplier === v ? "var(--accent-soft)" : "var(--surface)",
+                    color: inputs.lead_time_multiplier === v ? "var(--accent)" : "var(--text-secondary)",
+                    fontWeight: inputs.lead_time_multiplier === v ? 600 : 400,
+                  }}
+                >
+                  {v === 1.0 ? "Normal" : `+${Math.round((v - 1) * 100)}%`}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginBottom: "6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Inventory adjustment
+            </div>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "14px" }}>
+              {[0, -50, 50].map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setInputs((prev) => ({ ...prev, inventory_adjustment_units: v }))}
+                  style={{
+                    padding: "4px 12px",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                    border: inputs.inventory_adjustment_units === v ? "1px solid var(--accent)" : "1px solid var(--border)",
+                    background: inputs.inventory_adjustment_units === v ? "var(--accent-soft)" : "var(--surface)",
+                    color: inputs.inventory_adjustment_units === v ? "var(--accent)" : "var(--text-secondary)",
+                    fontWeight: inputs.inventory_adjustment_units === v ? 600 : 400,
+                  }}
+                >
+                  {v === 0 ? "Current" : v > 0 ? `+${v} units` : `${v} units`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: "14px", marginBottom: "4px", fontSize: "11px", color: "var(--text-secondary)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Fine-tune
           </div>
 
           {inputRow("Demand Multiplier", "demand_multiplier", 0.5, 2.0, 0.05, "0.5×–2.0×")}

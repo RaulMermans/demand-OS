@@ -470,8 +470,8 @@ else
   ((PASS += 1))
 fi
 
-# Sidebar label says Deployed MVP or similar
-if grep -qE "Deployed MVP|Vercel Prototype|Demo Mode|Production" apps/web/components/AppShell.tsx 2>/dev/null; then
+# Sidebar label says Deployed MVP or similar (Sprint 17: cockpit redesign uses "Inventory decision cockpit" or "DemandOS")
+if grep -qE "Deployed MVP|Vercel Prototype|Demo Mode|Production|Inventory decision cockpit|DemandOS" apps/web/components/AppShell.tsx 2>/dev/null; then
   echo "   ✅ AppShell.tsx has current sidebar label"
   ((PASS += 1))
 else
@@ -674,8 +674,9 @@ for f in "${SPRINT13_FRONTEND[@]}"; do
 done
 
 echo ""
-echo "Sprint 13 — nav labels in AppShell..."
-for label in "CSV Upload" "Monitoring" "Scenarios" "Connectors"; do
+echo "Sprint 13 — nav labels in AppShell (Sprint 17: Connectors→Data Sources, Monitoring merged into Trust section)..."
+# Sprint 17 renamed Connectors→Data Sources and merged Monitoring into Forecast Trust/Data Quality
+for label in "CSV Upload" "Scenarios"; do
   if grep -q "$label" apps/web/components/AppShell.tsx 2>/dev/null; then
     echo "   ✅ AppShell has '$label' nav item"
     ((PASS += 1))
@@ -684,6 +685,22 @@ for label in "CSV Upload" "Monitoring" "Scenarios" "Connectors"; do
     ((FAIL += 1))
   fi
 done
+# Sprint 17: Connectors renamed to Data Sources
+if grep -qE "Data Sources|Connectors" apps/web/components/AppShell.tsx 2>/dev/null; then
+  echo "   ✅ AppShell has Data Sources (or legacy Connectors) nav item"
+  ((PASS += 1))
+else
+  echo "   ❌ AppShell missing Data Sources nav item"
+  ((FAIL += 1))
+fi
+# Sprint 17: Monitoring merged — check page file still exists for backend tests
+if [ -f "apps/web/app/monitoring/page.tsx" ]; then
+  echo "   ✅ Monitoring page file exists (merged into Trust nav in Sprint 17)"
+  ((PASS += 1))
+else
+  echo "   ❌ Monitoring page file MISSING"
+  ((FAIL += 1))
+fi
 
 echo ""
 echo "Sprint 13 — API routes registered in main.py..."
@@ -760,11 +777,11 @@ for screenshot in "13-csv-upload.png" "14-monitoring.png" "15-scenarios.png" "16
   fi
 done
 
-if grep -q "Deployed MVP · public portfolio" apps/web/components/AppShell.tsx 2>/dev/null; then
-  echo "   ✅ Sidebar uses public-release label"
+if grep -qE "Deployed MVP|Inventory decision cockpit|Operator Cockpit" apps/web/components/AppShell.tsx 2>/dev/null; then
+  echo "   ✅ Sidebar uses public-release label (Sprint 17: operator cockpit branding)"
   ((PASS += 1))
 else
-  echo "   ❌ Sidebar label is stale"
+  echo "   ❌ Sidebar label is stale — expected 'Deployed MVP', 'Inventory decision cockpit', or 'Operator Cockpit'"
   ((FAIL += 1))
 fi
 
@@ -816,16 +833,17 @@ done
 echo ""
 echo "Sprint 15 — nav and content checks..."
 
-if grep -q "ML Insights" apps/web/components/AppShell.tsx 2>/dev/null; then
-  echo "   ✅ AppShell has 'ML Insights' nav item"
+# Sprint 17: ML Insights merged into Forecast Trust — check page still exists (not required in nav)
+if [ -f "apps/web/app/data-science/page.tsx" ]; then
+  echo "   ✅ ML Insights page (data-science) exists — accessible via Forecast Trust cross-link (Sprint 17)"
   ((PASS += 1))
 else
-  echo "   ❌ AppShell missing 'ML Insights' nav item"
+  echo "   ❌ ML Insights page (data-science) MISSING"
   ((FAIL += 1))
 fi
 
-if grep -q "Inventory intelligence\|getAnalyticsCockpit\|Analytics cockpit" apps/web/app/page.tsx 2>/dev/null; then
-  echo "   ✅ Home page has analytics cockpit (Sprint 16 redesign)"
+if grep -q "getAnalyticsCockpit\|Analytics cockpit\|CockpitPage\|SituationBanner" apps/web/app/page.tsx 2>/dev/null; then
+  echo "   ✅ Home page has analytics cockpit / operator cockpit (Sprint 16/17 redesign)"
   ((PASS += 1))
 else
   echo "   ❌ Home page missing analytics cockpit"
@@ -1048,6 +1066,167 @@ if grep -q "18-analytics-cockpit" docs/screenshots/README.md 2>/dev/null; then
 else
   echo "   ⚠️  Screenshot docs missing 18-analytics-cockpit (SKIP — manual capture pending)"
   ((SKIP += 1))
+fi
+
+echo ""
+
+# -------------------------------------------------------------------
+# Sprint 17 — Operator Cockpit IA Redesign
+# -------------------------------------------------------------------
+echo "Sprint 17 — Navigation structure (Operate / Trust / Setup)..."
+
+# Section labels in AppShell
+for section in "Operate" "Trust" "Setup"; do
+  if grep -q "$section" apps/web/components/AppShell.tsx 2>/dev/null; then
+    echo "   ✅ AppShell has '$section' nav section"
+    ((PASS += 1))
+  else
+    echo "   ❌ AppShell missing '$section' nav section"
+    ((FAIL += 1))
+  fi
+done
+
+# New nav labels
+for label in "Cockpit" "Risk Board" "Reorder Queue" "Forecast Trust" "Data Quality" "Pipeline Trace" "Data Sources"; do
+  if grep -q "$label" apps/web/components/AppShell.tsx 2>/dev/null; then
+    echo "   ✅ AppShell has '$label' nav item"
+    ((PASS += 1))
+  else
+    echo "   ❌ AppShell missing '$label' nav item"
+    ((FAIL += 1))
+  fi
+done
+
+echo ""
+echo "Sprint 17 — New shared components..."
+for f in \
+  apps/web/components/SituationBanner.tsx \
+  apps/web/components/DemoScenarioCard.tsx \
+  apps/web/components/TrustBadge.tsx \
+  apps/web/components/TechnicalTrace.tsx; do
+  if [ -f "$f" ]; then
+    echo "   ✅ $f exists"
+    ((PASS += 1))
+  else
+    echo "   ❌ $f MISSING"
+    ((FAIL += 1))
+  fi
+done
+
+echo ""
+echo "Sprint 17 — Cockpit page uses new components..."
+if grep -q "SituationBanner" apps/web/app/page.tsx 2>/dev/null; then
+  echo "   ✅ Cockpit uses SituationBanner"
+  ((PASS += 1))
+else
+  echo "   ❌ Cockpit missing SituationBanner"
+  ((FAIL += 1))
+fi
+if grep -q "DemoScenarioCard" apps/web/app/page.tsx 2>/dev/null; then
+  echo "   ✅ Cockpit uses DemoScenarioCard"
+  ((PASS += 1))
+else
+  echo "   ❌ Cockpit missing DemoScenarioCard"
+  ((FAIL += 1))
+fi
+if grep -q "TechnicalTrace" apps/web/app/page.tsx 2>/dev/null; then
+  echo "   ✅ Cockpit uses TechnicalTrace"
+  ((PASS += 1))
+else
+  echo "   ❌ Cockpit missing TechnicalTrace"
+  ((FAIL += 1))
+fi
+
+echo ""
+echo "Sprint 17 — Page copy and framing..."
+
+# Risk Board uses triage framing
+if grep -q "Risk Board\|triage" apps/web/app/risks/page.tsx 2>/dev/null; then
+  echo "   ✅ Risk page has Risk Board / triage framing"
+  ((PASS += 1))
+else
+  echo "   ❌ Risk page missing Risk Board / triage framing"
+  ((FAIL += 1))
+fi
+
+# Reorder Queue has internal-only safety copy
+if grep -q "Reorder Queue\|internal.*review\|Approving internally" apps/web/app/recommendations/page.tsx 2>/dev/null; then
+  echo "   ✅ Recommendations page has Reorder Queue / internal safety copy"
+  ((PASS += 1))
+else
+  echo "   ❌ Recommendations page missing Reorder Queue framing"
+  ((FAIL += 1))
+fi
+
+# Forecast Trust page has trust labels
+if grep -q "Forecast Trust\|Strong\|Directional" apps/web/app/model-performance/page.tsx 2>/dev/null; then
+  echo "   ✅ Model performance page has Forecast Trust labels"
+  ((PASS += 1))
+else
+  echo "   ❌ Model performance page missing Forecast Trust labels"
+  ((FAIL += 1))
+fi
+
+# Pipeline Trace has technical-review note
+if grep -q "Pipeline Trace\|technical review\|start from" apps/web/app/pipeline/page.tsx 2>/dev/null; then
+  echo "   ✅ Pipeline page has Pipeline Trace / technical review note"
+  ((PASS += 1))
+else
+  echo "   ❌ Pipeline page missing Pipeline Trace / technical review note"
+  ((FAIL += 1))
+fi
+
+# Scenarios page has simulated-only language
+if grep -q "Simulated\|simulated only\|Simulated only" apps/web/app/scenarios/page.tsx 2>/dev/null; then
+  echo "   ✅ Scenarios page has simulated-only language"
+  ((PASS += 1))
+else
+  echo "   ❌ Scenarios page missing simulated-only language"
+  ((FAIL += 1))
+fi
+
+# Data Quality label
+if grep -q "Data Quality" apps/web/app/data-health/page.tsx 2>/dev/null; then
+  echo "   ✅ Data health page uses 'Data Quality' label"
+  ((PASS += 1))
+else
+  echo "   ❌ Data health page missing 'Data Quality' label"
+  ((FAIL += 1))
+fi
+
+# Data Sources label
+if grep -q "Data Sources" apps/web/app/connectors/page.tsx 2>/dev/null; then
+  echo "   ✅ Connectors page uses 'Data Sources' label"
+  ((PASS += 1))
+else
+  echo "   ❌ Connectors page missing 'Data Sources' label"
+  ((FAIL += 1))
+fi
+
+echo ""
+echo "Sprint 17 — No hardcoded cockpit KPI values..."
+for bad in "18,400\|18.4K\|94%\|€120" ; do
+  if grep -qE "$bad" apps/web/app/page.tsx 2>/dev/null; then
+    echo "   ❌ Possible hardcoded KPI value '$bad' in Cockpit page"
+    ((FAIL += 1))
+  else
+    echo "   ✅ No hardcoded '$bad' in Cockpit page"
+    ((PASS += 1))
+  fi
+done
+
+echo ""
+echo "Sprint 17 — No secrets in new component files..."
+if grep -rqE 'DEMANDOS_API_KEY=[a-zA-Z0-9]{16,}' \
+  apps/web/components/SituationBanner.tsx \
+  apps/web/components/DemoScenarioCard.tsx \
+  apps/web/components/TrustBadge.tsx \
+  apps/web/components/TechnicalTrace.tsx 2>/dev/null; then
+  echo "   ❌ Possible API key value in Sprint 17 component files"
+  ((FAIL += 1))
+else
+  echo "   ✅ No API key values in Sprint 17 component files"
+  ((PASS += 1))
 fi
 
 echo ""

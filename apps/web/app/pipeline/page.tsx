@@ -262,10 +262,26 @@ export default function PipelinePage() {
   return (
     <div>
       <PageHeader
-        title="Pipeline controls"
-        subtitle="Run the deterministic demo workflow end to end or execute individual stages with durable status tracking."
+        title="Pipeline Trace"
+        subtitle="Inspect how raw data became forecasts, risks, and recommendations."
         badge="Protected writes · no external side effects"
       />
+      <div
+        style={{
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          borderRadius: "8px",
+          padding: "12px 16px",
+          marginBottom: "20px",
+          fontSize: "12px",
+          color: "var(--text-secondary)",
+        }}
+      >
+        This page is for technical review. Normal product users start from{" "}
+        <a href="/" style={{ color: "var(--accent)", textDecoration: "none" }}>Cockpit</a>.
+        The pipeline trace shows how raw commerce records move through aggregation, feature
+        engineering, forecasting, risk scoring, and recommendation generation.
+      </div>
 
       <ApiKeyInput />
 

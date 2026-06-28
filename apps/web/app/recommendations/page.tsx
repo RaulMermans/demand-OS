@@ -85,11 +85,14 @@ export default function RecommendationsPage() {
   return (
     <div>
       <PageHeader
-        title="Reorder Recommendations"
-        subtitle="Internal review guidance for reorder quantities. Status changes are recorded inside DemandOS only."
+        title="Reorder Queue"
+        subtitle="Review internal reorder suggestions before any real-world action."
         kicker="Decision support"
         badge="Internal approval only · no purchasing"
       />
+      <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "20px", marginTop: "-4px" }}>
+        Approving internally does not create purchase orders or contact suppliers.
+      </p>
 
       {/* Why this exists */}
       <div

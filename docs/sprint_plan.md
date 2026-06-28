@@ -794,3 +794,47 @@ supplier communication, email/Slack alerts, real customer data, or autonomous ac
 **Architecture:** Deterministic read-only analytics layer. No agents, no autonomy, no external services.
 
 **Sprint 16 Status: COMPLETE ✅**
+
+
+## Sprint 17 — Operator Cockpit IA Redesign ✅
+
+**Goal:** Transform DemandOS from a technical control panel into an operator cockpit.
+
+**Navigation restructure:**
+- Three-section sidebar: **Operate** / **Trust** / **Setup**
+- Operate: Cockpit, Risk Board, Reorder Queue, Forecasts, Scenarios
+- Trust: Forecast Trust, Data Quality, Pipeline Trace
+- Setup: CSV Upload, Data Sources
+
+**Page renames and reframes:**
+- Home → **Cockpit** (situation-first, uses SituationBanner)
+- Inventory Risk → **Risk Board** (triage board framing)
+- Recommendations → **Reorder Queue** (decision queue framing)
+- Model Performance → **Forecast Trust** (trust-first framing)
+- Data Health → **Data Quality** (completeness framing)
+- Pipeline Controls → **Pipeline Trace** (provenance framing)
+- Connectors → **Data Sources** (intent framing)
+- ML Insights — accessible via cross-link from Forecast Trust (no top-level nav)
+- Monitoring — accessible via Data Quality cross-link (no top-level nav)
+- Overview — preserved as route, removed from primary nav
+
+**New shared components:**
+- `SituationBanner.tsx` — large hero card answering "What needs attention?"
+- `DemoScenarioCard.tsx` — makes synthetic data feel intentional and credible
+- `TrustBadge.tsx` — reusable badge (Strong/Directional/Weak/etc.)
+- `TechnicalTrace.tsx` — pipeline provenance strip (Raw → Features → Forecasts → Risks → Recs)
+
+**Scenarios page:** Added preset chips (demand: −20%/−10%/Base/+10%/+20%, lead time, inventory)
+
+**Cockpit:** SituationBanner with large SKU attention count, CTA buttons, 4-metric strip,
+risk drivers + reorder queue side by side, inventory trend chart, TechnicalTrace strip,
+DemoScenarioCard, safety boundary card.
+
+**Pipeline Trace:** Added technical-review note at top directing casual users to Cockpit.
+
+**No backend changes:** No new ML models, formulas, or endpoints. Read-only IA redesign.
+
+**verify.sh:** Updated Sprint 13/15 stale checks, added Sprint 17 checks (nav labels,
+new components, page copy, no hardcoded KPIs, no secrets).
+
+**Sprint 17 Status: COMPLETE ✅**

@@ -1,124 +1,169 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode } from "react";
 
-const NAV_ITEMS = [
-  { href: "/", label: "Home", icon: "⌂" },
-  { href: "/overview", label: "Overview", icon: "◫" },
-  { href: "/forecasts", label: "Forecasts", icon: "⌁" },
-  { href: "/risks", label: "Inventory Risk", icon: "△" },
-  { href: "/recommendations", label: "Recommendations", icon: "→" },
-  { href: "/model-performance", label: "Model Performance", icon: "◇" },
-  { href: "/data-science", label: "ML Insights", icon: "⬡" },
-  { href: "/data-health", label: "Data Health", icon: "✓" },
-  { href: "/pipeline", label: "Pipeline Controls", icon: "▷" },
+const NAV = [
+  {
+    section: "Operate",
+    items: [
+      { href: "/", label: "Cockpit" },
+      { href: "/risks", label: "Risk Board" },
+      { href: "/recommendations", label: "Reorder Queue" },
+      { href: "/forecasts", label: "Forecasts" },
+      { href: "/scenarios", label: "Scenarios" },
+    ],
+  },
+  {
+    section: "Trust",
+    items: [
+      { href: "/model-performance", label: "Forecast Trust" },
+      { href: "/data-health", label: "Data Quality" },
+      { href: "/pipeline", label: "Pipeline Trace" },
+    ],
+  },
+  {
+    section: "Setup",
+    items: [
+      { href: "/csv-upload", label: "CSV Upload" },
+      { href: "/connectors", label: "Data Sources" },
+    ],
+  },
 ];
-
-const ADVANCED_NAV_ITEMS = [
-  { href: "/csv-upload", label: "CSV Upload", icon: "↑" },
-  { href: "/monitoring", label: "Monitoring", icon: "◎" },
-  { href: "/scenarios", label: "Scenarios", icon: "↗" },
-  { href: "/connectors", label: "Connectors", icon: "⌘" },
-];
-
-interface RuntimeInfo {
-  runtime_mode?: string;
-  demo_scale?: string;
-  database?: string;
-}
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [runtime, setRuntime] = useState<RuntimeInfo | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-    fetch(`${base}/api/readiness`)
-      .then((r) => r.json())
-      .then((data: RuntimeInfo) => setRuntime(data))
-      .catch(() => null);
-  }, []);
-
-  const runtimeLabel =
-    runtime?.runtime_mode === "vercel" ? "Vercel" : runtime?.runtime_mode === "local" ? "Local" : null;
-  const scaleLabel =
-    runtime?.demo_scale === "small" ? "Small" : runtime?.demo_scale === "full" ? "Full" : null;
   return (
-    <div className="app-shell">
-      <nav className="sidebar" aria-label="Primary navigation">
-        <div className="brand">
-          <div className="brand-mark">D</div>
-          <div>
-            <div className="brand-name">DemandOS</div>
-            <div className="brand-subtitle">Deployed MVP · public portfolio</div>
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        background: "var(--background)",
+      }}
+    >
+      <nav
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          bottom: 0,
+          width: "240px",
+          background: "var(--surface)",
+          borderRight: "1px solid var(--border)",
+          display: "flex",
+          flexDirection: "column",
+          zIndex: 100,
+          overflowY: "auto",
+        }}
+      >
+        <div
+          style={{
+            padding: "20px 20px 16px",
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          <div
+            style={{
+              fontWeight: 800,
+              fontSize: "17px",
+              color: "var(--text-primary)",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            DemandOS
+          </div>
+          <div
+            style={{
+              fontSize: "11px",
+              color: "var(--text-secondary)",
+              marginTop: "2px",
+            }}
+          >
+            Inventory decision cockpit
           </div>
         </div>
 
-        <ul className="nav-list">
-          {NAV_ITEMS.map((item) => {
-            const active =
-              pathname === item.href ||
-              (item.href === "/overview" && pathname.startsWith("/products/"));
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`nav-link${active ? " active" : ""}`}
-                >
-                  <span className="nav-icon" aria-hidden>{item.icon}</span>
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-
-          <li className="nav-section">Advanced tools</li>
-
-          {ADVANCED_NAV_ITEMS.map((item) => {
-            const active = pathname === item.href;
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`nav-link${active ? " active" : ""}`}
-                >
-                  <span className="nav-icon" aria-hidden>{item.icon}</span>
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-
-        {runtime && (
-          <div className="runtime-card">
-            <div className="runtime-title">
-              <span className="runtime-dot" />
-              Demo environment online
-            </div>
-            {runtimeLabel && (
-              <div className="runtime-row">
-                <span>Runtime</span>
-                <strong>{runtimeLabel}</strong>
+        <div style={{ flex: 1, padding: "12px 8px" }}>
+          {NAV.map((group) => (
+            <div key={group.section} style={{ marginBottom: "20px" }}>
+              <div
+                style={{
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "var(--text-tertiary)",
+                  padding: "0 12px",
+                  marginBottom: "4px",
+                }}
+              >
+                {group.section}
               </div>
-            )}
-            {scaleLabel && (
-              <div className="runtime-row">
-                <span>Dataset</span>
-                <strong>{scaleLabel} · synthetic</strong>
-              </div>
-            )}
-            <div className="runtime-row">
-              <span>External actions</span>
-              <strong>Disabled</strong>
+              <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                {group.items.map((item) => {
+                  const active = pathname === item.href;
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        style={{
+                          display: "block",
+                          padding: "7px 12px",
+                          borderRadius: "7px",
+                          fontSize: "13px",
+                          fontWeight: active ? 600 : 400,
+                          color: active ? "var(--accent)" : "var(--text-secondary)",
+                          background: active ? "var(--accent-soft)" : "transparent",
+                          textDecoration: "none",
+                          transition: "background 0.12s, color 0.12s",
+                        }}
+                      >
+                        {item.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
-          </div>
-        )}
+          ))}
+        </div>
+
+        <div
+          style={{
+            padding: "12px 16px 16px",
+            borderTop: "1px solid var(--border)",
+          }}
+        >
+          <span
+            style={{
+              display: "inline-block",
+              padding: "3px 8px",
+              borderRadius: "999px",
+              fontSize: "10px",
+              fontWeight: 600,
+              background: "#e0e7ff",
+              color: "#3730a3",
+            }}
+          >
+            Synthetic demo · no external actions
+          </span>
+        </div>
       </nav>
 
-      <main className="app-main">{children}</main>
+      <main
+        style={{
+          marginLeft: "240px",
+          flex: 1,
+          padding: "32px 40px",
+          minWidth: 0,
+        }}
+      >
+        {children}
+      </main>
     </div>
   );
 }

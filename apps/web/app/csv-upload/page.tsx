@@ -148,8 +148,8 @@ export default function CsvUploadPage() {
   return (
     <div>
       <PageHeader
-        title="CSV upload"
-        subtitle="Validate and ingest bounded raw operational files using the same raw-data contracts as the synthetic connector."
+        title="CSV Upload"
+        subtitle="Import raw operational records for validation and pipeline processing. Derived forecasts, risk scores, and recommendations are rejected."
         badge="Raw records only · 2 MB prototype limit"
       />
       <div className="notice notice-warning" style={{ marginBottom: "20px" }}>

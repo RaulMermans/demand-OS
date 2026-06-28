@@ -74,3 +74,33 @@ Final command results are recorded in [final_qa_checklist.md](final_qa_checklist
 - [x] Updated automated screenshots captured
 - [ ] Manual deployment/Neon/CI screenshots captured and redacted
 - [ ] Maintainer selects a repository license if reuse is intended
+
+## Sprint 17 — Operator Cockpit IA Redesign
+
+**Released:** 2026-06-28
+
+**Product framing:** DemandOS now presents as an *inventory decision cockpit for forecast-driven reorder planning* — not a generic forecasting platform.
+
+**Navigation:**
+- Sidebar restructured into three semantic sections: **Operate** / **Trust** / **Setup**
+- New operator-facing labels: Cockpit, Risk Board, Reorder Queue, Forecast Trust, Data Quality, Pipeline Trace, Data Sources
+- ML Insights accessible via Forecast Trust cross-link; Monitoring via Data Quality
+
+**New components:**
+- `SituationBanner` — hero card with at-risk SKU count, exposure, and CTAs
+- `DemoScenarioCard` — dataset context card
+- `TrustBadge` — semantic trust badges (Strong/Directional/Weak/Synthetic demo/No external actions)
+- `TechnicalTrace` — pipeline provenance strip
+
+**Changes (no backend changes):**
+- Cockpit: decision-oriented layout with SituationBanner + metric strip + risk/reorder panels + trend chart + pipeline trace
+- Risk Board: triage framing, clearer safety note
+- Reorder Queue: decision queue framing, internal-only safety copy
+- Forecast Trust: trust-label header, clearer "can I trust this?" orientation
+- Data Quality: completeness framing
+- Pipeline Trace: technical-review note pointing casual users to Cockpit
+- Scenarios: preset chips for demand/lead-time/inventory changes
+- Data Sources: honest framing of disabled connector stubs
+- Screenshots README updated with Sprint 17 pages (pending post-deploy capture)
+
+**Safety:** No hardcoded KPIs, no new external actions, no new backend routes.

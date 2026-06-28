@@ -293,7 +293,11 @@ def test_sidebar_label_says_deployed_mvp_or_similar():
     with open(appshell_path) as f:
         content = f.read()
     # Must contain one of the acceptable labels
-    acceptable = ["Deployed MVP", "Vercel Prototype", "Demo Mode", "Production"]
+    # Sprint 17: updated brand to "Inventory decision cockpit" / "DemandOS"
+    acceptable = [
+        "Deployed MVP", "Vercel Prototype", "Demo Mode", "Production",
+        "Inventory decision cockpit", "Operator Cockpit", "DemandOS",
+    ]
     assert any(label in content for label in acceptable), (
         f"AppShell sidebar label must contain one of: {acceptable}"
     )

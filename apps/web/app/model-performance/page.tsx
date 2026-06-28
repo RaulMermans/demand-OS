@@ -93,8 +93,8 @@ export default function ModelPerformancePage() {
   return (
     <div>
       <PageHeader
-        title="Model Performance"
-        subtitle="Evaluation metrics, baseline vs ML comparison, and feature signal explanation."
+        title="Forecast Trust"
+        subtitle="Understand whether the model is reliable enough for planning."
         kicker="ML evaluation"
         badge="Backtest results · synthetic data"
       />

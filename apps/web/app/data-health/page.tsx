@@ -40,8 +40,8 @@ export default function DataHealthPage() {
   return (
     <div>
       <PageHeader
-        title="Data Health"
-        subtitle="Pipeline integrity validation, record volumes by layer, and data lineage from raw ingestion to recommendations."
+        title="Data Quality"
+        subtitle="Is the data ready and complete enough to trust the outputs?"
         kicker="Pipeline observability"
         badge="Read-only · no mutations"
       />

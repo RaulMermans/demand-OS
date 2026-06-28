@@ -65,11 +65,14 @@ export default function RisksPage() {
   return (
     <div>
       <PageHeader
-        title="Inventory Risk"
-        subtitle="Prioritize product/store combinations by projected stockout probability, days-of-supply, and lost-sales exposure."
+        title="Risk Board"
+        subtitle="Find the SKU-store combinations most likely to stock out."
         kicker="Risk scoring"
         badge="Planning guidance · not automated"
       />
+      <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "20px", marginTop: "-4px" }}>
+        Risk scores are planning guidance, not automated purchasing decisions.
+      </p>
 
       {loading && <LoadingState />}
       {error && <ErrorState message={error} onRetry={() => load()} />}
@@ -94,7 +97,7 @@ export default function RisksPage() {
             }}
           >
             <h2 style={{ fontSize: "13px", fontWeight: 600, color: "#0c4a6e", marginBottom: "8px" }}>
-              How risk scores are computed
+              How risk scores are computed · triage guidance
             </h2>
             <ul style={{ margin: 0, paddingLeft: "18px" }}>
               <li style={{ fontSize: "13px", color: "#0c4a6e", marginBottom: "4px", lineHeight: 1.5 }}>
@@ -171,7 +174,7 @@ export default function RisksPage() {
                   Show critical only
                 </button>
                 <Link href="/recommendations" style={{ fontSize: "12px" }}>
-                  View reorder recommendations →
+                  View Reorder Queue →
                 </Link>
               </div>
             </div>
@@ -357,8 +360,8 @@ export default function RisksPage() {
             <strong>Planning guidance only.</strong> Risk scores are internal estimates based on forecast
             demand and current inventory. They do not trigger automatic reorders. Review high-risk items
             and use the{" "}
-            <Link href="/recommendations">Recommendations</Link>{" "}
-            page to see suggested reorder quantities.
+            <Link href="/recommendations">Reorder Queue</Link>{" "}
+            page to review suggested reorder quantities.
           </div>
         </>
       )}

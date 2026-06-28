@@ -28,6 +28,25 @@ python scripts/capture_screenshots.py \
 | 15 | `15-scenarios.png` | `/scenarios` | ✅ Captured |
 | 16 | `16-connectors.png` | `/connectors` | ✅ Captured |
 | 17 | `17-ml-insights.png` | `/data-science` | ⏳ Pending Sprint 15 deploy |
+| 18 | `18-analytics-cockpit.png` | `/` (Cockpit) | ⏳ Pending Sprint 17 deploy |
+| 19 | `19-risk-board.png` | `/risks` (Risk Board) | ⏳ Pending Sprint 17 deploy |
+| 20 | `20-reorder-queue.png` | `/recommendations` (Reorder Queue) | ⏳ Pending Sprint 17 deploy |
+| 21 | `21-forecast-trust.png` | `/model-performance` (Forecast Trust) | ⏳ Pending Sprint 17 deploy |
+| 22 | `22-data-quality.png` | `/data-health` (Data Quality) | ⏳ Pending Sprint 17 deploy |
+| 23 | `23-pipeline-trace.png` | `/pipeline` (Pipeline Trace) | ⏳ Pending Sprint 17 deploy |
+
+## Sprint 17 Notes
+
+Sprint 17 redesigned the navigation and page framing. Key renames:
+- Home → **Cockpit** (operator-first situation view)
+- Inventory Risk → **Risk Board** (triage framing)
+- Recommendations → **Reorder Queue** (decision queue framing)
+- Model Performance → **Forecast Trust** (trust-first framing)
+- Data Health → **Data Quality** (clarity framing)
+- Pipeline Controls → **Pipeline Trace** (provenance framing)
+- Connectors → **Data Sources** (intent framing)
+
+Screenshots 18–23 should be refreshed after Sprint 17 deployment is live.
 
 The application captures should show computed backend data where available. Empty
 states are acceptable only when they clearly explain the next action.
