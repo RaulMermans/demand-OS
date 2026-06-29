@@ -67,7 +67,7 @@ export default function ProductDrilldownPage() {
                 {forecast.rows.slice(0, 50).map((row, i) => (
                   <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
                     <td style={{ padding: "7px 8px" }}>{String(row.forecast_date ?? "").slice(0, 10)}</td>
-                    <td style={{ padding: "7px 8px", color: "var(--text-secondary)" }}>{String(row.forecast_type ?? "")}</td>
+                    <td style={{ padding: "7px 8px", color: "var(--text-secondary)" }}>{String(row.model_type ?? "")}</td>
                     <td style={{ padding: "7px 8px", fontWeight: 600 }}>{row.p50_units?.toFixed(1) ?? "—"}</td>
                     <td style={{ padding: "7px 8px", color: "var(--text-secondary)" }}>{row.p10_units?.toFixed(1) ?? "—"}</td>
                     <td style={{ padding: "7px 8px", color: "var(--text-secondary)" }}>{row.p90_units?.toFixed(1) ?? "—"}</td>
